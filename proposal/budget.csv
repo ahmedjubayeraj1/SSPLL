@@ -1,0 +1,7 @@
+scenario,ffnc,total_fs,vco_fs,ref_fs,pd_fs,ncb_fs,L300k,L1M
+optimistic,FFNC off,1713,1699,206,75,0,-110.9,-102.9
+optimistic,FFNC on,1136,1085,314,116,21,-120.0,-115.2
+typical,FFNC off,2467,2449,290,75,0,-107.1,-99.6
+typical,FFNC on,1615,1548,444,116,21,-117.1,-112.0
+pessimistic,FFNC off,4133,4103,478,133,0,-101.1,-94.6
+pessimistic,FFNC on,2689,2608,630,179,38,-109.2,-103.5

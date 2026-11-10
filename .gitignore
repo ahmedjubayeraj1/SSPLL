@@ -1,0 +1,13 @@
+# generated - reproducible from the sources (Rule 16: no data dumps)
+netlist/schematic/
+netlist/tb/
+netlist/*.log
+*.raw
+*.log
+sim/runs/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+# local machine files
+versions_pc.txt.bak
+*.swp

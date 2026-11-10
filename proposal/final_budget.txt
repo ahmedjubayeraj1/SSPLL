@@ -1,0 +1,9 @@
+f_ref  f_out   L1M   | typ off  typ on | pess off pess on | L300k typ off/on  pess off/on | reduction typ/pess
+  45  1.440  -96.1 |   2.53    1.73 |    4.23    2.87 | -111.1/-120.4   -105.2/-112.9 | 31.4% / 32.3%
+  50  1.600  -95.6 |   2.40    1.56 |    4.01    2.60 | -110.7/-120.4   -104.7/-112.7 | 34.8% / 35.2%
+  55  1.760  -95.2 |   2.28    1.42 |    3.82    2.38 | -110.3/-120.3   -104.4/-112.4 | 37.8% / 37.7%
+
+Power @ 1.60 GHz tt: VCO 4.87 mW, total on 7.42, off 6.62
+Worst power @ 1.76 GHz ss/110/3.63V: VCO 7.46 mW, total on 10.77, off 9.73
+FoM typ @1.6 GHz: -227.4 dB
+Ring supply @1.76 GHz ss/110/10fF ~ 1.63 V (interp, x1.5 near 1.63-1.64 V)

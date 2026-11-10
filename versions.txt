@@ -1,0 +1,44 @@
+# Frozen toolchain for the SKY130 SSPLL + FFNC (Chipalooza #4)
+# Frozen on 2026-11-11. Change only on purpose, and record the reason below.
+
+[reference]  # what every result in this repo must be reproducible with
+toolchain        = IIC-OSIC-TOOLS 2026.10   (docker image hpretl/iic-osic-tools:2026.10, released 2026-10-15)
+os_base          = Ubuntu 24.04 LTS
+pdk              = sky130A, open_pdks 1.0.608, commit 1689ac3f2dc763876eaf967227c7dfe831b031ae
+  sky130_fd_pr   = 403964dc7f9cca5ec1a8cc7b4f2a6f532b781676
+  sky130_fd_sc_hd= 9cb2d7cb8ed4619094263614039a61b6b2d22a88
+  sky130_fd_io   = 3ea30515f909f1c2f7e6ee887e83bd7fb4a78b90
+  xschem_sky130  = 95cbdad0ec5fa457ffb360b6ef5596802c8900ee
+xschem           = 3.4.8RC, commit d76e6cc74fdfa5de573a8ba14124ef00c611a9b6
+ngspice          = ngspice-47
+magic            = 8.3.685
+netgen           = 1.5.324
+klayout          = 0.30.12
+xyce             = Release-7.10.0
+openvaf          = dd05b5e2 (mb-experimental)
+cace             = 2.13.0
+python           = 3.x with numpy, scipy, matplotlib
+
+[claude_cloud_workspace]  # where the proposal and baseline simulations were run
+os               = Ubuntu 24.04.5 LTS
+pdk              = sky130A 1689ac3f (ciel release tarballs: common, sky130_fd_pr, sky130_fd_sc_hd)   MATCHES
+xschem           = XSCHEM V3.4.8RC @ d76e6cc   MATCHES
+magic            = 8.3.685   MATCHES
+ngspice          = ngspice-42 (Ubuntu package)   DIFFERS: reference is ngspice-47
+netgen           = 1.5.133 (Ubuntu package)   DIFFERS: reference is 1.5.324; use the container for sign-off LVS
+klayout          = 0.30.12 Python module only   PARTIAL: no GUI/DRC binary here
+cace             = 2.13.0   MATCHES
+python           = 3.13.18, numpy 2.5.3, scipy 1.18.1, matplotlib 3.11.2
+early_models     = proposal/sim used raw google/skywater-pdk-libs-sky130_fd_pr models (commit f62031a) through a
+                   minimal core-device library; those results are pre-baseline feasibility checks only.
+
+[jubayer_pc]  # filled in by:  ./tools/collect_versions.sh > versions_pc.txt
+see versions_pc.txt
+
+[cadence]  # filled in on the PC that runs Virtuoso (inside the VMware VM)
+virtuoso         = (from collect_versions.sh)
+spectre          = (from collect_versions.sh)
+sky130_cadence_kit = (name, version and source of the Cadence-compatible SKY130 PDK; record it by hand if the script cannot find it)
+
+[change_log]
+2026-11-11  initial freeze on IIC-OSIC-TOOLS 2026.10 / open_pdks 1689ac3f
