@@ -1,0 +1,4 @@
+# name N fref I_ring_mA(tt,10fF) L1M(dBc/Hz, ISF thermal scaled to 10fF + 3.35 dB allowance) other_power_on_mW
+5stg_x1.5_1.6GHz_N32 32 50e6 1.31 -95.6 2.55
+3stg_x1.0_2.4GHz_N48 48 50e6 0.73 -90.4 3.05
+3stg_x1.5_2.4GHz_N48 48 50e6 0.934 -91.1 3.05
