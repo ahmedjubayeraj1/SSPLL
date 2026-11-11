@@ -183,3 +183,5 @@ Sent separately:
 7. Rule 19: what temperature range will the sky130 parts be characterized over?
 8. Rule 9: process and latest usable point for an approved mid-design spec
    change?
+9. Rule 26 / 6.6: does the program offer any measurement support (shared lab, phase-noise analyzer access, common test
+   board) for teams without their own RF lab?

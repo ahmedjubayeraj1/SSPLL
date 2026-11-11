@@ -76,7 +76,9 @@ Area for 20 pF: MIM 10,000 um2 (needs several 30x30 um tiles); 1.8 V MOS cap abo
 
 ## 5. What this means for the previous SSPLL design (input to step 6)
 
-- Any resistor whose width is not one of the five values above is illegal (for example a 0.65 um wide RSM).
+- Any resistor whose width is not one of the five values above is illegal. (The old RSM is 5.73 um wide and
+  0.65 um long - legal, but so short that 27% of its value is end resistance; see audit/AUDIT.md.)
+- `m=` is ignored on res_xhigh_po in ngspice-42 with these models; draw parallel resistors explicitly.
 - A resistor shorter than 0.5 um is illegal; a resistor hundreds of um long (RF at 271 um) is legal but should be folded.
 - MIM caps above 30 x 30 um must be tiled; large LDO MIMs need re-planning.
 - A MOS capacitor must stay biased above about 0.6 V or most of its capacitance disappears.

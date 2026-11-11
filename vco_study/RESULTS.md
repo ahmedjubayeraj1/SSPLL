@@ -79,3 +79,31 @@ at equal ring power it gives more absolute jitter. It also moves SSPD sampling, 
 first divider to 2.4-2.64 GHz (TSPC margin drops from 139% to 59%) and would force a proposal rewrite
 12 days before the deadline. Recommendation: **keep the 5-stage x1.5 ring at 1.6 GHz.**
 Reasons that could still favour 3 stages: a 2.4 GHz ISM-band output, or reuse of old blocks planned for 2.36 GHz.
+
+## 7. Update (11 Nov 2026): phase noise with the models' own noise
+
+`isf2.py` replaces the gamma = 1 assumption with the drain-noise tables of the pinned models
+(`../correlation/noisegrid.py`: thermal and 1/f noise of a W = 1 um device over a 10 x 10 Vgs/Vds grid,
+scaled by W) and adds flicker up-conversion through the dc part of the ISF.
+
+| Ring | f0 | L(1 MHz) thermal | L(1 MHz) flicker | L(1 MHz) total | 1/f^3 corner |
+|---|---|---|---|---|---|
+| 5 x1.5, 1.08 mA | 1.602 GHz | -97.5 | -97.1 | **-94.2 dBc/Hz** | 1.1 MHz |
+| 3 x1.0, 0.61 mA | 2.403 GHz | -91.8 | -89.4 | **-87.4 dBc/Hz** | 1.75 MHz |
+
+nMOS flicker in these models is very high (corner tens of MHz at the device), so the 1/f^3 corner of the ring is
+~1 MHz, not the 0.2 MHz (typ) / 0.5 MHz (pess) the proposal assumed. The 3-stage verdict does not change.
+
+Proposal budget re-run (`budget_modelnoise.py`, 5-stage, 10 fF power basis, +1 dB CCO allowance typ, +4 dB and
+2x corner pessimistic):
+
+| Case | Jitter off / on | L(300 kHz) off / on |
+|---|---|---|
+| Proposal, typ (assumed) | 2.41 / 1.57 ps | -110.6 / -120.4 |
+| Model noise, typ | 2.29 / 1.40 ps | -108.1 / -120.0 |
+| Proposal, pess (assumed) | 4.03 / 2.61 ps | -104.7 / -112.6 |
+| Model noise, pess | 3.71 / 2.25 ps | -102.6 / -111.3 |
+
+Jitter and FFNC-on specs still hold. The FFNC-off phase noise at 300 kHz does not: typ -108 vs the proposed -111,
+pessimistic -102.6 vs the -102 maximum (0.6 dB margin). Recommended spec: typ -108, max -100 dBc/Hz.
+Still not included: CCO current-source noise beyond the +1 dB allowance, supply noise.
