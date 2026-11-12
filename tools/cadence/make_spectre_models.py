@@ -49,6 +49,61 @@ for f in os.listdir(spdir):
     if k:
         open(p, "w").write(t2); nfix += k; nfile += 1
 
+# 2b. remove Monte Carlo terms 'MC_MM_SWITCH*AGAUSS(..)*(..)' and 'MC_PR_SWITCH*AGAUSS(..)..'.
+#     Older Spectre (MMSIM 15.1) rejects AGAUSS in model cards. In every corner section (tt, ss, ff, sf, fs, ...)
+#     both switches are 0, so each term is exactly 0: nominal results are unchanged (verified in ngspice).
+#     Consequence: the 'mc' Monte Carlo sections do nothing in Spectre - run Monte Carlo in ngspice.
+SW = re.compile(r"MC_(MM|PR)_SWITCH\s*\*\s*AGAUSS\s*\(", re.I)
+def strip_mc(t):
+    out, i, n = [], 0, 0
+    while True:
+        m = SW.search(t, i)
+        if not m:
+            out.append(t[i:]); return "".join(out), n
+        s = m.start()
+        j = s - 1                                   # operator before the term
+        while j >= 0 and t[j] in " \t": j -= 1
+        lead = t[j] if j >= 0 and t[j] in "+-" else ""
+        k, depth = m.end(), 1                       # skip AGAUSS( ... )
+        while depth:
+            depth += {"(": 1, ")": -1}.get(t[k], 0); k += 1
+        while True:                                 # further factors: *(...), *name, *number
+            r = k
+            while r < len(t) and t[r] in " \t": r += 1
+            if r < len(t) and t[r] in "*/":
+                r += 1
+                while t[r] in " \t": r += 1
+                if t[r] == "(":
+                    d = 1; r += 1
+                    while d:
+                        d += {"(": 1, ")": -1}.get(t[r], 0); r += 1
+                else:
+                    while r < len(t) and (t[r].isalnum() or t[r] in "_." or
+                                          (t[r] in "+-" and t[r-1] in "eE" and t[r-2].isdigit())): r += 1
+                    if r < len(t) and t[r] == "(":      # function call such as sqrt(...)
+                        d = 1; r += 1
+                        while d:
+                            d += {"(": 1, ")": -1}.get(t[r], 0); r += 1
+                k = r
+            else:
+                break
+        if lead:
+            out.append(t[i:j]); i = k
+        else:
+            out.append(t[i:s] + "0"); i = k
+        n += 1
+nmc = 0
+for base in ("libs.ref/sky130_fd_pr/spice", "libs.tech/ngspice"):
+    for dp, _, fs in os.walk(os.path.join(out, "sky130A", base)):
+        for f in fs:
+            if not f.endswith(".spice"): continue
+            p = os.path.join(dp, f)
+            t = open(p, errors="ignore").read()
+            if "AGAUSS" not in t.upper(): continue
+            t2, k = strip_mc(t)
+            if k:
+                open(p, "w").write(t2); nmc += k
+
 MOS = ["nfet_01v8", "pfet_01v8", "nfet_01v8_lvt", "pfet_01v8_lvt", "pfet_01v8_hvt", "nfet_g5v0d10v5",
        "pfet_g5v0d10v5", "nfet_03v3_nvt", "nfet_05v0_nvt"]
 RES = [f"res_{k}_po_{w}" for k in ("xhigh", "high") for w in ("0p35", "0p69", "1p41", "2p85", "5p73")]
@@ -70,4 +125,5 @@ for n in CAP:   # resistor and cap models compute R and C from w, l in um direct
 open(os.path.join(out, "sspll_kit_wrap.spice"), "w").write("\n".join(w))
 print(f"frozen models from open_pdks {commit} -> {out}")
 print(f"moved .param defaults onto .subckt line: {nfix} subcircuits in {nfile} files")
+print(f"removed Monte Carlo AGAUSS terms (zero in corner sections): {nmc}")
 print(f"wrappers: {len(MOS)} MOS, {len(RES)} resistors, {len(CAP)} MIM -> {out}/sspll_kit_wrap.spice")
