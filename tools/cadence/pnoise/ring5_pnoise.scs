@@ -1,0 +1,70 @@
+// ring5_pnoise.scs - phase noise of the 5-stage x1.5 pseudo-differential ring VCO, Spectre PSS + Pnoise.
+// Same circuit as correlation/ring5_x1p5_ref.sp (ngspice/ISF reference): delay cell of sspll_vco_dcell.sch with all
+// widths x1.5, AC-coupled buffer on every node, 5 fF wiring per node, ideal 1.08 mA feed, vtune 0.9 V, tt, 27 C.
+// Reference (ngspice): f0 = 1.6022 GHz; ISF with model noise: L(1 MHz) = -94.2 dBc/Hz (thermal -97.5, flicker -97.1).
+// Run from the sky130A_frozen_spectre folder:  ./pnoise/run_pnoise.sh
+simulator lang=spectre
+global 0
+include "sky130A/libs.tech/ngspice/sky130.lib.spice" section=tt
+include "sspll_kit_wrap.spice"
+
+subckt dcell inp inm outp outm vtune vdd vss
+    P1 (outm inp vdd vdd) pfet_01v8 w=12.0u l=0.15u ad=3.4800p as=3.4800p pd=24.580u ps=24.580u
+    N1 (outm inp vss vss) nfet_01v8 w=6.0u l=0.15u ad=1.7400p as=1.7400p pd=12.580u ps=12.580u
+    P2 (outp inm vdd vdd) pfet_01v8 w=12.0u l=0.15u ad=3.4800p as=3.4800p pd=24.580u ps=24.580u
+    N2 (outp inm vss vss) nfet_01v8 w=6.0u l=0.15u ad=1.7400p as=1.7400p pd=12.580u ps=12.580u
+    S1 (outm vtune n1 vss) nfet_01v8 w=2.25u l=0.15u ad=0.6525p as=0.6525p pd=5.080u ps=5.080u
+    C1 (vss n1 vss vss) nfet_01v8 w=4.5u l=0.5u ad=1.3050p as=1.3050p pd=9.580u ps=9.580u
+    S2 (outp vtune n2 vss) nfet_01v8 w=2.25u l=0.15u ad=0.6525p as=0.6525p pd=5.080u ps=5.080u
+    C2 (vss n2 vss vss) nfet_01v8 w=4.5u l=0.5u ad=1.3050p as=1.3050p pd=9.580u ps=9.580u
+    T1N (inp vdd outp vss) nfet_01v8 w=0.63u l=0.15u ad=0.1827p as=0.1827p pd=1.840u ps=1.840u
+    T1P (inp vss outp vdd) pfet_01v8 w=0.63u l=0.15u ad=0.1827p as=0.1827p pd=1.840u ps=1.840u
+    T2N (inm vdd outm vss) nfet_01v8 w=0.63u l=0.15u ad=0.1827p as=0.1827p pd=1.840u ps=1.840u
+    T2P (inm vss outm vdd) pfet_01v8 w=0.63u l=0.15u ad=0.1827p as=0.1827p pd=1.840u ps=1.840u
+    CPP (outp vss) capacitor c=5f
+    CPM (outm vss) capacitor c=5f
+ends dcell
+
+subckt acbuf in vdd vss
+    CC (in g) capacitor c=36f
+    RF (g x) resistor r=228k
+    P1 (x g vdd vdd) pfet_01v8 w=2u l=0.15u ad=0.58p as=0.58p pd=4.58u ps=4.58u
+    N1 (x g vss vss) nfet_01v8 w=1u l=0.15u ad=0.29p as=0.29p pd=2.58u ps=2.58u
+    P2 (o x vdd vdd) pfet_01v8 w=4u l=0.15u ad=1.16p as=1.16p pd=8.58u ps=8.58u
+    N2 (o x vss vss) nfet_01v8 w=2u l=0.15u ad=0.58p as=0.58p pd=4.58u ps=4.58u
+ends acbuf
+
+// ---------------- ring, supplies, current feed ----------------
+X1 (vop vom p1 m1 vtune vddvco 0) dcell
+X2 (p1 m1 p2 m2 vtune vddvco 0) dcell
+X3 (p2 m2 p3 m3 vtune vddvco 0) dcell
+X4 (p3 m3 p4 m4 vtune vddvco 0) dcell
+X5 (p4 m4 vom vop vtune vddvco 0) dcell
+XB_vop (vop vddbuf 0) acbuf
+XB_p1 (p1 vddbuf 0) acbuf
+XB_p2 (p2 vddbuf 0) acbuf
+XB_p3 (p3 vddbuf 0) acbuf
+XB_p4 (p4 vddbuf 0) acbuf
+XB_vom (vom vddbuf 0) acbuf
+XB_m1 (m1 vddbuf 0) acbuf
+XB_m2 (m2 vddbuf 0) acbuf
+XB_m3 (m3 vddbuf 0) acbuf
+XB_m4 (m4 vddbuf 0) acbuf
+VBUF (vddbuf 0) vsource dc=1.8
+VTN (vtune 0) vsource dc=0.9
+IVCO (0 vddvco) isource dc=1.08m
+CDEC (vddvco 0) capacitor c=0.5p
+
+// start-up kick for the stabilisation transient (DC alone is the symmetric, non-oscillating point)
+ic vop=0 vom=1.3 vddvco=1.3
+
+simulatorOptions options temp=27 tnom=27 reltol=1e-4 gmin=1e-12 scale=1.0
+
+// 1) sanity transient: start-up and frequency (40 ns)
+tr1 tran stop=40n maxstep=2p
+// 2) periodic steady state of the free-running ring (autonomous: p/n name the oscillator nodes)
+pss1 pss fund=1.6G harms=30 errpreset=conservative tstab=30n p=vop n=vom
+// 3) periodic noise around harmonic 1, output vop-vom, offsets 1 kHz .. 100 MHz
+pn1 (vop vom) pnoise start=1k stop=100M dec=10 maxsideband=30 sweeptype=relative relharmnum=1 noisetype=timeaverage
+saveOptions options save=selected
+save vop vom vddvco
