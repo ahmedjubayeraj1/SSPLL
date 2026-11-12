@@ -154,6 +154,21 @@ for base in ("libs.ref/sky130_fd_pr/spice", "libs.tech/ngspice"):
             if t2 != t:
                 open(p, "w").write(t2); nvr += a; nbr += b2
 
+# 2d. '"expr"' left from the original {"expr"} -> 'expr';  drop the legacy alias sky130_fd_pr__special_pfet_pass
+#     (kept upstream only for old netlists; its call puts the model name after the parameters, which Spectre rejects;
+#      the real device sky130_fd_pr__special_pfet_latch is untouched)
+nq = nal = 0
+for base in ("libs.ref/sky130_fd_pr/spice", "libs.tech/ngspice"):
+    for dp, _, fs in os.walk(os.path.join(out, "sky130A", base)):
+        for f in fs:
+            if not f.endswith(".spice"): continue
+            p2 = os.path.join(dp, f); t = open(p2, errors="ignore").read(); t0 = t
+            t, k = re.subn(r"'\"([^\"']*)\"'", r"'\1'", t); nq += k
+            t, k = re.subn(r"^\.subckt\s+sky130_fd_pr__special_pfet_pass\b.*?^\.ends\s+sky130_fd_pr__special_pfet_pass[^\n]*\n",
+                           "* (legacy alias sky130_fd_pr__special_pfet_pass removed for Spectre - use special_pfet_latch)\n",
+                           t, flags=re.S | re.M | re.I); nal += k
+            if t != t0: open(p2, "w").write(t)
+
 MOS = ["nfet_01v8", "pfet_01v8", "nfet_01v8_lvt", "pfet_01v8_lvt", "pfet_01v8_hvt", "nfet_g5v0d10v5",
        "pfet_g5v0d10v5", "nfet_03v3_nvt", "nfet_05v0_nvt"]
 RES = [f"res_{k}_po_{w}" for k in ("xhigh", "high") for w in ("0p35", "0p69", "1p41", "2p85", "5p73")]
@@ -177,4 +192,5 @@ print(f"frozen models from open_pdks {commit} -> {out}")
 print(f"moved .param defaults onto .subckt line: {nfix} subcircuits in {nfile} files")
 print(f"removed Monte Carlo AGAUSS terms (zero in corner sections): {nmc}")
 print(f"voltage-dependent resistor lines evaluated at 0 V: {nvr}; brace expressions rewritten in quotes: {nbr}")
+print(f"doubled quotes fixed: {nq}; legacy aliases removed: {nal}")
 print(f"wrappers: {len(MOS)} MOS, {len(RES)} resistors, {len(CAP)} MIM -> {out}/sspll_kit_wrap.spice")
