@@ -79,3 +79,16 @@ Notes: ngspice cannot test `m` through two subcircuit levels (it only warns), wh
 
 PASS (stand-alone, models' scale=1u, mos_u=1e6). ADE forces scale=1.0, so the wrapper now uses mos_u=1 and the bench sets scale=1.0; `m=` passes through the wrapper. Open item: high_po +0.27% (not used in
 the design). Bench fix: MMSIM 15.1 rejects an AC sweep with start = stop, so `corr_kit.scs` uses `ac freq=1M`.
+
+## ADE check - LF cell (12 Nov 2026, IC617 + MMSIM 15.1, frozen models v4, mos_u = 1)
+
+Testbench Jubayer/LF_test: vsource 1 V DC + 1 V AC on vctrl, AC 100 kHz-10 MHz. Values at 1 MHz:
+
+| Signal | ADE with frozen models | ngspice (frozen PDK) | ADE with kit models (sky130_release_0.0.4) |
+|---|---|---|---|
+| total current into LF | 96.1368 uA | 96.1368 uA | 135.64 uA (+41%) |
+| C0 (MIM 20x20, m=2) | 10.2187 uA | 10.2188 uA | 10.2187 uA |
+
+PASS. The kit's own models differ in the resistor/MOS-cap branch; always check the netlist include lines
+(Simulation > Netlist > Display) - they must point to sky130A_frozen_spectre, never to sky130_release_0.0.4/models.
+Model Libraries are stored per ADE session: save the state (`frozen_tt`) and load it in every new testbench.
