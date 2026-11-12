@@ -104,6 +104,56 @@ for base in ("libs.ref/sky130_fd_pr/spice", "libs.tech/ngspice"):
             if k:
                 open(p, "w").write(t2); nmc += k
 
+# 2c. MMSIM 15.1 SPICE-reader limits:
+#   - voltage-dependent resistors 'r = {.. v(a,b) ..}' are not accepted -> evaluate at 0 V across the resistor
+#     (small-signal value; the size of this approximation is listed in tools/cadence/README.md)
+#   - '{expr}' parameter expressions are rejected on .subckt header lines -> written as 'expr' (quotes)
+#   - '(x)**2' -> pow(x,2)
+VREF = re.compile(r"\bv\(\s*[\w.]+\s*(,\s*[\w.]+\s*)?\)", re.I)
+BRACE = re.compile(r"\{([^{}']*)\}", re.S)
+def pow2(st):                                   # (x)**2 -> pow((x),2), x may contain parentheses
+    while "**2" in st:
+        k = st.index("**2"); j = k - 1
+        if st[j] != ")": st = st[:k] + "*" + st[k:].replace("**2", "", 1).replace("", "", 0); break
+        d = 1; j -= 1
+        while d:
+            d += {")": 1, "(": -1}.get(st[j], 0); j -= 1
+        st = st[:j+1] + "pow(" + st[j+1:k] + ",2)" + st[k+3:]
+    return st
+def fix_lines(t):
+    lines = t.split("\n"); stm = []; k_r = k_b = 0
+    i = 0; res = []
+    while i < len(lines):                       # group a statement with its '+' continuation lines
+        if lines[i].lstrip().startswith("*") or not lines[i].strip():
+            res.append(lines[i]); i += 1; continue
+        grp = [lines[i]]; cm = []; i += 1
+        while i < len(lines):
+            s = lines[i].lstrip()
+            if s.startswith("+"): grp.append(lines[i]); i += 1
+            elif s.startswith("*") and i + 1 < len(lines) and any(x.lstrip().startswith("+") for x in lines[i+1:i+3]):
+                cm.append(lines[i]); i += 1        # comment inside a continued statement: move it in front
+            else: break
+        st = "\n".join(grp)
+        head = st.lstrip()
+        if re.match(r"r\S*\s+\S+\s+\S+\s+r\s*=", head, re.I) and VREF.search(st):
+            st = VREF.sub("0", st); k_r += 1
+        if "**2" in st: st = pow2(st)
+        st2 = BRACE.sub(lambda m: "'" + m.group(1) + "'", st)
+        if st2 != st: k_b += 1
+        res.extend(cm); res.append(st2)
+    return "\n".join(res), k_r, k_b
+nvr = nbr = 0
+for base in ("libs.ref/sky130_fd_pr/spice", "libs.tech/ngspice"):
+    for dp, _, fs in os.walk(os.path.join(out, "sky130A", base)):
+        for f in fs:
+            if not f.endswith(".spice"): continue
+            p = os.path.join(dp, f)
+            t = open(p, errors="ignore").read()
+            if "{" not in t and "**" not in t and "v(" not in t.lower(): continue
+            t2, a, b2 = fix_lines(t)
+            if t2 != t:
+                open(p, "w").write(t2); nvr += a; nbr += b2
+
 MOS = ["nfet_01v8", "pfet_01v8", "nfet_01v8_lvt", "pfet_01v8_lvt", "pfet_01v8_hvt", "nfet_g5v0d10v5",
        "pfet_g5v0d10v5", "nfet_03v3_nvt", "nfet_05v0_nvt"]
 RES = [f"res_{k}_po_{w}" for k in ("xhigh", "high") for w in ("0p35", "0p69", "1p41", "2p85", "5p73")]
@@ -122,8 +172,9 @@ for n in RES:   # width is fixed by the cell name; the kit's w and r parameters 
     w += [f".subckt {n} r0 r1 b l=5e-6 w=0 r=0", f"x0 r0 r1 b sky130_fd_pr__{n} l={{l*1e6}}", ".ends", ""]
 for n in CAP:   # resistor and cap models compute R and C from w, l in um directly (scale does not apply)
     w += [f".subckt {n} c0 c1 w=1e-6 l=1e-6", f"x0 c0 c1 sky130_fd_pr__{n} w={{w*1e6}} l={{l*1e6}}", ".ends", ""]
-open(os.path.join(out, "sspll_kit_wrap.spice"), "w").write("\n".join(w))
+open(os.path.join(out, "sspll_kit_wrap.spice"), "w").write("\n".join(w).replace("{", "'").replace("}", "'"))
 print(f"frozen models from open_pdks {commit} -> {out}")
 print(f"moved .param defaults onto .subckt line: {nfix} subcircuits in {nfile} files")
 print(f"removed Monte Carlo AGAUSS terms (zero in corner sections): {nmc}")
+print(f"voltage-dependent resistor lines evaluated at 0 V: {nvr}; brace expressions rewritten in quotes: {nbr}")
 print(f"wrappers: {len(MOS)} MOS, {len(RES)} resistors, {len(CAP)} MIM -> {out}/sspll_kit_wrap.spice")

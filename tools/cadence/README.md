@@ -36,6 +36,18 @@ here and would add risk without changing any result.
    - `$HOME/sky130A_frozen_spectre/sspll_kit_wrap.spice`, no section
 5. Re-run your LF cell: Spectre must now give 8.387 kOhm (1 V) and 1626.4 fF.
 
+## Changes needed for MMSIM 15.1 (Spectre 15.1, 2015) - all made by the generator
+
+| Change | Why | Effect on results (ngspice, original vs converted) |
+|---|---|---|
+| .param defaults moved onto the .subckt line (246 subcircuits) | Spectre treats body .param as constants | none (identical) |
+| Monte Carlo terms `MC_*_SWITCH*AGAUSS(..)` removed (23,170) | AGAUSS rejected in model cards | none in tt/ss/ff/sf/fs (the switches are 0); Monte Carlo only in ngspice |
+| `{expr}` written as `'expr'` | braces rejected on header lines | none |
+| Voltage-dependent poly resistors evaluated at 0 V across the resistor | `r = {.. v(a,b) ..}` not accepted | within 0.07% for small signals; at 1 V across: xhigh 0.35x1.36 -0.33%, xhigh 5.73x0.65 -1.43%, high 0.35x20 +0.99% |
+
+MIM caps and all MOS devices: identical at tt, ss, ff, sf, fs. For DC bias points with large voltages across
+short resistors (CCO degeneration, Rsm) use the ngspice value; for AC, noise and the loop filter Spectre is equivalent.
+
 ## If step 3 fails
 
 | Symptom | Cause | Fix |

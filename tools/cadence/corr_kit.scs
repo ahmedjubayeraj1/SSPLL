@@ -1,5 +1,6 @@
 // corr_kit.scs - Spectre correlation bench for the frozen sky130A models (open_pdks 1689ac3f).
-// Same devices and biases as correlation/corr_rc.sp and corr_mos.sp; expected values are from ngspice.
+// Same devices and biases as correlation/corr_rc.sp and corr_mos.sp; expected values are ngspice on the CONVERTED
+// models (resistors evaluated at 0 V across them - see README: within 0.07% small-signal, up to -1.4% at 1 V).
 // Edit OUT below to where make_spectre_models.py wrote the models, then:   spectre corr_kit.scs
 // Read the DC currents of the V* sources and the AC current magnitudes in the Results Browser (or viva).
 simulator lang=spectre
@@ -10,17 +11,17 @@ include "OUT/sspll_kit_wrap.spice"
 
 // ---------- resistors, 1 V across, tt 27 C: expected source current ----------
 VR (a 0) vsource dc=1
-R1 (a r1 0) res_xhigh_po_0p35 l=20u w=350n       // expect 8.7112 uA  (114.79 kOhm)
+R1 (a r1 0) res_xhigh_po_0p35 l=20u w=350n       // expect 8.7052 uA  (114.87 kOhm)
 V1 (r1 0) vsource dc=0
-R2 (a r2 0) res_xhigh_po_0p35 l=1.36u w=350n     // expect 119.24 uA  (8.387 kOhm) - your LF R1
+R2 (a r2 0) res_xhigh_po_0p35 l=1.36u w=350n     // expect 119.63 uA  (8.359 kOhm) - your LF R1
 V2 (r2 0) vsource dc=0
-R3 (a r3 0) res_xhigh_po_5p73 l=5.41u w=5.73u    // expect 508.09 uA  (1968.1 Ohm)
+R3 (a r3 0) res_xhigh_po_5p73 l=5.41u w=5.73u    // expect 508.81 uA  (1965.4 Ohm)
 V3 (r3 0) vsource dc=0
-R4 (a r4 0) res_xhigh_po_5p73 l=0.65u w=5.73u    // expect 3.2433 mA  (308.3 Ohm)
+R4 (a r4 0) res_xhigh_po_5p73 l=0.65u w=5.73u    // expect 3.2903 mA  (303.9 Ohm)
 V4 (r4 0) vsource dc=0
-R5 (a r5 0) res_high_po_0p35 l=20u w=350n        // expect 44.035 uA  (22.71 kOhm)
+R5 (a r5 0) res_high_po_0p35 l=20u w=350n        // expect 43.604 uA  (22.93 kOhm)
 V5 (r5 0) vsource dc=0
-R6 (a r6 0) res_xhigh_po_5p73 l=5.41u w=5.73u m=8   // expect 4.0647 mA if m works (8 x R3)
+R6 (a r6 0) res_xhigh_po_5p73 l=5.41u w=5.73u m=8   // expect 4.0705 mA if m works (8 x R3)
 V6 (r6 0) vsource dc=0
 
 // ---------- MIM caps, 1 V AC at 1 MHz: expected |current| ----------
