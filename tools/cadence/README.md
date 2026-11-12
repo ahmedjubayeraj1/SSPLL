@@ -34,7 +34,7 @@ here and would add risk without changing any result.
 4. If it passes, in ADE > Setup > Model Libraries **remove** the kit's `.../models/sky130.lib.spice` and add:
    - `$HOME/sky130A_frozen_spectre/sky130A/libs.tech/ngspice/sky130.lib.spice`, section `tt` (or ss, ff, sf, fs)
    - `$HOME/sky130A_frozen_spectre/sspll_kit_wrap.spice`, no section
-5. Re-run your LF cell: Spectre must now give 8.387 kOhm (1 V) and 1626.4 fF.
+5. Re-run your LF cell: Spectre must now give 8.359 kOhm (0 V model; ngspice full model 8.387 kOhm at 1 V) and 1626.4 fF.
 
 ## Changes needed for MMSIM 15.1 (Spectre 15.1, 2015) - all made by the generator
 
