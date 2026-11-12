@@ -59,3 +59,23 @@ short resistors (CCO degeneration, Rsm) use the ngspice value; for AC, noise and
 
 Notes: ngspice cannot test `m` through two subcircuit levels (it only warns), which is why the bench checks
 `m` in Spectre. Never edit the generated files by hand; change the generator and rebuild.
+
+## Correlation result - 12 Nov 2026, Spectre MMSIM 15.1 (IC617 VM), models v4, tt 27 C
+
+| Source | Device | Spectre | ngspice (converted) | Diff |
+|---|---|---|---|---|
+| V1 | xhigh 0.35 x 20 um | 8.7052 uA | 8.7052 uA | 0.00% |
+| V2 | xhigh 0.35 x 1.36 um | 119.628 uA | 119.628 uA | 0.00% |
+| V3 | xhigh 5.73 x 5.41 um | 508.81 uA | 508.81 uA | 0.00% |
+| V4 | xhigh 5.73 x 0.65 um | 3.2903 mA | 3.2903 mA | 0.00% |
+| V5 | high 0.35 x 20 um | 43.720 uA | 43.604 uA | +0.27% |
+| V6 | xhigh 5.73 x 5.41, m=8 | 4.0705 mA | 4.0705 mA | 0.00% |
+| VDN | nfet 4/0.15 | 188.524 uA | 188.524 uA | 0.00% |
+| VDN7 | nfet 4/0.15, m=7 | 1.31967 mA | 1.31967 mA | 0.00% |
+| VDP | pfet 8/0.15 | 74.863 uA | 74.863 uA | 0.00% |
+| VC1 | MIM 5x5 | 53.28 fF | 53.28 fF | 0.00% |
+| VC2 | MIM 20x20 | 813.18 fF | 813.18 fF | 0.00% |
+| VC3 | MIM 20x20, m=2 | 1626.4 fF | 1626.4 fF | 0.00% |
+
+PASS. `mos_u = 1e6` is correct for MMSIM 15.1; `m=` passes through the wrapper. Open item: high_po +0.27% (not used in
+the design). Bench fix: MMSIM 15.1 rejects an AC sweep with start = stop, so `corr_kit.scs` uses `ac freq=1M`.
