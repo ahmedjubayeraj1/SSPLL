@@ -62,8 +62,9 @@ simulatorOptions options temp=27 tnom=27 reltol=1e-4 gmin=1e-12 scale=1.0
 
 // 1) sanity transient: start-up and frequency (40 ns)
 tr1 tran stop=40n maxstep=2p
-// 2) periodic steady state of the free-running ring (autonomous: p/n name the oscillator nodes)
-pss1 pss fund=1.6G harms=30 errpreset=conservative tstab=30n p=vop n=vom
+// 2) periodic steady state of the free-running ring. Autonomous (oscillator) PSS: the oscillator nodes go in
+//    brackets after the name - MMSIM 15.1 ignores p=/n= parameters and would then force a fixed period.
+pss1 (vop vom) pss fund=1.602G harms=30 errpreset=moderate tstab=30n
 // 3) periodic noise around harmonic 1, output vop-vom, offsets 1 kHz .. 100 MHz
 pn1 (vop vom) pnoise start=1k stop=100M dec=10 maxsideband=30 sweeptype=relative relharmnum=1 noisetype=timeaverage
 saveOptions options save=selected
