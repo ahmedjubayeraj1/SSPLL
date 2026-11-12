@@ -1,0 +1,49 @@
+// corr_kit.scs - Spectre correlation bench for the frozen sky130A models (open_pdks 1689ac3f).
+// Same devices and biases as correlation/corr_rc.sp and corr_mos.sp; expected values are from ngspice.
+// Edit OUT below to where make_spectre_models.py wrote the models, then:   spectre corr_kit.scs
+// Read the DC currents of the V* sources and the AC current magnitudes in the Results Browser (or viva).
+simulator lang=spectre
+global 0
+// OUT = $HOME/sky130A_frozen_spectre by default
+include "OUT/sky130A/libs.tech/ngspice/sky130.lib.spice" section=tt
+include "OUT/sspll_kit_wrap.spice"
+
+// ---------- resistors, 1 V across, tt 27 C: expected source current ----------
+VR (a 0) vsource dc=1
+R1 (a r1 0) res_xhigh_po_0p35 l=20u w=350n       // expect 8.7112 uA  (114.79 kOhm)
+V1 (r1 0) vsource dc=0
+R2 (a r2 0) res_xhigh_po_0p35 l=1.36u w=350n     // expect 119.24 uA  (8.387 kOhm) - your LF R1
+V2 (r2 0) vsource dc=0
+R3 (a r3 0) res_xhigh_po_5p73 l=5.41u w=5.73u    // expect 508.09 uA  (1968.1 Ohm)
+V3 (r3 0) vsource dc=0
+R4 (a r4 0) res_xhigh_po_5p73 l=0.65u w=5.73u    // expect 3.2433 mA  (308.3 Ohm)
+V4 (r4 0) vsource dc=0
+R5 (a r5 0) res_high_po_0p35 l=20u w=350n        // expect 44.035 uA  (22.71 kOhm)
+V5 (r5 0) vsource dc=0
+R6 (a r6 0) res_xhigh_po_5p73 l=5.41u w=5.73u m=8   // expect 4.0647 mA if m works (8 x R3)
+V6 (r6 0) vsource dc=0
+
+// ---------- MIM caps, 1 V AC at 1 MHz: expected |current| ----------
+VC (c 0) vsource dc=0 mag=1
+C1 (c c1) cap_mim_m3_1 w=5u l=5u                 // expect 0.33478 uA  (53.28 fF)
+VC1 (c1 0) vsource dc=0
+C2 (c c2) cap_mim_m3_1 w=20u l=20u               // expect 5.1094 uA   (813.18 fF)
+VC2 (c2 0) vsource dc=0
+C3 (c c3) cap_mim_m3_1 w=20u l=20u m=2           // expect 10.219 uA   (1626.4 fF) - your LF C2
+VC3 (c3 0) vsource dc=0
+
+// ---------- MOS, tt 27 C ----------
+VGN (gn 0) vsource dc=0.9
+VDN (dn 0) vsource dc=0.9
+N1 (dn gn 0 0) nfet_01v8 w=4u l=0.15u ad=1.16p as=1.16p pd=8.58u ps=8.58u    // expect Id 188.52 uA
+VDN7 (dn7 0) vsource dc=0.9
+N7 (dn7 gn 0 0) nfet_01v8 w=4u l=0.15u ad=1.16p as=1.16p pd=8.58u ps=8.58u m=7   // expect 1.3197 mA
+VSP (sp 0) vsource dc=1.8
+VGP (gp 0) vsource dc=0.9
+VDP (dp 0) vsource dc=0.9
+P1 (dp gp sp sp) pfet_01v8 w=8u l=0.15u ad=2.32p as=2.32p pd=16.58u ps=16.58u  // expect Id 74.863 uA
+
+simulatorOptions options temp=27 tnom=27 reltol=1e-4 gmin=1e-12
+dcop dc
+ac1 ac start=1M stop=1M lin=1
+saveOptions options save=all currents=all
