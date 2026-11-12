@@ -1,0 +1,11 @@
+=== A) noiseless ===
+periods 351   mean 624.17686 ps (f = 1.60211 GHz)   period jitter 0.3 fs rms
+=== B) with noise ===
+periods 351   mean 624.17061 ps (f = 1.60213 GHz)   period jitter 88.0 fs rms
+=== errors ===
+=== warnings about noise ===
+    WARNING (SFE-884): "sky130A/libs.tech/ngspice/corners/../all.spice" 2: The option 'scale' is deleted because it is redefined at 'tnoise/ring5_tnoise.scs':line '62'.
+=== log tail ===
+Peak memory used = 88.9 Mbytes.
+Simulation started at: 9:23:57 PM, Thur Nov 12, 2026, ended at: 9:28:41 PM, Thur Nov 12, 2026, with elapsed time (wall clock): 284 s (4m  43.7s).
+spectre completes with 0 errors, 2 warnings, and 8 notices.

@@ -16,3 +16,16 @@ L(df) = S_out(f0+df)/P_c with P_c = |V1|^2/2, |V1(vop-vom)| = 1.5512 V. Parser: 
 
 Open: the ~8 dB gap. Next check: single-device drain noise in Spectre vs ngspice (66.8 / 6.80 pA/rtHz nfet,
 5.41 / 3.53 pA/rtHz pfet at 1 MHz / 1 GHz). Until resolved the proposal keeps the more pessimistic (ISF) numbers.
+
+## Resolution (12 Nov 2026, same day)
+
+1. Single-device drain noise, Spectre vs ngspice (same bias): nfet 66.83 / 6.797 pA/rtHz, pfet 5.411 / 3.533 pA/rtHz
+   at 1 MHz / 1 GHz - identical to ngspice (0.0 dB). The gap is the ring-level method, not the device models.
+2. Transient noise in Spectre (`../tnoise/`), 351 periods after 30 ns: period jitter 88.0 fs rms (noiseless floor 0.3 fs).
+   Prediction from the Spectre pnoise curve (L = S/Pc): 62 fs; from the ngspice ISF curve: 183 fs.
+   -> pnoise as converted is 3.0 dB optimistic (a factor of 2: sideband convention); ISF is 6.4 dB pessimistic.
+3. Best estimate (transient-noise anchored, pnoise shape): L(1 MHz) ~ -99 dBc/Hz (thermal ~ -104, flicker ~ -101),
+   flicker corner ~ 2.4 MHz, thermal FoM ~ 166.7 dB (optimistic edge; above the ~165 dB textbook bound).
+4. Proposal budget on this basis: jitter off/on 1.30/0.84 ps typ, 2.24/1.38 ps pess; L(300 kHz) off -111.4 typ,
+   -105.8 pess; on -120.4 / -113.2. All proposal specs hold; FFNC-off L(300 kHz) typ is only 0.4 dB inside.
+Open: find the ISF over-estimate (6.4 dB) in vco_study/isf2.py before using it for the redesigned VCO.
