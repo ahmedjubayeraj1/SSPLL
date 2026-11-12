@@ -44,7 +44,7 @@ VGP (gp 0) vsource dc=0.9
 VDP (dp 0) vsource dc=0.9
 P1 (dp gp sp sp) pfet_01v8 w=8u l=0.15u ad=2.32p as=2.32p pd=16.58u ps=16.58u  // expect Id 74.863 uA
 
-simulatorOptions options temp=27 tnom=27 reltol=1e-4 gmin=1e-12
+simulatorOptions options temp=27 tnom=27 reltol=1e-4 gmin=1e-12 scale=1.0
 dcop dc
 ac1 ac freq=1M
 saveOptions options save=all currents=all

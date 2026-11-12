@@ -52,7 +52,7 @@ short resistors (CCO degeneration, Rsm) use the ngspice value; for AC, noise and
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| MOS currents wrong by ~1e6 or "out of bin range" | Spectre ignores the models' `.option scale=1u` | In `sspll_kit_wrap.spice` set `.param mos_u=1` |
+| "does not fit lmax-lmin ... width 2.0e+01" in ADE | ADE writes `scale=1.0`, deleting the models' `scale=1u` | Fixed: wrapper uses `mos_u=1` (metres) and the bench sets `scale=1.0` like ADE |
 | R6 = R3 current, or C3 = C2, or N7 = N1 | `m` not applied through the wrapper | Send me the log; the fix is a per-device `m` pass-through |
 | Parse errors (`pwr`, `agauss`, `v(r1,r2)` in a resistor) | ngspice-specific syntax Spectre's SPICE reader rejects | Send me the first error lines; the generator gets a rule for it |
 | Everything off by a few % | wrong section, or `temp`/`tnom` not 27 | Section `tt`, `temp=27 tnom=27` |
@@ -77,5 +77,5 @@ Notes: ngspice cannot test `m` through two subcircuit levels (it only warns), wh
 | VC2 | MIM 20x20 | 813.18 fF | 813.18 fF | 0.00% |
 | VC3 | MIM 20x20, m=2 | 1626.4 fF | 1626.4 fF | 0.00% |
 
-PASS. `mos_u = 1e6` is correct for MMSIM 15.1; `m=` passes through the wrapper. Open item: high_po +0.27% (not used in
+PASS (stand-alone, models' scale=1u, mos_u=1e6). ADE forces scale=1.0, so the wrapper now uses mos_u=1 and the bench sets scale=1.0; `m=` passes through the wrapper. Open item: high_po +0.27% (not used in
 the design). Bench fix: MMSIM 15.1 rejects an AC sweep with start = stop, so `corr_kit.scs` uses `ac freq=1M`.
