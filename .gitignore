@@ -20,3 +20,4 @@ versions_pc.txt.bak
 *.pnoise
 *.fd.pss
 *.td.pss
+.venv/
