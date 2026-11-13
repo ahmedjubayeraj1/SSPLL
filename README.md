@@ -18,6 +18,7 @@ cancellation. Target 1.6 ps rms jitter (10 kHz-40 MHz) at about 7.4 mW. Status: 
 | `docs/architecture_decision.md` | step 8: variants on silicon vs in simulation, CCO and LDO supplies |
 | `models/` | step 9: phase-domain model (`pllmodel`), template notebook, self-test |
 | `docs/book/` | step 10: the living design documentation (20 chapters, outline stage); `mkdocs.yml` builds it as a site |
+| `learn/` | Phases 1–6: interactive theory notebooks (steps 11–71) with 589 interview questions; SKY130 delay-line labs |
 | `xschem/` | schematics and testbenches (baseline import in step 4) |
 
 ## Reproduce
