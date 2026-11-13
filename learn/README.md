@@ -3,7 +3,7 @@
 | Notebook | Roadmap steps | Interview questions |
 |---|---|---|
 | `phase1_fundamentals.ipynb` | 11–24 PLL fundamentals | 164 |
-| `phase2_type1.ipynb` | 25–32 Type-I PLL, limits, fixes | 87 |
+| `phase2_type1.ipynb` | 25–32 Type-I PLL, limits, fixes | 78 |
 | `phase3_type2_cppll.ipynb` | 33–45 Type-II charge-pump PLL (incl. the 50 MHz × 32 baseline design) | 118 |
 | `phase4_sspll.ipynb` | 46–58 sub-sampling PLL (incl. FLL acquisition simulation) | 112 |
 | `phase5_vcdl.ipynb` | 59–64 voltage-controlled delay line / NCB (SKY130 ngspice lab) | 50 |
