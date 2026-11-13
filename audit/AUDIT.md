@@ -12,7 +12,7 @@ Severity: **M** = must fix before layout (illegal, wrong, or missing for the pro
 
 | # | Block | Finding | Sev | Action |
 |---|---|---|---|---|
-| 1 | ldo | MIM caps 80x80 (XCM), 50x50 x4 (XCF), 50x50 x2 (XCFF) exceed the 30 um maximum side - illegal | M | Block is not used (CCO replaced it). Move to `archive/`, do not lay out |
+| 1 | ldo | MIM caps 80x80 (XCM), 50x50 x4 (XCF), 50x50 x2 (XCFF) exceed the 30 um maximum side - illegal | M | Block is not used for the ring (CCO replaced it). Move to `archive/`, do not lay out. A **new, small** LDO is still required for the SSPD/CP/buffer/NCB rail (step 8, docs/architecture_decision.md) |
 | 2 | cco | Rsm = res_xhigh_po_5p73, L = 0.65 um is legal but only 0.11 squares: 27% of its 308 Ohm is end (contact) resistance. Rsr : Rsm = 1968 : 308 = 6.4, not the 8 the 1:8 mirror needs; ends do not match like bodies | M | Rsm = 8 copies of the Rsr unit (L = 5.41) in parallel, drawn as 8 instances, common-centroid with Rsr |
 | 3 | cco | Rf = 0.35 x 271 um (1.55 MOhm with the pinned PDK; the old README says 2 MOhm) | S | Draw as 8 series segments of ~34 um so schematic = layout; re-check the filter corner |
 | 4 | cco | XCF is a 1.8 V pfet MOS cap whose n-well, source and drain sit on vdda = 3.3 V; gate = mirror gate (vdda - 1.0..1.3 V) | S | Verify gate-oxide voltage over power-up/down and that Magic DRC accepts a thin-oxide device in a 3.3 V well; fallback pfet_g5v0d10v5 cap (2.6x area) |

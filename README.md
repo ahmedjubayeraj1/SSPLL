@@ -15,6 +15,9 @@ cancellation. Target 1.6 ps rms jitter (10 kHz-40 MHz) at about 7.4 mW. Status: 
 | `audit/` | step 6: audit of the previous schematics |
 | `correlation/` | step 7: ngspice vs Cadence/Spectre device correlation (`STEP7.md`) |
 | `tools/cadence/` | frozen models for Spectre, correlation benches (`pvt/` over corners), phase-noise checks |
+| `docs/architecture_decision.md` | step 8: variants on silicon vs in simulation, CCO and LDO supplies |
+| `models/` | step 9: phase-domain model (`pllmodel`), template notebook, self-test |
+| `docs/book/` | step 10: the living design documentation (20 chapters, outline stage); `mkdocs.yml` builds it as a site |
 | `xschem/` | schematics and testbenches (baseline import in step 4) |
 
 ## Reproduce
@@ -23,6 +26,7 @@ cancellation. Target 1.6 ps rms jitter (10 kHz-40 MHz) at about 7.4 mW. Status: 
     ./tools/netlist_all.sh              # netlist every schematic
     python3 tools/check_netlists.py     # connectivity checks
     python3 proposal/final_budget.py    # jitter and power budget behind the spec
+    ./tools/setup_python.sh             # Python venv for models/ (self-test reproduces the proposal jitter)
 
 Everything here can be rebuilt and verified with open-source tools (Chipalooza Rules 13-14).
 License: Apache-2.0.

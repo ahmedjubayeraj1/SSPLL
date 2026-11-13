@@ -1,0 +1,8 @@
+# Python for the phase-domain models and plots (roadmap step 9). Tested with Python 3.12-3.13.
+numpy>=2.0          # np.trapezoid
+scipy>=1.11
+matplotlib>=3.8
+jupyterlab>=4.0
+ipykernel>=6.25
+nbformat>=5.9
+nbconvert>=7.0

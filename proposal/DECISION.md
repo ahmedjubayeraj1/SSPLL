@@ -6,6 +6,8 @@
 - Oscillator fed by 5-bit current DAC + 1:8 mirror from 3.3 V; ring supply node <= 1.8 V by design
 - SSPD + pulsed-Gm CP + type-II filter, ~2.5 MHz loop bandwidth
 - Feedforward noise cancellation (NCB), 4-bit gain, bypassable (ffnc_en)
+- New small LDO (3.3 V devices, VREF 1.2 V) -> 1.8 V analog rail for SSPD, CP, ring buffers, NCB; the ring itself is fed by the CCO (step 8)
+- On silicon: SSPLL and SSPLL + FFNC (ffnc_en). Type-II CP-PLL baseline: simulation only, same ring and N (step 8, docs/architecture_decision.md)
 - Dead-zone FLL with /32 TSPC divider
 - Outputs: f_out and /2, /4, /8, /16 taps to the SoC; CLK_OUT /16, /32, /64 for measurement
 - Pads: REF_IN (analog, self-biased VDDA/2, AC-coupled receiver), CLK_OUT, VTEST (analog)
