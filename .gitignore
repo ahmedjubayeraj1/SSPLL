@@ -11,3 +11,12 @@ __pycache__/
 # local machine files
 versions_pc.txt.bak
 *.swp
+# Rule 16: no raw simulator output in the repository (regenerate with the scripts)
+*.raw
+**/out/
+**/out_*/
+*.psf
+*.tran.tran
+*.pnoise
+*.fd.pss
+*.td.pss
