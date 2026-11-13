@@ -1,0 +1,46 @@
+// corr_pvt.scs.tmpl - Spectre correlation bench over corners and temperature (step 7).
+// Same devices and biases as ../corr_kit.scs; run_corr_pvt.sh fills in the model includes and the temperature and writes one netlist per point.
+// Expected values: expected_pvt.csv (ngspice on the same converted frozen models, ngspice_expected.py).
+simulator lang=spectre
+global 0
+%MODELS%
+
+// ---------- resistors, 1 V across: source current ----------
+VR (a 0) vsource dc=1
+R1 (a r1 0) res_xhigh_po_0p35 l=20u w=350n
+V1 (r1 0) vsource dc=0
+R2 (a r2 0) res_xhigh_po_0p35 l=1.36u w=350n
+V2 (r2 0) vsource dc=0
+R3 (a r3 0) res_xhigh_po_5p73 l=5.41u w=5.73u
+V3 (r3 0) vsource dc=0
+R4 (a r4 0) res_xhigh_po_5p73 l=0.65u w=5.73u
+V4 (r4 0) vsource dc=0
+R5 (a r5 0) res_high_po_0p35 l=20u w=350n
+V5 (r5 0) vsource dc=0
+R6 (a r6 0) res_xhigh_po_5p73 l=5.41u w=5.73u m=8
+V6 (r6 0) vsource dc=0
+
+// ---------- MIM caps, 1 V AC at 1 MHz: |current| ----------
+VC (c 0) vsource dc=0 mag=1
+C1 (c c1) cap_mim_m3_1 w=5u l=5u
+VC1 (c1 0) vsource dc=0
+C2 (c c2) cap_mim_m3_1 w=20u l=20u
+VC2 (c2 0) vsource dc=0
+C3 (c c3) cap_mim_m3_1 w=20u l=20u m=2
+VC3 (c3 0) vsource dc=0
+
+// ---------- MOS ----------
+VGN (gn 0) vsource dc=0.9
+VDN (dn 0) vsource dc=0.9
+N1 (dn gn 0 0) nfet_01v8 w=4u l=0.15u ad=1.16p as=1.16p pd=8.58u ps=8.58u
+VDN7 (dn7 0) vsource dc=0.9
+N7 (dn7 gn 0 0) nfet_01v8 w=4u l=0.15u ad=1.16p as=1.16p pd=8.58u ps=8.58u m=7
+VSP (sp 0) vsource dc=1.8
+VGP (gp 0) vsource dc=0.9
+VDP (dp 0) vsource dc=0.9
+P1 (dp gp sp sp) pfet_01v8 w=8u l=0.15u ad=2.32p as=2.32p pd=16.58u ps=16.58u
+
+simulatorOptions options temp=%TEMP% tnom=27 reltol=1e-4 gmin=1e-12 scale=1.0
+dcop dc
+ac1 ac freq=1M
+saveOptions options save=all currents=all
