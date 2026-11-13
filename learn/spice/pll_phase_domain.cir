@@ -1,0 +1,23 @@
+* pll_phase_domain.cir - linear phase-domain model of a 3rd-order charge-pump PLL (roadmap step 24)
+* Every node voltage is a PHASE in radians (except vc, the real control voltage).
+* Values: 50 MHz x 32 = 1.6 GHz, f_c = 2.5 MHz, PM = 60 deg, Ip = 100 uA, Kvco = 2*pi*300 MHz/V (assumed),
+* filter from sspll_learn.loop_design_type2(). Run:  ngspice -b pll_phase_domain.cir   -> ../data/pll_phase_domain.csv
+.param pi=3.141592653589793 Ip=100u Kvco={2*pi*300e6} N=32
+.param R1=18.0512k C1=13.162p C2=1.01808p
+Vin phi_in 0 dc 0 ac 1                       ; input phase (reference)
+Gpd 0 vc phi_in phid {Ip/(2*pi)}             ; PFD + charge pump: I = Ip/(2pi) * (phi_in - phi_div), into vc
+R1  vc n1 {R1}
+C1  n1 0  {C1}
+C2  vc 0  {C2}
+Gvco 0 phio vc 0 {Kvco}                       ; VCO: d(phi_out)/dt = Kvco * vc  ->  current into a 1 F capacitor
+Cint phio 0 1
+Rdc  phio 0 1e15                              ; DC path only (no effect in AC)
+Ediv phid 0 phio 0 {1/N}                      ; divider: phi_div = phi_out / N
+.control
+ac dec 50 1k 200meg
+let H = v(phio)/v(phi_in)
+wrdata ../data/pll_phase_domain.csv db(H) ph(H)
+echo "H(1kHz) in dB (expect 20log10(32) = 30.10):"
+print db(H)[0]
+.endc
+.end

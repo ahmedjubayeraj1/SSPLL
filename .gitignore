@@ -21,3 +21,5 @@ versions_pc.txt.bak
 *.fd.pss
 *.td.pss
 .venv/
+learn/html/
+learn/spice/.spiceinit
