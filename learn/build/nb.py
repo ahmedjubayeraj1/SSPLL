@@ -1,5 +1,7 @@
 """nb.py - tiny notebook builder for the learning notebooks (keeps the content reviewable as Python source)."""
-import os, re, nbformat as nbf
+import os, re, sys, nbformat as nbf
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from www import WWW
 
 SETUP = """# setup - run this cell first (Shift+Enter). Figures are interactive: drag the slider under each plot,
 # hover for values, drag to zoom, double-click to reset.
@@ -36,6 +38,15 @@ class Book:
         self.toc.append((n, title, anchor))
         extra = f"\n\n*Roadmap step {n}: {roadmap}*" if roadmap else ""
         self.cells.append(nbf.v4.new_markdown_cell(f"<a id='{anchor}'></a>\n## Step {n} — {title}{extra}"))
+        if n in WWW:
+            w, h, y = WWW[n]
+            self.cells.append(nbf.v4.new_markdown_cell(
+                f"### What happens\n{w}\n\n### How it happens\n{h}\n\n### Why it happens\n{y}"))
+        from wwh_supplement import S
+        if n in S:   # what/how/why parts this step does not already have under those headings
+            order = ("What happens", "How it happens", "Why it happens")
+            parts = [f"### {k}\n{S[n][k].strip()}" for k in order if k in S[n]]
+            self.cells.append(nbf.v4.new_markdown_cell("\n\n".join(parts)))
 
     def md(self, text):
         self.cells.append(nbf.v4.new_markdown_cell(text.strip("\n")))
