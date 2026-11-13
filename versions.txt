@@ -36,9 +36,12 @@ early_models     = proposal/sim used raw google/skywater-pdk-libs-sky130_fd_pr m
 see versions_pc.txt
 
 [cadence]  # filled in on the PC that runs Virtuoso (inside the VMware VM)
-virtuoso         = (from collect_versions.sh)
-spectre          = (from collect_versions.sh)
-sky130_cadence_kit = (name, version and source of the Cadence-compatible SKY130 PDK; record it by hand if the script cannot find it)
+virtuoso         = IC617 (from the 12 Nov 2026 runs; confirm with collect_versions.sh)
+spectre          = MMSIM 15.1 (Spectre 15.1, 2015) (from the 12 Nov 2026 runs; confirm with collect_versions.sh)
+sky130_cadence_kit = sky130_release_0.0.4 (VMware VM) - used for symbols and layout only; its own models are NOT used
+models_in_ade    = ~/sky130A_frozen_spectre (make_spectre_models.py from open_pdks 1689ac3f), ADE state frozen_tt
+correlation      = correlation/STEP7.md (tt 27 C PASS 12 Nov; PVT run tools/cadence/pvt/run_corr_pvt.sh)
 
 [change_log]
 2026-11-11  initial freeze on IIC-OSIC-TOOLS 2026.10 / open_pdks 1689ac3f
+2026-11-13  [cadence] filled from the step 7 correlation runs (no tool change)

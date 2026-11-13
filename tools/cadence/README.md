@@ -36,6 +36,11 @@ here and would add risk without changing any result.
    - `$HOME/sky130A_frozen_spectre/sspll_kit_wrap.spice`, no section
 5. Re-run your LF cell: Spectre must now give 8.359 kOhm (0 V model; ngspice full model 8.387 kOhm at 1 V) and 1626.4 fF.
 
+## Over corners and temperature (step 7)
+`pvt/run_corr_pvt.sh frozen ~/sky130A_frozen_spectre` runs the bench at tt, ss, ff, sf, fs, ll, hh, hl, lh x -40/27/110 C
+and must PASS (0.5%). `pvt/run_corr_pvt.sh kit KIT_LIB` measures the kit's own models against the same reference.
+Expected values: `pvt/expected_pvt.csv` (`pvt/ngspice_expected.py`). Report: `correlation/STEP7.md`.
+
 ## Changes needed for MMSIM 15.1 (Spectre 15.1, 2015) - all made by the generator
 
 | Change | Why | Effect on results (ngspice, original vs converted) |

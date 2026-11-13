@@ -12,6 +12,9 @@ cancellation. Target 1.6 ps rms jitter (10 kHz-40 MHz) at about 7.4 mW. Status: 
 | `versions.txt` | the frozen toolchain (IIC-OSIC-TOOLS 2026.10, open_pdks 1689ac3f) |
 | `tools/` | `env.sh`, `collect_versions.sh`, `netlist_all.sh`, `check_netlists.py` |
 | `pdk_char/` | ngspice benches that produced the cheat-sheet numbers |
+| `audit/` | step 6: audit of the previous schematics |
+| `correlation/` | step 7: ngspice vs Cadence/Spectre device correlation (`STEP7.md`) |
+| `tools/cadence/` | frozen models for Spectre, correlation benches (`pvt/` over corners), phase-noise checks |
 | `xschem/` | schematics and testbenches (baseline import in step 4) |
 
 ## Reproduce

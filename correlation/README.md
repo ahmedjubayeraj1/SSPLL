@@ -59,6 +59,10 @@ thermal -97.5, flicker -97.1, **total -94.2 dBc/Hz**, 1/f^3 corner ~1.1 MHz (the
    (`simulator lang=spice` include of `sky130.lib.spice` section tt) and re-run these benches to see whether Spectre
    accepts them - the ngspice-specific syntax in the files may need small edits.
 
+Over corners and temperature: `tools/cadence/pvt/run_corr_pvt.sh` runs this same bench at 9 model sections x 3
+temperatures and compares automatically (frozen mode: PASS/FAIL; kit mode: measures the kit's own models).
+Status and the R/C-corner finding: `STEP7.md`.
+
 ## 4. Phase-noise cross-check in Spectre (after step 3 passes)
 
 Ring alone, same bench as `ring5_x1p5_ref.sp` (ideal current feed, 5 fF per node, tt, 27 C):
