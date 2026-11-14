@@ -23,3 +23,5 @@ versions_pc.txt.bak
 .venv/
 learn/html/
 learn/spice/.spiceinit
+design/loop/spice/.spiceinit
+__pycache__/
