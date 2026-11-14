@@ -170,7 +170,7 @@ if __name__ == "__main__":
                       title="pseudo-diff delay cell")
     BUF_XY = symbol(os.path.join(OUT, "sspll_vco_acbuf.sym"), "sspll_vco_acbuf", **BUF_PINS, title="AC-coupled buffer")
     CORE_XY = symbol(os.path.join(OUT, "sspll_vco_core.sym"), "sspll_vco_core", **CORE_PINS, pitch=160)
-    for name, sch in (("sspll_vco_dcell", dcell(vco.BASE)), ("sspll_vco_acbuf", acbuf()), ("sspll_vco_core", core()),
+    for name, sch in (("sspll_vco_dcell", dcell(vco.FINAL)), ("sspll_vco_acbuf", acbuf()), ("sspll_vco_core", core()),
                       ("sspll_vco", vco_top())):
         errs = sch.save(os.path.join(OUT, name + ".sch"))
         print(name, ":", "\n  ".join(errs) or "drawing check clean")

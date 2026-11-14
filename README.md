@@ -18,6 +18,9 @@ cancellation. Target 1.6 ps rms jitter (10 kHz-40 MHz) at about 7.4 mW. Status: 
 | `docs/architecture_decision.md` | step 8: variants on silicon vs in simulation, CCO and LDO supplies |
 | `docs/design/step72_budget.md`, `design/budget/` | step 72: per-block phase-noise, jitter, power and area budget; block-level specs; layout rules |
 | `docs/design/step73_loop.md`, `design/loop/` | step 73: loop design sheet (f_c, PM, β, R1, C1, C2), exact sampled-loop model, PDK C-V and R/C corner data |
+| `docs/design/step74_vco.md`, `design/vco/`, `xschem/vco/` | step 74: VCO redesign (ISF flicker fix), corners, K_VCO, start-up; hierarchical LVS-clean schematics |
+| `docs/methods.md`, `design/SSPLL_design_log.xlsx` | every measurement method (what / why / how / how to run); project log: steps, devices with PDK checks, problems and solutions, results |
+| `tools/xsch.py`, `xschem/lvs.sh`, `xschem/render.sh` | schematic builder with drawing checks; schematic-vs-simulation LVS; PNG rendering |
 | `models/` | step 9: phase-domain model (`pllmodel`), template notebook, self-test |
 | `docs/book/` | step 10: the living design documentation (20 chapters, outline stage); `mkdocs.yml` builds it as a site |
 | `learn/` | Phases 1–6: interactive theory notebooks (steps 11–71) with 580 interview questions; SKY130 delay-line labs |

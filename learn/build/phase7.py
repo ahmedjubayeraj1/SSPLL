@@ -4,8 +4,9 @@ sys.path.insert(0, os.path.dirname(__file__))
 from nb import Book
 from qa72 import QA72
 from qa73 import QA73
+from qa74 import QA74
 
-b = Book("Phase 7 — Block design (steps 72–73)",
+b = Book("Phase 7 — Block design (steps 72–74)",
          "Phases 1–6 explained *why* each block exists. Phase 7 designs them — and the first design step is to decide how "
          "much each block is allowed to cost: jitter, power and area (step 72); the second is the loop itself (step 73). "
          "This notebook splits the proposal's targets "
@@ -311,4 +312,103 @@ done with identical Gm unit cells, not with odd-sized devices; the MIM over the 
 routing above. Full sheet with every number: `docs/design/step73_loop.md`.
 """)
 b.qa(QA73, 73)
+
+# ------------------------------------------------------------------------------------------------ step 74
+V74 = r'''
+import json, base64
+from IPython.display import Image, display
+D = lambda n: json.load(open("../design/vco/data/" + n))
+base, q3, ch = D("step74_base.json"), D("step74_q3.json"), D("step74_char_q3.json")
+'''
+b.step(74, "VCO redesign: stages, LVT, sizing for frequency, K_VCO and phase noise", "schematic and sizing table")
+b.md(r"""
+### What happens
+The ring's frequency is set by how fast each stage charges its load: more CCO current means faster edges. vtune hangs a
+little extra capacitance on every output for fine tuning. Every transistor's noise moves the edges a little. White
+(thermal) noise gives phase noise falling at −20 dB/dec. Slow flicker (1/f) noise is up-converted into close-in phase
+noise falling at −30 dB/dec, and below the $1/f^3$ corner it dominates.
+
+### How it happens
+A current-fed ring settles at the supply voltage $V_{ring}$ where its average current equals the CCO current, so
+$f \approx I/(N C_{node} V_{ring})$, $K_I = \partial f/\partial I$, $K_{VCO} = \partial f/\partial v_{tune}$.
+Phase noise follows the ISF $h(\tau) = d\phi/dq$:
+$$\mathcal{L}_{th}(\Delta f) = \frac{2N\langle h^2 S_{th}\rangle}{2(2\pi\Delta f)^2},\qquad
+\mathcal{L}_{fl}(\Delta f) = \frac{2N\langle h\sqrt{B}\rangle^2}{\Delta f\,2(2\pi\Delta f)^2}.$$
+
+### Why it happens this way
+Flicker only becomes phase noise through the **dc part** of $h$ (here 0.67 of its rms), and a device's flicker density
+scales like $1/(WL)$. The smallest devices on an output node therefore dominate: the fine-tune switch and the coupling TG
+nMOS. The main inverters contribute only 13 %. Enlarging just those two devices fixes the noise for 9 % more current;
+scaling the whole ring would cost power one-for-one.
+
+**Methods used:** M1 (transient frequency), M2 (ISF with the models' noise), M3 (noise tables), M4 (LVS), M5 (drawing
+checks). What, why and how for each: `docs/methods.md`.
+""")
+b.md("**Figure 74.1 — the ISF of one ring node and who causes the flicker.** Hover to compare the base cell and the step-74 cell.")
+b.code(V74 + r'''
+fig = make_subplots(rows=1, cols=2, subplot_titles=("ISF h(τ) of node p1 (rad/pC)", "flicker share (% of the base cell's total)"))
+for d, c, n in ((base, "#2a78d6", "base cell"), (q3, "#eb6834", "step-74 cell")):
+    h = np.array(d["h"]); ph = np.arange(len(h))/len(h)
+    fig.add_trace(go.Scatter(x=np.r_[ph, 1], y=np.r_[h, h[0]]/1e12, name=f"{n} (corner {d['fc3']/1e6:.2f} MHz)",
+                             line=dict(color=c)), row=1, col=1)
+names = {"x1.xp2": "main pMOS", "x1.xn2": "main nMOS", "x1.xs2": "tune switch S", "x1.xt1n": "TG nMOS (own)",
+         "x2.xt1n": "TG nMOS (next)", "x1.xt1p": "TG pMOS (own)", "x2.xt1p": "TG pMOS (next)"}
+ref = 10**(base["Lfl"]/10)
+for d, c in ((base, "#2a78d6"), (q3, "#eb6834")):
+    fig.add_trace(go.Bar(y=list(names.values()), x=[d["shares"][k][1]*10**(d["Lfl"]/10)/ref*100 for k in names],
+                         orientation="h", marker_color=c, showlegend=False), row=1, col=2)
+fig.update_layout(height=430, barmode="group"); fig.update_xaxes(title_text="injection time / period", row=1, col=1)
+show(fig)
+print(f"base: Lth {base['Lth']:.2f}, Lfl {base['Lfl']:.2f}, corner {base['fc3']/1e6:.2f} MHz, I {base['I']*1e3:.3f} mA")
+print(f"step-74: Lth {q3['Lth']:.2f}, Lfl {q3['Lfl']:.2f}, corner {q3['fc3']/1e6:.2f} MHz, I {q3['I']*1e3:.3f} mA")
+''')
+b.md("**Figure 74.2 — coarse tuning range and ring-node voltage over corners.** Slider: process/temperature corner.")
+b.code(V74 + r'''
+labs = {"tt_27": "tt, 27 °C, 10 fF", "ss_110": "ss, 110 °C, 15 fF", "ff_-40": "ff, −40 °C, 5 fF"}
+def frame(k):
+    r = ch["f_vs_I"][k]; I = [x[0]*1e3 for x in r]
+    return ([dict(x=I, y=[x[1]/1e9 for x in r], name="f (GHz)", line=dict(color="#2a78d6"), row=1, col=1),
+             dict(x=I, y=[1.44]*len(I), name="1.44 GHz", line=dict(color="#59636e", dash="dot"), row=1, col=1),
+             dict(x=I, y=[1.76]*len(I), name="1.76 GHz", line=dict(color="#59636e", dash="dash"), row=1, col=1),
+             dict(x=I, y=[x[2] for x in r], name="ring node (V)", line=dict(color="#eb6834"), row=1, col=2),
+             dict(x=I, y=[1.8]*len(I), name="1.8 V limit", line=dict(color="#59636e", dash="dot"), row=1, col=2)],
+            labs[k])
+def lay(fig):
+    fig.update_xaxes(title_text="CCO feed current (mA)")
+show(sweep(list(labs), frame, "corner", fmt="{}", active=0, rows=1, cols=2,
+           subplot_titles=("frequency (GHz)", "ring supply node (V)"), layout=lay))
+''')
+b.md("**Figure 74.3 — fine tuning.** $K_{VCO}$ is negative; below about 0.7 V the switch turns off and the curve flattens, so the lock window is 0.7–1.2 V.")
+b.code(V74 + r'''
+fig = go.Figure()
+cols = {"tt_27": "#2a78d6", "ss_110": "#eb6834", "ff_-40": "#1baf7a"}
+for k, c in cols.items():
+    r = [x for x in ch["f_vs_vtune"][k] if x[1]]
+    fig.add_trace(go.Scatter(x=[x[0] for x in r], y=[x[1]/1e9 for x in r], name=k.replace("_", ", ") + " °C", line=dict(color=c)))
+fig.add_vrect(x0=0.7, x1=1.2, fillcolor="#e6e8eb", opacity=0.5, line_width=0, annotation_text="lock window")
+fig.update_layout(height=420, xaxis_title="vtune (V)", yaxis_title="f (GHz) at the 1.6 GHz current", title="Fine tuning")
+show(fig)
+''')
+b.md("**The schematics** (xschem, hierarchical: cell → ring core → VCO; LVS-clean against the simulated netlist).")
+b.code(r'''
+from IPython.display import Image, display
+for n in ("sspll_vco_dcell", "sspll_vco_core", "sspll_vco", "sspll_vco_acbuf"):
+    print(n); display(Image(filename=f"../docs/img/step74_{n}.png", width=900))
+''')
+b.md(r"""
+### Sizing table and results
+| Device | Model | W × nf | L | Role |
+|---|---|---|---|---|
+| XP1/XP2 | pfet_01v8 | 3.0 µm × 4 | 0.15 µm | main inverter pMOS |
+| XN1/XN2 | nfet_01v8 | 3.0 µm × 2 | 0.15 µm | main inverter nMOS |
+| XS1/XS2 | nfet_01v8 | 4.5 µm × 1 | **0.30 µm** | fine-tune switch |
+| XC1/XC2 | nfet_01v8 | 4.5 µm × 1 | 0.50 µm | fine-tune MOS cap |
+| XT1N/XT2N | nfet_01v8 | 0.84 µm × 1 | **0.30 µm** | coupling TG nMOS |
+| XT1P/XT2P | pfet_01v8 | 0.63 µm × 1 | 0.15 µm | coupling TG pMOS |
+
+1.437 mA for 1.6 GHz (tt), ring node 1.45 V; $\mathcal{L}$(1 MHz) −98.7 dBc/Hz thermal, $1/f^3$ corner 0.57 MHz;
+$K_{VCO}$ −300 MHz/V (0.6–1.2 V); $K_I$ 0.85 GHz/mA; 1.44–1.76 GHz over corners with the ring node ≤ 1.71 V (10 fF/node);
+start-up < 9 ns. System: 2.04 / 1.32 ps (FFNC off/on), 9.55 mW, FoM −227.8 dB. Full report: `docs/design/step74_vco.md`.
+""")
+b.qa(QA74, 74)
 b.save(os.path.join(os.path.dirname(__file__), "..", "phase7_design.ipynb"))

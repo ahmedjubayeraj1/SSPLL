@@ -20,6 +20,10 @@ BASE = dict(P=("pfet_01v8", 3.0, 4, 0.15), N=("nfet_01v8", 3.0, 2, 0.15),
             S=("nfet_01v8", 2.25, 1, 0.15), C=("nfet_01v8", 4.5, 1, 0.5),
             TN=("nfet_01v8", 0.63, 1, 0.15), TP=("pfet_01v8", 0.63, 1, 0.15))
 
+# step-74 cell: the base cell with the two flicker sources found by the ISF (fine-tune switch S, TG nMOS) drawn at
+# L = 0.3 um (S keeps W/L = 15; TN keeps W = 0.84 um). 1/f^3 corner 1.02 -> 0.57 MHz for +9 % current.
+FINAL = dict(BASE, S=("nfet_01v8", 4.5, 1, 0.3), TN=("nfet_01v8", 0.84, 1, 0.3))
+
 
 def _m(name, d, g, s, b, dev):
     model, w, nf, l = dev
@@ -52,13 +56,17 @@ xp2 o x vdd vdd sky130_fd_pr__pfet_01v8 w=4 l=0.15 nf=1 ad=1.16 as=1.16 pd=8.58 
 xn2 o x vss vss sky130_fd_pr__nfet_01v8 w=2 l=0.15 nf=1 ad=0.58 as=0.58 pd=4.58 ps=4.58
 .ends
 """
+# same buffer with ideal R and C of the PDK devices' values (C 38.47 fF, R 227.4 kOhm from the PDK models): used for
+# the long characterisation runs because the PDK MIM / poly-resistor subcircuits make the transient ~5x slower.
+BUF_IDEAL = BUF.replace("xcc g in sky130_fd_pr__cap_mim_m3_1 w=4.2 l=4.2 m=1", "cc g in 38.47f").replace(
+    "xrf g x vss sky130_fd_pr__res_xhigh_po_0p35 l=39.8 mult=1 m=1", "rf g x 228.0k\ncrg g vss 3.05f\ncrx x vss 3.05f")
 NST = 5
 P_ = ["vop"] + [f"p{k}" for k in range(1, NST)]
 M_ = ["vom"] + [f"m{k}" for k in range(1, NST)]
 
 
 def netlist(p, corner="tt", temp=27, I=1.31e-3, vtune=0.9, cpar=10e-15, tstop=26e-9, tstep=2e-12, mode="run",
-            inj=None, save=None, r0=None, r1=None, vbuf=1.8, extra="", opt=""):
+            inj=None, save=None, r0=None, r1=None, vbuf=1.8, extra="", opt="", buf="ideal"):
     lines = []
     for k in range(NST):
         ip, im = P_[k], M_[k]
@@ -81,7 +89,7 @@ def netlist(p, corner="tt", temp=27, I=1.31e-3, vtune=0.9, cpar=10e-15, tstop=26
     return f"""* step 74 ring: {corner} {temp} C, I = {I}, vtune = {vtune}, cpar = {cpar}
 .lib {LIB} {corner}
 .temp {temp}
-{cell(p).replace('{cpar}', f'{cpar:.4e}')}{BUF}vss vss 0 0
+{cell(p).replace('{cpar}', f'{cpar:.4e}')}{BUF if buf == "pdk" else BUF_IDEAL}vss vss 0 0
 vbuf vddbuf 0 {vbuf}
 vtn vtune 0 {vtune}
 {src}cdec vddvco 0 0.5p

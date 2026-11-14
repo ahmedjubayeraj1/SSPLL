@@ -12,7 +12,9 @@ STEPS = [  # step, title, status, deliverable (file), key result
   "1.36 ps typ / 1.73 pess (FFNC on); 9.08 mW; 0.058 mm2; ring f_c3 <= 0.6 MHz, CCO flicker corner <= 0.3 MHz"),
  (73, "Loop parameters (design sheet)", "done", "docs/design/step73_loop.md",
   "f_c 2.5 MHz, PM 50 deg (sampled); R1 11.01 k, C1 17.11 p, C2 2.205 p; beta 0.848 uA/rad"),
- (74, "VCO redesign", "in progress", "docs/design/step74_vco.md", "see Results"),
+ (74, "VCO redesign", "done", "docs/design/step74_vco.md",
+  "5-stage x1.5 ring, S and TG nMOS at L 0.3 um: 1.437 mA for 1.6 GHz, L(1 MHz) -98.7 dBc/Hz, f_c3 0.57 MHz, "
+  "K_VCO -300 MHz/V; hierarchical schematics LVS-clean"),
 ]
 
 METHODS = [  # id, name, step, what it gives, why this method, how it works, how to run it, limits / accuracy
@@ -83,9 +85,9 @@ DEVICES = [
  ("loop filter", "C2", "cap_mim_m3_1", 30, 1, 18.11, "2 rectangles, pole capacitor"),
  ("VCO dcell", "XP1/XP2", "pfet_01v8", 3.0, 4, 0.15, "main inverter pMOS"),
  ("VCO dcell", "XN1/XN2", "nfet_01v8", 3.0, 2, 0.15, "main inverter nMOS"),
- ("VCO dcell", "XS1/XS2", "nfet_01v8", 2.25, 1, 0.15, "fine-tune switch (base cell)"),
+ ("VCO dcell", "XS1/XS2", "nfet_01v8", 4.5, 1, 0.3, "fine-tune switch (step 74: L 0.3 for flicker)"),
  ("VCO dcell", "XC1/XC2", "nfet_01v8", 4.5, 1, 0.5, "fine-tune MOS cap"),
- ("VCO dcell", "XT1N/XT2N", "nfet_01v8", 0.63, 1, 0.15, "coupling TG nMOS (base cell)"),
+ ("VCO dcell", "XT1N/XT2N", "nfet_01v8", 0.84, 1, 0.3, "coupling TG nMOS (step 74: L 0.3 for flicker)"),
  ("VCO dcell", "XT1P/XT2P", "pfet_01v8", 0.63, 1, 0.15, "coupling TG pMOS"),
  ("VCO acbuf", "XCC", "cap_mim_m3_1", 4.2, 1, 4.2, "AC coupling 38 fF"),
  ("VCO acbuf", "XRF", "res_xhigh_po_0p35", 0.35, 1, 39.8, "self-bias 227 kOhm"),
@@ -122,13 +124,24 @@ PROBLEMS = [  # step, area, problem, how it shows up, cause, solution, status
   "PVT", "icp_trim (Gm unit count 2-5) recentres process; residual spread must stay x0.75-1.3", "requirement"),
  (74, "VCO noise", "1/f^3 corner 1.03 MHz in the base cell", "ISF: flicker share 43 % tuning switch, 44 % TG nMOS",
   "minimum-length (0.15 um) switch and TG nMOS carry flicker straight into the ISF dc part",
-  "draw the switch and TG nMOS at L = 0.5 um with the same W/L (variant 'quiet')", "in progress"),
+  "S at 4.5/0.3 um, TG nMOS at 0.84/0.3 um: corner 0.57 MHz for +9 % current (L = 0.5 um cost 21 % speed)", "solved"),
  (74, "schematic", "Hand-drawn schematics hard to read and drifting from simulation",
   "overlapping wires/text, flat drawings", "no checks", "tools/xsch.py: generated hierarchical schematics with "
   "drawing checks + netgen LVS against the simulated netlist", "solved"),
  (74, "VCO", "4-stage pseudo-differential ring latches at power-up", "startup sims (proposal/sim/startup_results.md)",
   "even stage count: each half is a non-inverting loop", "5 stages (odd): both halves invert", "solved"),
  (74, "VCO", "pfet_01v8_lvt minimum L is 0.35 um", "model bins", "PDK", "no LVT pMOS in the ring; nfet_01v8_lvt considered", "decided"),
+ (74, "VCO", "Tuning flattens below vtune 0.7 V (switch turns off)", "K_VCO -216 MHz/V in 0.6-0.75 V vs -330 above",
+  "switch S gate overdrive vanishes", "lock window V_cont 0.7-1.2 V (centre 0.95 V); MOS loop cap still >= 6.9 fF/um2", "requirement"),
+ (74, "VCO", "Ring node near 1.8 V at the top of the range at ss/110 C", "1.78 V at 1.76 GHz with 15 fF/node",
+  "slow corner + wiring capacitance", "layout target <= 10 fF per node (1.71 V); CCO clamp; nfet_01v8_lvt fallback", "requirement"),
+ (74, "simulation", "Symmetric netlist does not start oscillating from all-zero nodes", "f ~ 100 GHz noise, no swing",
+  "perfect symmetry: metastable common-mode point", "start-up test with 1 % mismatch (real silicon always has it)", "solved"),
+ (74, "simulation", "PDK poly resistor makes transients ~5x slower", "behavioural R model",
+  "voltage-dependent resistor expression", "characterisation with ideal R/C of the same values incl. 3 fF end parasitics "
+  "(matches the PDK buffer to 0.001 %); ISF and LVS with PDK devices", "solved"),
+ (74, "power", "Ring needs 9 % more current after the flicker fix", "typ power 9.55 mW vs 'about 9'",
+  "larger switch / TG capacitance", "accept (FoM unchanged -227.8 dB) or recover 0.5 mW from LDO reserve, dummy buffers, NCB", "watch"),
 ]
 
 RESULTS = [  # parameter, value, spec / target, unit, kind ("max" = value must be <= target, "min" = >=), step, note
@@ -141,7 +154,14 @@ RESULTS = [  # parameter, value, spec / target, unit, kind ("max" = value must b
  ("Area", 0.0575, 0.08, "mm2", "max", 72, ""),
  ("Loop phase margin (sampled)", 50.0, 45, "deg", "min", 73, ""),
  ("Loop settling to +-10 ps", 0.34, 5, "us", "max", 73, "phase loop only; FLL adds"),
- ("VCO base cell: current for 1.6 GHz (tt)", 1.244, 1.31, "mA", "max", 74, "ideal-RC buffers"),
- ("VCO base cell: L(1 MHz) thermal (ISF)", -98.01, -98.35, "dBc/Hz", "max", 74, "0.3 dB short, ideal-RC buffers"),
- ("VCO base cell: 1/f^3 corner", 1.03, 0.6, "MHz", "max", 74, "fails -> quiet variant"),
+ ("VCO base cell: 1/f^3 corner", 1.02, 0.6, "MHz", "max", 74, "fails -> step-74 cell"),
+ ("VCO step-74 cell: current for 1.6 GHz (tt)", 1.437, 1.45, "mA", "max", 74, "+9 % vs base"),
+ ("VCO step-74 cell: L(1 MHz) thermal (ISF)", -98.71, -98.35, "dBc/Hz", "max", 74, ""),
+ ("VCO step-74 cell: 1/f^3 corner", 0.57, 0.6, "MHz", "max", 74, ""),
+ ("VCO K_VCO magnitude, 0.6-1.2 V avg (tt)", 300, 300, "MHz/V", "min", 74, "matches the step-73 assumption"),
+ ("VCO ring node at 1.76 GHz, ss/110 C, 10 fF", 1.71, 1.8, "V", "max", 74, "15 fF: 1.78 V"),
+ ("VCO start-up time (ss/110 C, 1 % mismatch)", 8.5, 20, "ns", "max", 74, "10th cycle"),
+ ("Jitter FFNC on, typ, with step-74 VCO", 1.318, 1.4, "ps", "max", 74, ""),
+ ("Jitter FFNC off, typ, with step-74 VCO", 2.040, 2.3, "ps", "max", 74, ""),
+ ("Power FFNC on, typ, with step-74 VCO", 9.55, 9.0, "mW", "max", 74, "about 9 mW in the proposal"),
 ]
