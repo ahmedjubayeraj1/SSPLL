@@ -8,10 +8,11 @@ Writes design/loop/data/step73_*.csv and docs/img/step73_*.png and prints the de
 import os, sys, csv, json
 import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))
-for p in ("models", "learn", "design/budget", "design/loop"):
+for p in ("models", "learn", "design/budget", "design/loop", "tools"):
     sys.path.insert(0, os.path.join(ROOT, p))
 import sampled_loop as sl
 import step72_budget as bud
+from pdk_limits import check
 
 T, FREF, N, F0 = 20e-9, 50e6, 32, 1.6e9
 KV = 2*np.pi*300e6                 # fine-tuning gain, rad/s/V (assumed until step 74; only beta*KV matters below)
@@ -130,6 +131,12 @@ if __name__ == "__main__":
         area = C1_/(z["tile_pF"]*1e-12)*34**2 + C2_/2e-15*1.15
         trade.append((bt, R_, C1_, C2_, area, nj["typ_off"][0], nj["typ_on"][0], nj["typ_off"][1], nj["typ_on"][1]))
 
+    # project rule: every device inside the PDK min/max (tools/pdk_limits.py)
+    devs = [("res_xhigh_po_2p85", None, z["R_len"]), ("nfet_01v8", 10, 10), ("cap_mim_m3_1", 30, 30),
+            ("cap_mim_m3_1", 30, z["C2_w"])]
+    viol = [x for d_, w_, l_ in devs for x in check(d_, w=w_, l=l_)]
+    print("PDK limit check:", "all devices legal" if not viol else viol)
+    assert not viol, viol
     print(f"\nsampled-loop design (tp {TP*1e9:.1f} ns): R {d['R']/1e3:.2f} k, C1 {d['C1']*1e12:.2f} p, C2 {d['C2']*1e12:.3f} p, "
           f"lead {d['lead']:.1f} deg, fz {d['fz']/1e6:.3f} MHz, fp {d['fp']/1e6:.2f} MHz")
     print(f"realised: C1 = {z['ntile']} tiles x {z['tile_pF']:.3f} pF = {z['C1']*1e12:.2f} pF; beta = {z['beta']*1e9:.0f} nA/rad "

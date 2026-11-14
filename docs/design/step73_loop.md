@@ -148,6 +148,20 @@ All component values come from ngspice runs on the frozen PDK (`design/loop/data
 The Cadence kit (sky130_release_0.0.4) uses its own resistor and capacitor models. Step 7 showed these differ from
 the open PDK, so the C-V and R corner runs must be repeated with the kit before the values are frozen in Virtuoso.
 
+### PDK limit check (project rule: no value below a PDK minimum or above a maximum)
+
+`tools/pdk_limits.py` holds the legal ranges, taken from the frozen PDK's model bins and the DRC and pcell rules.
+`step73_loop.py` checks every device against it and stops if one is out of range.
+
+| Device | Size used | Legal range | OK |
+|---|---|---|---|
+| res_xhigh_po_2p85 (R1) | W 2.85 µm, L 15.5 µm | W ∈ {0.35, 0.69, 1.41, 2.85, 5.73} µm, L ≥ 0.5 µm (fold above about 100 µm) | ✓ |
+| nfet_01v8 MOS cap (C1) | W 10 µm, L 10 µm per unit | L 0.15–100 µm, W per finger 0.36–100 µm | ✓ |
+| cap_mim_m3_1 (C1 top plate) | 30 × 30 µm | each side 2–30 µm | ✓ (at the maximum) |
+| cap_mim_m3_1 (C2) | 30 × 18.1 µm | each side 2–30 µm | ✓ |
+
+Check the same sizes against the Cadence kit (sky130_release_0.0.4) pcells when the cells are drawn in Virtuoso.
+
 ## D. Robustness: loop-gain spread × R/C corners
 
 ![robustness](../img/step73_robustness.png)
