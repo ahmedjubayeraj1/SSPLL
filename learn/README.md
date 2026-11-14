@@ -1,4 +1,4 @@
-# learn/ — Phases 1–6: theory notebooks with interactive figures and interview questions
+# learn/ — Phases 1–7: theory and design notebooks with interactive figures and interview questions
 
 | Notebook | Roadmap steps | Interview questions |
 |---|---|---|
@@ -8,6 +8,7 @@
 | `phase4_sspll.ipynb` | 46–58 sub-sampling PLL (incl. FLL acquisition simulation) | 112 |
 | `phase5_vcdl.ipynb` | 59–64 voltage-controlled delay line / NCB (SKY130 ngspice lab) | 50 |
 | `phase6_ffnc.ipynb` | 65–71 feedforward noise cancellation and calibration | 58 |
+| `phase7_step72_budget.ipynb` | 72 noise, jitter, power and area budget per block (model: `design/budget/`) | 42 |
 
 Every step: what happens → how (equations, Razavi notation) → why → interactive figure (slider inside the plot) → try it →
 interview questions (click to open the answer). Design numbers follow the submitted proposal (50 MHz × 32 = 1.6 GHz, f_c ≈ 2.5 MHz).

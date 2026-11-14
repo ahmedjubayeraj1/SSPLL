@@ -16,6 +16,7 @@ cancellation. Target 1.6 ps rms jitter (10 kHz-40 MHz) at about 7.4 mW. Status: 
 | `correlation/` | step 7: ngspice vs Cadence/Spectre device correlation (`STEP7.md`) |
 | `tools/cadence/` | frozen models for Spectre, correlation benches (`pvt/` over corners), phase-noise checks |
 | `docs/architecture_decision.md` | step 8: variants on silicon vs in simulation, CCO and LDO supplies |
+| `docs/design/step72_budget.md`, `design/budget/` | step 72: per-block phase-noise, jitter, power and area budget; block-level specs; layout rules |
 | `models/` | step 9: phase-domain model (`pllmodel`), template notebook, self-test |
 | `docs/book/` | step 10: the living design documentation (20 chapters, outline stage); `mkdocs.yml` builds it as a site |
 | `learn/` | Phases 1–6: interactive theory notebooks (steps 11–71) with 580 interview questions; SKY130 delay-line labs |

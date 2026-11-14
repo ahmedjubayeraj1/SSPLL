@@ -14,7 +14,8 @@ PHASES = {1: ("phase1.py", "phase1_fundamentals", "PLL fundamentals (steps 11–
           3: ("phase3.py", "phase3_type2_cppll", "Type-II charge-pump PLL (steps 33–45)"),
           4: ("phase4.py", "phase4_sspll", "Sub-sampling PLL (steps 46–58)"),
           5: ("phase5.py", "phase5_vcdl", "Voltage-controlled delay line / NCB (steps 59–64)"),
-          6: ("phase6.py", "phase6_ffnc", "Feedforward noise cancellation (steps 65–71)")}
+          6: ("phase6.py", "phase6_ffnc", "Feedforward noise cancellation (steps 65–71)"),
+          7: ("phase7.py", "phase7_step72_budget", "Phase 7 · step 72: noise, power and area budget")}
 sel = [int(a) for a in sys.argv[1:]] or [p for p in PHASES if os.path.exists(os.path.join(HERE, PHASES[p][0]))]
 os.makedirs(OUT, exist_ok=True)
 import plotly
