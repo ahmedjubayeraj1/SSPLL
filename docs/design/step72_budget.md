@@ -11,7 +11,7 @@ python3 design/budget/step72_plots.py     # docs/img/step72_jitter_blocks.png, s
 ```
 
 The interactive version (sliders for the loop bandwidth, ring corner and CCO noise) is
-`learn/phase7_step72_budget.ipynb`.
+`learn/phase7_design.ipynb`.
 
 ## Result in one paragraph
 

@@ -41,22 +41,25 @@ CORNER = dict(typ=dict(A=0.5, gamma=1.0, gm=100e-6, duty=0.01, Cs=100e-15, gerr=
               pess=dict(A=0.35, gamma=1.5, gm=100e-6, duty=0.01, Cs=100e-15, gerr=0.30, Ks=4*30e-12))
 
 
-def loop(fref=FREF, n=N, fc=FC):
+def loop(fref=FREF, n=N, fc=FC, pmdeg=PMDEG):
     p = CORNER["typ"]
     beta = 2*p["A"]*p["gm"]*p["duty"]                       # A per VCO rad (pulsed Gm, step 50)
-    d = loop_design_type2(fc, PMDEG, 2*np.pi*n*beta, 2*np.pi*KV_HZ, n)
+    d = loop_design_type2(fc, pmdeg, 2*np.pi*n*beta, 2*np.pi*KV_HZ, n)
     return beta, d
 
 
-def spectra(corner, ffnc, fref=FREF, n=N, f=None, alias=True, fc=None, over=None):
-    """Output phase-noise PSD per block (rad^2/Hz). fc overrides the loop bandwidth; over = {block: value} replaces
+def spectra(corner, ffnc, fref=FREF, n=N, f=None, alias=True, fc=None, over=None, pmd=None, lf=None):
+    """Output phase-noise PSD per block (rad^2/Hz). fc / pmd override the loop bandwidth and phase margin; over = {block: value} replaces
     that block's allocation for this corner (e.g. {"ring VCO core": (-98.35, 0.6e6)})."""
     f = pm.freq_axis(n=3000) if f is None else f
     fc = FC if fc is None else fc
+    pmd = PMDEG if pmd is None else pmd
     over = over or {}
     c = CORNER[corner]; f0 = n*fref
-    beta, d = loop(fref, n, fc)
-    H = pm.loop_H(f, fc, PMDEG)
+    beta, d = loop(fref, n, fc, pmd)
+    if lf is not None:                                      # (R, C1, C2) of the real filter (step 73)
+        d = dict(d, R=lf[0], C1=lf[1], C2=lf[2])
+    H = pm.loop_H(f, fc, pmd)
     Gc = pm.ffnc_Gc(f, fref, c["gerr"], on=ffnc)
     T_in = np.abs(H + Gc*(1-H))**2; T_vco = np.abs((1-Gc)*(1-H))**2
     lin = lambda L: 2*10**(L/10)

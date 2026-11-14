@@ -1,12 +1,14 @@
-"""Phase 7 - block design. Step 72: phase-noise, jitter, power and area budget per block."""
+"""Phase 7 - block design. Step 72: noise/power/area budget; step 73: loop parameters."""
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 from nb import Book
 from qa72 import QA72
+from qa73 import QA73
 
-b = Book("Phase 7 — Step 72: the noise, power and area budget per block",
+b = Book("Phase 7 — Block design (steps 72–73)",
          "Phases 1–6 explained *why* each block exists. Phase 7 designs them — and the first design step is to decide how "
-         "much each block is allowed to cost: jitter, power and area. This notebook splits the proposal's targets "
+         "much each block is allowed to cost: jitter, power and area (step 72); the second is the loop itself (step 73). "
+         "This notebook splits the proposal's targets "
          "(1.4 ps typ / 3.2 ps max with FFNC, −110/−120 dBc/Hz at 300 kHz, 9 mW, 0.08 mm²) into one allocation per block, "
          "shows which allocations are critical, and lets you move them with sliders. The same numbers are in "
          "`docs/design/step72_budget.md`; the model is `design/budget/step72_budget.py`.")
@@ -180,4 +182,133 @@ The budget tells you which nodes are noise-critical, so the schematic can alread
 - **Everywhere:** few distinct unit devices; supply domains as bands (VDDA / LDO 1.8 V / VDDD); level shifters only at band edges.
 """)
 b.qa(QA72, 72)
-b.save(os.path.join(os.path.dirname(__file__), "..", "phase7_step72_budget.ipynb"))
+
+# ------------------------------------------------------------------------------------------------ step 73
+L73 = r'''
+import sys, json, csv; sys.path.insert(0, "../models"); sys.path.insert(0, "../design/budget"); sys.path.insert(0, "../design/loop")
+import sampled_loop as sl
+D = json.load(open("../design/loop/data/step73_design.json"))
+R, C1, C2, KV, beta, tp, T = D["R"], D["C1"], D["C2"], D["KV"], D["beta"], D["tp"], 20e-9
+'''
+b.step(73, "Loop parameters (f_c, PM, β, R1, C1, C2) from the out2 jitter model", "design sheet")
+b.md(r"""
+### What happens
+The loop filter and the charge-pump gain decide how the work is split: **below $f_c$** the loop makes the VCO follow the
+clean reference, **above $f_c$** the VCO runs free and FFNC removes its noise up to about $f_{REF}/8$. Step 73 picks
+$f_c$ and PM from the jitter model, computes $R_1, C_1, C_2$ for the *real, sampled* loop, and turns them into PDK devices
+in whole layout tiles.
+
+### How it happens
+$$L(s) \approx \beta K_{VCO}\frac{Z(s)}{s}e^{-st_p},\quad Z(s) = \frac{1+sR_1C_1}{s(C_1+C_2)(1+sR_1\frac{C_1C_2}{C_1+C_2})},
+\quad \beta = 2A\,g_m\frac{\tau}{T}$$
+
+Closed-form start (zero and pole around $\omega_c$, spread $b=\tan(45°+\varphi_{lead}/2)$):
+$C_{tot} = b\beta K_{VCO}/\omega_c^2$, $C_2 = C_{tot}/b^2$, $C_1 = C_{tot}-C_2$, $R_1 = b/(\omega_c C_1)$, with
+$\varphi_{lead} = PM + 360°f_c t_p$. Then the **exact sampled model** corrects it: the SSPD samples once per period and the
+Gm delivers one packet $q[k] = \beta T\theta_e[k]$ a delay $t_p$ later, so
+$$x[k+1] = e^{AT}x[k] + e^{A(T-t_p)}B\,q[k],\qquad L(z) = \beta T\,C(zI-e^{AT})^{-1}e^{A(T-t_p)}B .$$
+
+### Why it happens this way
+Sampling and the packet delay cost phase that a continuous model does not see (it would give 40.6° instead of 50° at
+$t_p$ = 11 ns). The loop sees only the product $\beta K_{VCO}$, so the big passives can be frozen now and the unknown
+$K_{VCO}$ absorbed later by the small $g_m$ cells. A MOS capacitor is non-linear, so $C_1$ can be a dense MOS cap only
+if $V_{cont}$ stays where it is flat.
+""")
+b.md(r"""
+**Figure 73.1 — what pins $f_c$.** Slide $f_c$ (PM 50°). Watch three numbers in the title: out2 jitter (barely moves),
+out1 $L$(300 kHz) (needs $f_c \ge 2.5$ MHz for −110 dBc/Hz) and the FFNC jitter reduction (needs $f_c \le 2.5$ MHz for
+35 %). Only 2.5 MHz meets both typ values.
+""")
+b.code(B + r'''
+def frame(fc):
+    tr = []; jj = {}
+    for on, col in ((False, "#2a78d6"), (True, "#eb6834")):
+        j, L, _ = total("typ", on, fc=fc)
+        jj[on] = (j["TOTAL"]*1e12, L[i300])
+        tr.append(dict(x=f, y=L, name=f"{'out2 (FFNC on)' if on else 'out1 (FFNC off)'}", line=dict(color=col)))
+    red = 100*(1 - jj[True][0]/jj[False][0])
+    return tr, (f"f_c {fc/1e6:.1f} MHz: out1 {jj[False][0]:.2f} ps, L300k {jj[False][1]:.1f} | out2 {jj[True][0]:.2f} ps | "
+                f"FFNC reduction {red:.0f} %")
+def lay(fig):
+    fig.update_xaxes(type="log", title="offset (Hz)"); fig.update_yaxes(title="L(f) (dBc/Hz)", range=[-140, -95])
+show(sweep([1.5e6, 2.0e6, 2.5e6, 3.0e6, 3.5e6, 4.0e6, 5.0e6], frame, "f_c", fmt="{:.2g} Hz", active=2, layout=lay))
+''')
+b.md(r"""
+**Figure 73.2 — the packet delay $t_p$ eats phase margin.** The filter is fixed (designed for $t_p$ = 2.5 ns). Slide
+$t_p$ and watch the phase at crossover. The dashed line is the continuous model, which cannot see the delay at all.
+""")
+b.code(L73 + r'''
+f = np.logspace(4, np.log10(0.49/T), 400)
+s = 2j*np.pi*f
+Lc = beta*KV*(1 + s*R*C1)/(s*(C1 + C2)*(1 + s*R*C1*C2/(C1 + C2)))/s
+def frame(t):
+    L = sl.loop_gain(f, R, C1, C2, KV, beta, T, t)
+    fc, pm_ = sl.margins(R, C1, C2, KV, beta, T, t)
+    ph = np.degrees(np.unwrap(np.angle(L))); ph -= 360*np.round(ph[0]/360)
+    return ([dict(x=f, y=ph, name="sampled loop ∠L", line=dict(color="#2a78d6")),
+             dict(x=f, y=np.degrees(np.unwrap(np.angle(Lc))), name="continuous ∠L", line=dict(color="#eb6834", dash="dash"))],
+            f"t_p = {t*1e9:.1f} ns: f_c = {fc/1e6:.2f} MHz, PM = {pm_:.1f}°  (delay lag at f_c = {360*fc*t:.1f}°)")
+def lay(fig):
+    fig.update_xaxes(type="log", title="frequency (Hz)"); fig.update_yaxes(title="phase of L (deg)", range=[-260, -100])
+    fig.add_vline(x=D["fc"], line_width=1, line_color="#59636e")
+show(sweep([0.5e-9, 1e-9, 2.5e-9, 5e-9, 8e-9, 11e-9], frame, "packet delay t_p", fmt="{:.2g} s", active=2, layout=lay))
+''')
+b.md(r"""
+**Figure 73.3 — loop-gain spread and `icp_trim`.** $m = (A g_m \tau K_{VCO})$/nominal varies over PVT. Slide $m$ and watch
+the phase-step response (cycle by cycle, exact): small $m$ → slow and under-damped, large $m$ → fast but ringing. The
+`icp_trim` codes multiply $\beta$ by 0.67 / 1 / 1.33 / 1.67 to pull $m$ back towards 1.
+""")
+b.code(L73 + r'''
+def frame(m):
+    t, e, v = sl.step(R, C1, C2, KV, beta*m, T, tp, ncyc=150, phi_step=1.0)
+    fc, pm_ = sl.margins(R, C1, C2, KV, beta*m, T, tp)
+    return ([dict(x=t*1e6, y=e/(2*np.pi*1.6e9)*1e12, name="phase error", line=dict(color="#2a78d6", shape="hv")),
+             dict(x=[0, 3], y=[10, 10], name="±10 ps", line=dict(color="#59636e", dash="dot")),
+             dict(x=[0, 3], y=[-10, -10], name="−10 ps", line=dict(color="#59636e", dash="dot"), showlegend=False)],
+            f"m = {m:.2f}: f_c = {fc/1e6:.2f} MHz, PM = {pm_:.1f}°")
+def lay(fig):
+    fig.update_xaxes(title="time after a 1 rad phase step (µs)", range=[0, 3]); fig.update_yaxes(title="phase error (ps)", range=[-60, 100])
+show(sweep([0.35, 0.5, 0.67, 0.8, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0], frame, "loop-gain multiplier m", fmt="{:.2f}", active=4, layout=lay))
+''')
+b.md(r"""
+**Figure 73.4 — why $V_{cont}$ must stay in 0.6–1.2 V.** The measured C-V of the nfet_01v8 MOS capacitor (ngspice, frozen
+PDK) at three temperatures and three corners. Below about 0.6 V the channel disappears and $C_1$ collapses — the zero
+would move up and the phase margin would fall.
+""")
+b.code(r'''
+import csv
+rows = list(csv.DictReader(open("../design/loop/data/moscap_cv.csv")))
+fig = go.Figure()
+cols = {"tt": "#2a78d6", "ss": "#eb6834", "ff": "#1baf7a"}; dash = {"-40": "dot", "27": "solid", "110": "dash"}
+for c in ("tt", "ss", "ff"):
+    for t in ("-40", "27", "110"):
+        r = [x for x in rows if x["corner"] == c and x["temp"] == t]
+        fig.add_trace(go.Scatter(x=[float(x["vg"]) for x in r], y=[float(x["c_mos_fF"])/100 for x in r], name=f"{c}, {t} °C",
+                                 line=dict(color=cols[c], dash=dash[t], width=2 if t == "27" else 1.2)))
+fig.add_vrect(x0=0.6, x1=1.2, fillcolor="#e6e8eb", opacity=0.5, line_width=0, annotation_text="V_cont window")
+fig.update_layout(height=420, title="nfet_01v8 gate capacitance density (W = L = 10 µm)",
+                  xaxis_title="V_gate (V)", yaxis_title="C (fF/µm²)")
+show(fig)
+''')
+b.md(r"""
+### The design sheet
+
+| Parameter | Value |
+|---|---|
+| $f_c$, PM | 2.50 MHz, 50.0° (exact sampled loop, packet delay $t_p$ = 2.5 ns, $\le$ 5 ns required) |
+| $\beta$ | 0.848 µA/rad = $2A g_m d$ with $A$ = 0.5 V, $d$ = 1 %, $g_m$ = 84.8 µS = 3 units × 28.3 µS |
+| $R_1$ | 11.01 kΩ — res_xhigh_po_2p85, L = 15.5 µm |
+| $C_1$ | 17.11 pF — 2 tiles × (9 nfet_01v8 W = L = 10 µm + 1 cap_mim_m3_1 30×30 µm on top) |
+| $C_2$ | 2.205 pF — 2 × cap_mim_m3_1 30 × 18.1 µm |
+| zero / pole | 0.845 / 7.40 MHz; peaking 2.5 dB; $f_{3dB}$ 4.3 MHz; step settles in 0.34 µs |
+| $V_{cont}$ window | 0.6–1.2 V |
+| `icp_trim` | 00 → ×1, 01 → ×1.33, 10 → ×0.67, 11 → ×1.67 (Gm unit count 3 / 4 / 2 / 5) |
+| residual spread after trim | $m$ within ×0.75–×1.3 → PM 45.5–50° at every R/C corner |
+
+**Layout convenience built into these numbers:** $C_1$ is an integer number of identical tiles (β was rescaled to fit
+the tiles, not the other way round); $C_2$ is two equal MIM rectangles; $R_1$ is one body of a legal width; the trim is
+done with identical Gm unit cells, not with odd-sized devices; the MIM over the MOS cap shields the filter node from
+routing above. Full sheet with every number: `docs/design/step73_loop.md`.
+""")
+b.qa(QA73, 73)
+b.save(os.path.join(os.path.dirname(__file__), "..", "phase7_design.ipynb"))
