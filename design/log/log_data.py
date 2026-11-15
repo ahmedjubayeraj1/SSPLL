@@ -203,3 +203,116 @@ MARGIN = [  # spec, condition, target, kind, limit, unit, pre, change, guard, so
  ("Regulated analog rail", "1.71-1.89 V", "guaranteed", "max", 1.89, "V", None, None, 0.03, "LDO not designed", "LDO step"),
  ("Power, output dividers", "max", "guaranteed", "max", 1.0, "mW", None, None, 0.2, "dividers not designed", "85"),
 ]
+
+
+# ------------------------------------------------------------------------------------------------ step 75 (CCO)
+STEPS.append((75, "CCO (current-fed VCO supply)", "done", "docs/design/step75_cco.md",
+              "IBIAS -> 5-bit DAC (13 + code units of 2.5 uA) -> 1:25 mirror with 10 Mohm / 7.3 pF filter: 0.84-2.79 mA (tt), "
+              "range kept over +/-20 % IBIAS and 5 corners; active clamp keeps ring node <= 1.793 V; 8.9 pA/rtHz at 1 MHz; "
+              "level shifters 1.8 -> 3.3 V; schematics LVS-clean"))
+METHODS += [
+ ("M10", "DC operating point and compliance sweep", "75",
+  "Output current of a current source for each code / corner / supply / bias, and its dependence on the output voltage",
+  "A current source is a DC circuit: its job is a current at a voltage. An operating point per condition is exact (no "
+  "approximation) and cheap, so all 90 corner combinations plus a full code sweep fit in minutes.",
+  "The ring node is replaced by an ideal voltage source at the typical ring voltage (1.45 V); its current (vr#branch) "
+  "is the CCO output. For compliance, the source is swept 0-2.4 V (.dc) at the least-headroom corner (VDDA 2.97 V, "
+  "ss/110 C, max code): the current must stay flat over the ring's range (1.38-1.8 V).",
+  "design/cco/step75_sim.py (sections A, B); xschem: tb_cco_dc",
+  "Ignores the ring's own I-V (load line); M12 closes that gap. Exact for the models used."),
+ ("M11", "Output-current noise (.noise) and supply rejection (.ac)", "75",
+  "Output current noise spectrum (A/rtHz) of the complete circuit incl. PDK resistors and MIM caps; |dI/dVDDA| vs frequency",
+  "Noise of a biased analog block is small-signal: .noise linearises every device at its operating point and adds "
+  "their noise (thermal, flicker, resistor) through the exact transfer functions - faster and more accurate than a "
+  "transient noise run. The same linearisation with an ac 1 V source on VDDA gives supply rejection.",
+  "The ring node is an ideal source at 1.45 V through a 0 V ammeter; a CCVS (h1, 1 V/A) converts its current into a "
+  "voltage 'o' so .noise reports A/rtHz. option sparse is needed (KLU fails on .noise). The spectrum feeds the "
+  "budget (M9): S_f = K_I^2 S_i, shaped by |(1-Gc)(1-H)|^2, gives the CCO jitter and L(300 kHz).",
+  "design/cco/step75_noise.py, step75_sim.py (section D); xschem: tb_cco_ac",
+  "Linear around the operating point; tt only (corners shift g_m by +/-15 %)."),
+ ("M12", "Clamp check with the ring's measured I-V (load-line method)", "75",
+  "The ring-node voltage reached for each code when the CCO drives the real ring at the worst corner",
+  "The ring node is set by where the CCO output (a current source) meets the ring's I-V curve and the clamp. "
+  "Simulating the whole ring for every code would take hours; a behavioural model of its I-V gives the same DC "
+  "intersection in seconds.",
+  "The ring's average I-V at ss/110 C, 10 fF/node (from step-74 transients, M1) is a pwl B-source current "
+  "I_ring(V). The CCO plus clamp drive it at VDDA 3.63 V with IBIAS 4 and 6 uA; the .op solution is the ring node.",
+  "design/cco/clamp_ring.py",
+  "The ring's average current replaces its switching current; good for DC, not for ripple."),
+ ("M13", "Level-shifter transient at the hardest supply corners", "75",
+  "Whether the 1.8 -> 3.3 V shifter switches, its output levels and edge times",
+  "A cross-coupled level shifter is a ratioed latch: it only flips if the nMOS pull-downs (driven from the low "
+  "supply) win against the pMOS loads (on the high supply). The worst case is lowest VDDD with highest VDDA, slow "
+  "and fast corners - a transient shows directly whether it flips.",
+  "Pulse on 'in' (0-1.71 V), VDDA 3.63 V, 20 fF loads; .meas rise/fall at VDDA/2 and the high/low levels; ss/110 C and ff/-40 C.",
+  "design/cco/step75_sim.py (section E)",
+  "Static control bits: speed hardly matters, only correct switching."),
+]
+DEVICES += [
+ ("CCO DAC", "XNB", "nfet_g5v0d10v5", 1, 1, 4.0, "IBIAS input diode, m=2"),
+ ("CCO DAC", "XU0..XU5", "nfet_g5v0d10v5", 1, 1, 4.0, "unit sinks, m = 13,1,2,4,8,16"),
+ ("CCO DAC", "XS0..XS5", "nfet_g5v0d10v5", 1, 1, 0.5, "unit switches"),
+ ("CCO", "XMREF", "pfet_g5v0d10v5", 20, 2, 2.0, "reference diode, 1 unit"),
+ ("CCO", "XMOUT", "pfet_g5v0d10v5", 20, 2, 2.0, "output mirror, m=25"),
+ ("CCO", "xrf1..20", "res_xhigh_po_0p35", 0.35, 1, 87.48, "R_F = 10 Mohm (20 segments)"),
+ ("CCO", "XCF", "cap_mim_m3_1", 30, 1, 30, "C_F = 7.3 pF, m=4, over MOUT"),
+ ("CCO", "XPEN / XNEN", "pfet / nfet_g5v0d10v5", 2, 1, 0.5, "enable pull-up / IBIAS pull-down"),
+ ("CCO clamp", "XPREP", "pfet_01v8", 1, 1, 0.15, "replica diode from VDDL"),
+ ("CCO clamp", "XUREP", "nfet_g5v0d10v5", 1, 1, 4.0, "replica bias (1 DAC unit)"),
+ ("CCO clamp", "XPSEN", "pfet_01v8", 1, 1, 0.15, "sense device"),
+ ("CCO clamp", "XRS", "res_xhigh_po_0p35", 0.35, 1, 56.0, "sense resistor 320 kOhm"),
+ ("CCO clamp", "XNSH", "nfet_01v8", 5, 4, 0.15, "shunt"),
+ ("CCO", "XTGN / XTGP", "n/pfet_g5v0d10v5", 2, 1, 0.5, "VTEST transmission gate"),
+ ("CCO", "XRINJ", "res_xhigh_po_0p35", 0.35, 1, 3.39, "VTEST injection 20 kOhm"),
+ ("Level shifter", "XP1/XP2, XN1/XN2", "p/nfet_g5v0d10v5", 1, 1, 0.5, "latch pMOS W 1, pull-down nMOS W 3"),
+]
+PROBLEMS = [p if not (p[0] == 74 and p[1] == "power (guaranteed)") else
+            p[:5] + ("step 75: 1:25 CCO mirror (reference branch 4 % instead of 12.5 %): -0.62 mW worst, -0.40 mW typ; "
+                     "ring-node capacitance rule <= 10 fF still to be met in layout", "fixed in step 75 (power) - layout rule open")
+            for p in PROBLEMS]
+PROBLEMS += [
+ (75, "clamp", "Single-pMOS clamp too soft", "at 1.7 V it already stole 0.47-0.85 mA of the ring's current",
+  "a pMOS conducts by its Vsg: one device cannot be both off at 1.7 V and sink 1 mA at 1.8 V",
+  "two-stage active clamp: replica-biased sense pMOS (weak inversion, exponential) -> 320 kOhm -> nMOS shunt; RS 48.9 -> 56 um, shunt nf 2 -> 4", "fixed"),
+ (75, "range", "IBIAS +/-20 % broke the frequency range", "1:20 mirror / 19 base units: code 31 at 4 uA below 2.02 mA, code 0 at 6 uA above 0.97 mA",
+  "the DAC current scales with IBIAS; a 1.7:1 code range cannot absorb a 1.5:1 bias spread plus the corners",
+  "1:25 mirror, 13 base units (3.4:1 code range); residual 50 uA excess at ff/-40 C/6 uA/code 0 is covered by fine tuning (60 of 75 MHz)", "fixed (fine-tune margin used at one corner)"),
+ (75, "noise", "Filter resistor too noisy", "300 kOhm: 21 pA/rtHz at 1 MHz, L(300 kHz) FFNC off -104 dBc/Hz",
+  "above the RC corner the resistor's noise at the gate falls as 1/(sqrt(R) C): a small R is noisier, not quieter",
+  "R_F 10 Mohm (20 x 87.48 um xhigh_po_0p35) with 7.3 pF MIM over the output array: 8.9 pA/rtHz", "fixed"),
+ (75, "schematic", "Wires drawn through pins shorted devices", "LVS: level shifter x and y nodes merged; last filter segment shorted",
+  "a straight wire passing over a pin connects it in xschem; a crossing drawn with a vertex on both wires is a junction",
+  "drawing checker (tools/xsch.py) now flags 4-way junctions and wires touching two pins of one device; all CCO cells LVS-clean", "fixed"),
+ (75, "lock time", "Slow CCO filter (tau = 70 us) after pll_en", "current ramps for ~0.2 ms after enable",
+  "10 Mohm x 7.3 pF is chosen for noise", "set cco_code before pll_en; the FLL waits for the CCO to settle (step 81)", "open - handle in step 81"),
+]
+RESULTS += [
+ ("CCO current code 31, tt", 2.79, 2.02, "mA", "min", 75, "tt, IBIAS 5 uA (code 0: 0.84 mA)"),
+ ("CCO current code 31, worst (ss/110 C, IBIAS 4 uA)", 2.20, 2.02, "mA", "min", 75, "ring needs 2.02 mA for 1.76 GHz at 10 fF/node"),
+ ("CCO current code 0, worst (ff/-40 C, IBIAS 6 uA)", 1.02, 0.97, "mA", "max", 75, "excess 50 uA = 60 MHz, inside the +/-75 MHz fine tune"),
+ ("Ring node, worst (code 31, IBIAS 6 uA, ss/110 C, VDDA 3.63 V)", 1.793, 1.8, "V", "max", 75, "active clamp"),
+ ("CCO output noise at 1 MHz", 8.92, 10.3, "pA/rtHz", "max", 75, ".noise, complete circuit"),
+ ("Jitter FFNC off, typ, with step-75 CCO", 1.958, 2.3, "ps", "max", 75, "step-72 model with the simulated CCO spectrum"),
+ ("Jitter FFNC on, typ, with step-75 CCO", 1.270, 1.4, "ps", "max", 75, "step-72 model with the simulated CCO spectrum"),
+ ("Supply -> current", 0.25, None, "uA/mV", "info", 75, "1 kHz-10 MHz, tt"),
+ ("Power FFNC on, typ, with 1:25 CCO", 9.15, 9.0, "mW", "max", 75, "-0.40 mW vs step 74"),
+]
+_m = {(r[0], r[1]): r for r in MARGIN}
+def _set(spec, cond, pre, change=None, source=None):
+    r = list(_m[(spec, cond)]); r[6] = pre
+    if change is not None: r[7] = change
+    if source: r[9] = source
+    _m[(spec, cond)] = tuple(r)
+_set("RMS jitter, FFNC on", "typ, 10 kHz-40 MHz", 1.270, source="step-72 model + step-74 ring + step-75 CCO")
+_set("RMS jitter, FFNC off", "typ", 1.958, source="step-72 model + step-74 ring + step-75 CCO")
+_set("Phase noise 300 kHz, FFNC off", "typ", -110.9, source="step-72 model + step-74 ring + step-75 CCO")
+_set("Phase noise 300 kHz, FFNC on", "typ", -120.0, source="step-72 model + step-74 ring + step-75 CCO")
+_set("Power, FFNC on", "typ", 9.15, source="step-72 table, ring 1.437 mA, 1:25 CCO (step 75)")
+_set("Power, FFNC on", "max over PVT", 13.64, source="ring 2.02 mA at ss/110 C, 3.63 V, 1:25 CCO; others typ x1.3")
+_set("Power, FFNC off", "typ", 7.70, source="as above minus NCB")
+_set("Power, FFNC off", "max over PVT", 11.56, source="as above minus NCB")
+_set("Jitter FoM", "typ", -228.1, source="1.270 ps, 9.15 mW")
+MARGIN = list(_m.values()) + [
+ ("Ring supply node", "abuse: code 31, IBIAS +20 %, ss/110 C", "guaranteed", "max", 1.8, "V", 1.793, 0.005, 0.01,
+  "step 75 active clamp (referenced to VDDL)", "118"),
+]

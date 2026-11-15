@@ -109,3 +109,51 @@ Generated from `design/log/log_data.py` (also in `design/SSPLL_design_log.xlsx`,
 **How to run it.** `design/budget/step72_budget.py`
 
 **Limits.** Uses allocations until block results replace them.
+
+## M10. DC operating point and compliance sweep (step 75)
+
+**What it gives.** Output current of a current source for each code / corner / supply / bias, and its dependence on the output voltage
+
+**Why this method.** A current source is a DC circuit: its job is a current at a voltage. An operating point per condition is exact (no approximation) and cheap, so all 90 corner combinations plus a full code sweep fit in minutes.
+
+**How it works.** The ring node is replaced by an ideal voltage source at the typical ring voltage (1.45 V); its current (vr#branch) is the CCO output. For compliance, the source is swept 0-2.4 V (.dc) at the least-headroom corner (VDDA 2.97 V, ss/110 C, max code): the current must stay flat over the ring's range (1.38-1.8 V).
+
+**How to run it.** `design/cco/step75_sim.py (sections A, B); xschem: tb_cco_dc`
+
+**Limits.** Ignores the ring's own I-V (load line); M12 closes that gap. Exact for the models used.
+
+## M11. Output-current noise (.noise) and supply rejection (.ac) (step 75)
+
+**What it gives.** Output current noise spectrum (A/rtHz) of the complete circuit incl. PDK resistors and MIM caps; |dI/dVDDA| vs frequency
+
+**Why this method.** Noise of a biased analog block is small-signal: .noise linearises every device at its operating point and adds their noise (thermal, flicker, resistor) through the exact transfer functions - faster and more accurate than a transient noise run. The same linearisation with an ac 1 V source on VDDA gives supply rejection.
+
+**How it works.** The ring node is an ideal source at 1.45 V through a 0 V ammeter; a CCVS (h1, 1 V/A) converts its current into a voltage 'o' so .noise reports A/rtHz. option sparse is needed (KLU fails on .noise). The spectrum feeds the budget (M9): S_f = K_I^2 S_i, shaped by |(1-Gc)(1-H)|^2, gives the CCO jitter and L(300 kHz).
+
+**How to run it.** `design/cco/step75_noise.py, step75_sim.py (section D); xschem: tb_cco_ac`
+
+**Limits.** Linear around the operating point; tt only (corners shift g_m by +/-15 %).
+
+## M12. Clamp check with the ring's measured I-V (load-line method) (step 75)
+
+**What it gives.** The ring-node voltage reached for each code when the CCO drives the real ring at the worst corner
+
+**Why this method.** The ring node is set by where the CCO output (a current source) meets the ring's I-V curve and the clamp. Simulating the whole ring for every code would take hours; a behavioural model of its I-V gives the same DC intersection in seconds.
+
+**How it works.** The ring's average I-V at ss/110 C, 10 fF/node (from step-74 transients, M1) is a pwl B-source current I_ring(V). The CCO plus clamp drive it at VDDA 3.63 V with IBIAS 4 and 6 uA; the .op solution is the ring node.
+
+**How to run it.** `design/cco/clamp_ring.py`
+
+**Limits.** The ring's average current replaces its switching current; good for DC, not for ripple.
+
+## M13. Level-shifter transient at the hardest supply corners (step 75)
+
+**What it gives.** Whether the 1.8 -> 3.3 V shifter switches, its output levels and edge times
+
+**Why this method.** A cross-coupled level shifter is a ratioed latch: it only flips if the nMOS pull-downs (driven from the low supply) win against the pMOS loads (on the high supply). The worst case is lowest VDDD with highest VDDA, slow and fast corners - a transient shows directly whether it flips.
+
+**How it works.** Pulse on 'in' (0-1.71 V), VDDA 3.63 V, 20 fF loads; .meas rise/fall at VDDA/2 and the high/low levels; ss/110 C and ff/-40 C.
+
+**How to run it.** `design/cco/step75_sim.py (section E)`
+
+**Limits.** Static control bits: speed hardly matters, only correct switching.
