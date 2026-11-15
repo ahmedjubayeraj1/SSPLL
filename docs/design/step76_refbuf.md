@@ -37,6 +37,10 @@ On chip, lower noise needs more $g_m$, i.e. current; moderate inversion behind a
 (both devices adding $g_m$) give the most $g_m$ per µA. The AC coupling and self-bias put the crossing at the middle of
 any input waveform, whatever its DC level.
 
+> **Update 15 Nov 2026 (step-74 re-run, CCO NBASE 11):** with the corrected ring and CCO, a full-swing reference gives
+> **1.97 / 1.26 ps and L(300 kHz) −110.8 / −120.7 dBc/Hz**; at 1 V pp 1.98 / 1.33 ps and −110.5 / −118.2. Power falls
+> to 8.91 mW typ and 13.40 mW worst. The receiver itself is unchanged.
+
 ## A. Architecture decisions
 | Decision | Options | Chosen | Why |
 |---|---|---|---|

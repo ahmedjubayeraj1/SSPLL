@@ -112,13 +112,20 @@ print f vdd_avg vdd_max ppd vmax vmin ta tb
 """
 
 
+def spinit(d):
+    """Copy the PDK's ngspice init file into the run folder as .spiceinit. Without it (until 15 Nov 2026) the ring ran
+    4.6 % slow: ngbehavior=hsa is needed to read the sky130 model files correctly."""
+    open(os.path.join(d, ".spiceinit"), "w").write(open(os.path.join(os.path.dirname(LIB), "spinit")).read())
+
+
 def run(net, wr=None):
     with tempfile.TemporaryDirectory() as d:
         fn = os.path.join(d, "r.sp")
         if wr:
             net = net.replace("{wr}", wr)
         open(fn, "w").write(net)
-        out = subprocess.run(["ngspice", "-b", fn], capture_output=True, text=True, timeout=3000).stdout
+        spinit(d)                              # PDK .spiceinit (ngbehavior=hsa) - required by the sky130 models
+        out = subprocess.run(["ngspice", "-b", fn], capture_output=True, text=True, timeout=3000, cwd=d).stdout
     r = {}
     for k in ("f", "vdd_avg", "vdd_max", "ppd", "vmax", "vmin", "ta", "tb"):
         m = re.search(rf"^{k} = (\S+)", out, re.M)
@@ -179,8 +186,8 @@ print onoise_spectrum
 .end
 """
     with tempfile.TemporaryDirectory() as d:
-        fn = os.path.join(d, "n.sp"); open(fn, "w").write(net)
-        out = subprocess.run(["ngspice", "-b", fn], capture_output=True, text=True).stdout
+        fn = os.path.join(d, "n.sp"); open(fn, "w").write(net); spinit(d)
+        out = subprocess.run(["ngspice", "-b", fn], capture_output=True, text=True, cwd=d).stdout
     sp = dict((float(a), float(b)**2) for a, b in re.findall(r"^\d+\s+(\S+)\s+(\S+)", out, re.M))
     B = sp[1e3]*1e3
     return max(sp[1e9] - B/1e9, 0.0), B

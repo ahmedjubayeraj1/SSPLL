@@ -17,7 +17,7 @@ D = dict(
     UP=("pfet_g5v0d10v5", 20.0, 2, 2.0),     # mirror unit pMOS (W 40 um, L 2 um)
     UN=("nfet_g5v0d10v5", 1.0, 1, 4.0),      # DAC / bias unit nMOS (2.5 uA)
     SW=("nfet_g5v0d10v5", 1.0, 1, 0.5),      # DAC unit switch
-    NOUT=25, NBASE=13, R_F=10e6, C_F=7.28e-12,
+    NOUT=25, NBASE=11, R_F=10e6, C_F=7.28e-12,
     # filter as PDK devices: R_F = 20 series segments of res_xhigh_po_0p35 (L 87.48 um each), C_F = 4 MIM 30x30 tiles
     RSEG=("res_xhigh_po_0p35", 20, 87.48), CTILE=("cap_mim_m3_1", 4, 30.0),
     # ring-node clamp (active, two-stage): replica pMOS diode from the 1.8 V rail sets vclamp; sense pMOS (source =

@@ -19,6 +19,37 @@ cd ../../xschem && ./lvs.sh vco/sspll_vco.sch netlist/ref_vco.spice sspll_vco   
 Methods M1–M5 (what, why, how, how to run) are in [`docs/methods.md`](../methods.md). Every number below is also in
 [`design/SSPLL_design_log.xlsx`](../../design/SSPLL_design_log.xlsx).
 
+## Correction, 15 Nov 2026: re-run with the PDK `.spiceinit`
+
+The first step-74 runs started ngspice without the PDK's `.spiceinit`. That file sets `ngbehavior=hsa`, which the
+sky130 model files need to read multi-finger devices correctly; single-finger devices (the noise tables) were not
+affected. All step-74 scripts were re-run with it (`vco.spinit()`). The design is unchanged. The values are:
+
+| Quantity | First run | **Corrected** |
+|---|---|---|
+| Current for 1.6 GHz (tt, 27 °C, 10 fF) | 1.437 mA | **1.352 mA** |
+| Ring node at 1.6 GHz (tt) | 1.449 V | **1.376 V** |
+| L(1 MHz) thermal / flicker / total | −98.71 / −101.12 / −96.74 dBc/Hz | **−98.66 / −100.87 / −96.62 dBc/Hz** |
+| 1/f³ corner (requirement ≤ 0.6 MHz) | 0.57 MHz | **0.60 MHz** |
+| Base cell: current / corner | 1.314 mA / 1.02 MHz | 1.225 mA / 1.06 MHz |
+| K_VCO, average 0.6–1.2 V (tt / ss 110 °C / ff −40 °C) | −300 / −205 / −439 MHz/V | **−326 / −223 / −484 MHz/V** |
+| K_I (tt, 1.3–1.7 mA) | 0.847 GHz/mA | **0.843 GHz/mA** |
+| 1.76 GHz at ss, 110 °C, 10 fF: current / ring node | 2.02 mA / 1.71 V | **1.93 mA / 1.65 V** |
+| same at 15 fF | 2.26 mA / 1.78 V | 2.18 mA / 1.73 V |
+| 1.44 GHz at ff, −40 °C, 5 fF: current | 0.97 mA | **0.89 mA** |
+| Ring power at 1.6 GHz (1:25 CCO, 3.3 V) | 4.93 mW | **4.64 mW** |
+| Start-up with 1 % mismatch (10th cycle at) tt / ss / ff | < 9 ns | 7.0 / 8.5 / 5.8 ns |
+
+What follows from it:
+- **CCO (step 75).** The lowest frequency now needs less current at ff/−40 °C. NBASE 13 → 11, so code 0 at
+  IBIAS +20 % stays below 0.89 mA; code 31 at IBIAS −20 % still exceeds 1.93 mA.
+- **Loop (steps 73/79).** β·K_VCO must stay the same, so the Gm unit falls from 28.3 µS to 26.0 µS (3 units =
+  78.1 µS). R1, C1, C2 are unchanged.
+- **Phase noise.** The corner is now at the 0.6 MHz requirement, with no margin.
+
+The figures below are regenerated from the corrected data. Tables in sections B–D keep the first-run numbers of the
+design study; their ranking and every decision are unchanged.
+
 ## Result in one paragraph
 
 The VCO keeps the proposal's 5-stage pseudo-differential ring with the ×1.5 cell. One change was made: the
@@ -26,12 +57,12 @@ fine-tune switch and the coupling-TG nMOS are now drawn at L = 0.3 µm.
 
 - **Why.** The ISF showed that these two minimum-length devices caused 86 % of the flicker up-conversion. The
   1/f³ corner was 1.02 MHz.
-- **Noise.** The corner falls to **0.57 MHz** (requirement ≤ 0.6). Thermal phase noise is **−98.7 dBc/Hz at
+- **Noise.** The corner falls to **0.60 MHz** (requirement ≤ 0.6). Thermal phase noise is **−98.66 dBc/Hz at
   1 MHz** (requirement ≤ −98.35).
-- **Current.** The ring needs **1.437 mA** for 1.6 GHz (tt), 9 % more than before.
-- **Tuning.** The fine-tune gain is **−300 MHz/V** averaged over 0.6–1.2 V, the value step 73 assumed. So the
-  frozen loop filter and the 3-unit Gm stay as they are.
-- **Range and start-up.** All corners reach 1.44–1.76 GHz with the ring node at or below 1.71 V (10 fF per node).
+- **Current.** The ring needs **1.352 mA** for 1.6 GHz (tt), 10 % more than the base cell.
+- **Tuning.** The fine-tune gain is **−326 MHz/V** averaged over 0.6–1.2 V (step 73 assumed −300). The frozen loop
+  filter and the 3-unit Gm stay; only the unit g_m is rescaled from 28.3 to 26.0 µS.
+- **Range and start-up.** All corners reach 1.44–1.76 GHz with the ring node at or below 1.65 V (10 fF per node).
   The ring starts in under 9 ns at every corner.
 - **System effect.** With these numbers the step-72 budget gives:
   - jitter **2.04 / 1.32 ps** typ (FFNC off / on);
