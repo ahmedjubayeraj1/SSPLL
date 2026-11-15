@@ -5,8 +5,9 @@ from nb import Book
 from qa72 import QA72
 from qa73 import QA73
 from qa74 import QA74
+from qa75 import QA75
 
-b = Book("Phase 7 — Block design (steps 72–74)",
+b = Book("Phase 7 — Block design (steps 72–75)",
          "Phases 1–6 explained *why* each block exists. Phase 7 designs them — and the first design step is to decide how "
          "much each block is allowed to cost: jitter, power and area (step 72); the second is the loop itself (step 73). "
          "This notebook splits the proposal's targets "
@@ -411,4 +412,113 @@ $K_{VCO}$ −300 MHz/V (0.6–1.2 V); $K_I$ 0.85 GHz/mA; 1.44–1.76 GHz over co
 start-up < 9 ns. System: 2.04 / 1.32 ps (FFNC off/on), 9.55 mW, FoM −227.8 dB. Full report: `docs/design/step74_vco.md`.
 """)
 b.qa(QA74, 74)
+
+# ------------------------------------------------------------------------------------------------ step 75
+V75 = r"""
+import json
+import numpy as np
+from IPython.display import Image, display
+D = lambda n: json.load(open("../design/cco/data/" + n))
+s, nz = D("step75_sim.json"), D("step75_noise.json")
+"""
+b.step(75, "Current-fed VCO supply (CCO) with PDK-legal resistors", "schematic")
+b.md(r"""
+### What happens
+The ring has no supply of its own: a pMOS current source from VDDA (3.3 V) pushes a current $I_{CCO}$ into its supply
+node, and the ring settles at the voltage where it draws exactly that current. The current is the coarse frequency
+knob, set by a 5-bit code. IBIAS (5 µA from the harness) is the only reference.
+
+### How it happens
+$$I_{CCO} = M\,I_u\,(N_{base} + \text{code}) = 25 \times 2.5\,\mu\text{A} \times (13 + \text{code}) = 0.81\ldots2.75\ \text{mA}$$
+IBIAS → 2-unit nMOS diode → unit sinks (13 always on + binary 1…16) → 1-unit pMOS diode MREF → RC filter
+($R_F$ = 10 MΩ, $C_F$ = 7.3 pF) → 25-unit pMOS MOUT → ring node. The filter makes the reference side invisible above
+$f_F = 1/(2\pi R_F C_F) \approx 2$ kHz; what is left is MOUT's own noise plus the resistor's:
+$$S_{i,out} \approx 4kT\gamma g_{m,out} + g_{m,out}^2\,\frac{4kTR_F}{1+(2\pi f R_F C_F)^2}
+\;\xrightarrow{f \gg f_F}\; 4kT\gamma g_{m,out} + \frac{g_{m,out}^2\,4kT}{(2\pi f C_F)^2 R_F}$$
+so a **larger** $R_F$ gives **less** in-band noise. Frequency noise is $S_f = K_I^2 S_i$, phase noise $S_\phi = S_f/f^2$.
+
+### Why it happens this way
+A current feed isolates the ring from VDDA (high output impedance), and current is what the ring's frequency is
+proportional to. The ±20 % IBIAS tolerance sets the code range (3.4 : 1). The 1:25 ratio keeps the reference branch's
+own supply current at 4 % of the ring current, which is what brings the worst-case power back under 15 mW. Above the
+1.8 V rail the ring's thin-oxide devices would be over-stressed, so an active clamp sinks any excess current once the
+ring node reaches VDDL.
+
+**Methods used:** M10 (DC operating points and compliance), M11 (.noise of the output current, AC supply rejection),
+M12 (clamp with the ring's measured I–V), M13 (level-shifter transient), M4/M5 (LVS, drawing checks). `docs/methods.md`.
+""")
+b.md("**Figure 75.1 — coarse tuning.** Slider: IBIAS. Each point is one corner × VDDA; the band is the current the ring needs.")
+b.code(V75 + r"""
+dc = s["dc"]
+def frame(ib):
+    tr = []
+    for code, c in ((0, "#1baf7a"), (10, "#2a78d6"), (31, "#eb6834")):
+        r = [x for x in dc[:90] if x[3] == ib*1e-6 and x[4] == code]
+        tr.append(dict(x=[f"{x[0]}/{x[1]}°C/{x[2]}V" for x in r], y=[-x[5]*1e3 for x in r], mode="markers",
+                       name=f"code {code}", marker=dict(color=c, size=8)))
+    tr += [dict(x=[f"{x[0]}/{x[1]}°C/{x[2]}V" for x in dc[:90] if x[3] == ib*1e-6 and x[4] == 0], y=[0.97]*10,
+                name="code 0 must be ≤ 0.97 mA (ff, −40 °C)", line=dict(color="#1baf7a", dash="dot")),
+           dict(x=[f"{x[0]}/{x[1]}°C/{x[2]}V" for x in dc[:90] if x[3] == ib*1e-6 and x[4] == 0], y=[2.02]*10,
+                name="code 31 must be ≥ 2.02 mA (ss, 110 °C)", line=dict(color="#eb6834", dash="dot"))]
+    return tr, f"IBIAS {ib} µA"
+def lay(fig):
+    fig.update_yaxes(title_text="I into ring node (mA)")
+show(sweep([4, 5, 6], frame, "IBIAS (µA)", fmt="{}", active=1, layout=lay))
+""")
+b.md("**Figure 75.2 — compliance and the clamp.** Left: current vs ring-node voltage at the least headroom; right: the "
+     "ring node at ss/110 °C (where the ring needs the most voltage) for every code.")
+b.code(V75 + r"""
+fig = make_subplots(rows=1, cols=2, subplot_titles=("I (mA) vs ring node (V): ss, 110 °C, VDDA 2.97 V, code 31",
+                                                    "ring node (V) vs code: ss, 110 °C, VDDA 3.63 V"))
+cp = np.array(s["compliance"])
+fig.add_trace(go.Scatter(x=cp[:, 0], y=-cp[:, 1]*1e3, name="I out", line=dict(color="#2a78d6")), row=1, col=1)
+for ib, c in ((4e-6, "#eb6834"), (6e-6, "#eda100")):
+    r = [x for x in s["clamp"] if x[0] == ib]
+    fig.add_trace(go.Scatter(x=[x[1] for x in r], y=[x[2] for x in r], name=f"IBIAS {ib*1e6:.0f} µA",
+                             line=dict(color=c)), row=1, col=2)
+fig.add_hline(y=1.8, line_dash="dot", line_color="#e87ba4", row=1, col=2)
+fig.update_yaxes(range=[-0.6, 2.7], row=1, col=1); fig.update_layout(height=420)
+show(fig)
+""")
+b.md("**Figure 75.3 — output-current noise and supply rejection** (complete circuit with PDK resistors and capacitors).")
+b.code(V75 + r"""
+fig = make_subplots(rows=1, cols=2, subplot_titles=("output noise (pA/√Hz)", "|ΔI/ΔVDDA| (µA/mV)"))
+fig.add_trace(go.Scatter(x=nz["f"], y=np.array(nz["n"])*1e12, name="CCO noise", line=dict(color="#2a78d6")), row=1, col=1)
+fig.add_hline(y=10.3, line_dash="dot", line_color="#eb6834", row=1, col=1)
+ps = np.array(s["psr"])
+fig.add_trace(go.Scatter(x=ps[:, 0], y=ps[:, 1]*1e3, name="supply → current", line=dict(color="#1baf7a")), row=1, col=2)
+fig.update_xaxes(type="log"); fig.update_yaxes(type="log", row=1, col=1); fig.update_layout(height=420)
+show(fig)
+print("jitter contribution of the CCO: %.2f ps (FFNC off) / %.2f ps (on); system total %.2f / %.2f ps; L(300 kHz) %.1f / %.1f dBc/Hz"
+      % (nz["off"][0], nz["on"][0], nz["off"][1], nz["on"][1], nz["off"][2], nz["on"][2]))
+""")
+b.md("**The schematics** (CCO top → DAC, filter resistor, level shifter; LVS-clean against the simulated netlist).")
+b.code(r"""
+from IPython.display import Image, display
+for n in ("cco", "cco_dac", "cco_rf", "ls_1v8_3v3"):
+    print("sspll_" + n); display(Image(filename=f"../docs/img/step75_sch_{n}.png", width=900))
+""")
+b.md(r"""
+### Sizing table and results
+| Device | Model | W × nf × m | L | Role |
+|---|---|---|---|---|
+| XNB | nfet_g5v0d10v5 | 1 × 1 × 2 | 4 µm | IBIAS input diode (2 units) |
+| XU0…XU5 | nfet_g5v0d10v5 | 1 × 1 × (13, 1, 2, 4, 8, 16) | 4 µm | DAC unit sinks, 2.5 µA each |
+| XS0…XS5 | nfet_g5v0d10v5 | 1 × 1 × same | 0.5 µm | DAC switches (en, c0…c4) |
+| XMREF | pfet_g5v0d10v5 | 40 (2 × 20) × 1 | 2 µm | reference diode (1 unit) |
+| XMOUT | pfet_g5v0d10v5 | 40 (2 × 20) × 25 | 2 µm | output mirror (25 units) |
+| xrf (20 segments) | res_xhigh_po_0p35 | 0.35 | 87.48 µm each | $R_F$ = 10 MΩ |
+| XCF | cap_mim_m3_1 | 30 × 30 × 4 | — | $C_F$ = 7.3 pF (over MOUT) |
+| XPREP / XUREP | pfet_01v8 1/0.15 / nfet_g5v0 1/4 | | | clamp replica (sets vcl) |
+| XPSEN / XRS | pfet_01v8 1/0.15 / xhigh_po_0p35 56 µm | | | clamp sense, 320 kΩ |
+| XNSH | nfet_01v8 | 20 (4 × 5) | 0.15 µm | clamp shunt |
+| XTGN / XTGP / XRINJ | g5v0 2/0.5 / xhigh_po_0p35 3.39 µm | | | VTEST injection, 20 kΩ |
+
+Every device passes `tools/pdk_limits.py`. tt code 0/10/31: 0.84 / 1.47 / 2.79 mA; over 5 corners × VDDA 2.97–3.63 V
+× IBIAS 4–6 µA: code 31 ≥ 2.20 mA (needs 2.02), code 0 ≤ 1.02 mA (needs 0.97 — the 50 µA excess at ff/−40 °C/IBIAS
+6 µA is ≈ 60 MHz, inside the ±75 MHz fine-tune range). Ring node ≤ 1.793 V in the worst case. Output noise 8.9 pA/√Hz at
+1 MHz (needs ≤ 10.3); CCO jitter 0.70 / 0.44 ps, system 1.96 / 1.27 ps, L(300 kHz) −110.9 / −120.0 dBc/Hz.
+Supply → current ≤ 0.25 µA/mV. Level shifter: full 3.63 V swing, rise 1.4–1.6 ns. Full report: `docs/design/step75_cco.md`.
+""")
+b.qa(QA75, 75)
 b.save(os.path.join(os.path.dirname(__file__), "..", "phase7_design.ipynb"))
