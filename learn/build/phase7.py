@@ -6,8 +6,9 @@ from qa72 import QA72
 from qa73 import QA73
 from qa74 import QA74
 from qa75 import QA75
+from qa76 import QA76
 
-b = Book("Phase 7 — Block design (steps 72–75)",
+b = Book("Phase 7 — Block design (steps 72–76)",
          "Phases 1–6 explained *why* each block exists. Phase 7 designs them — and the first design step is to decide how "
          "much each block is allowed to cost: jitter, power and area (step 72); the second is the loop itself (step 73). "
          "This notebook splits the proposal's targets "
@@ -521,4 +522,96 @@ Every device passes `tools/pdk_limits.py`. tt code 0/10/31: 0.84 / 1.47 / 2.79 m
 Supply → current ≤ 0.25 µA/mV. Level shifter: full 3.63 V swing, rise 1.4–1.6 ns. Full report: `docs/design/step75_cco.md`.
 """)
 b.qa(QA75, 75)
+
+# ------------------------------------------------------------------------------------------------ step 76
+V76 = r"""
+import json
+import numpy as np
+from IPython.display import Image, display
+D = lambda n: json.load(open("../design/refbuf/data/" + n))
+nz, sim, tn = D("step76_noise.json"), D("step76_sim.json"), D("step76_tnoise.json")
+"""
+b.step(76, "REF buffer (REF_IN receiver): low-noise edge", "schematic")
+b.md(r"""
+### What happens
+The crystal oscillator's waveform arrives on the REF_IN pad: anything from a 0.4 V pp sine to a 0–3.3 V square wave.
+The receiver AC-couples it, amplifies it around its own switching point and delivers a 1.8 V CMOS edge, `refclk`, to the
+clock generator. Every bit of noise at the moment of the crossing moves the edge in time; inside the loop bandwidth
+that timing error reaches the output multiplied by $N = 32$ in phase ($N^2$ = +30 dB in power).
+
+### How it happens
+Noise $v_n$ at a crossing of slope $s$ shifts the edge by $v_n/s$:
+$$\sigma_t = \frac{\sigma_v}{s},\qquad s = \pi f_{ref} V_{pp}\ \text{(sine)},\qquad
+\mathcal{L}_{floor} = \frac{(2\pi f_{ref}\,\sigma_t)^2}{f_{ref}} .$$
+The receiver's own white noise $S_w$ is integrated over an effective bandwidth $B_{eff}$ (about S1's gain-bandwidth):
+$\sigma_v^2 \approx S_w B_{eff}$. The first stage S1 is a current-reuse inverter (XN1/XP1, 120 µm each) fed by a 60 µA
+header current source; $R_B$ = 5 MΩ from its output to its input biases it exactly at its trip point, $C_{AC}$ = 3.6 pF
+couples the signal in, $C_H$ = 1.8 pF makes the header node an AC ground so both devices add $g_m$.
+
+### Why it happens this way
+Jitter per edge is set by noise per unit of input slope, so a steep input is the cheapest fix: a full-swing input is
+3.3× steeper than 1 V pp and gives 10 dB less phase noise. On chip, lower noise costs $g_m$, i.e. current: moderate
+inversion behind a current source gives the most $g_m$ per µA, and $C_H$ lets the pMOS contribute too.
+
+**Methods used:** M10 (bias point), M14 (noise at the crossing point), M15 (transient-noise jitter), M16 (large-signal
+transient, supply sensitivity, start-up), M9 (system budget), M4/M5 (LVS, drawing checks). `docs/methods.md`.
+""")
+b.md("**Figure 76.1 — receiver phase noise vs input amplitude.** Slider: amplitude of the 50 MHz sine at the pad.")
+b.code(V76 + r"""
+fl = nz["fL"]
+def frame(v):
+    k = str(v)
+    return ([dict(x=fl, y=nz["L"][k], name=f"receiver, {k} V pp", line=dict(color="#2a78d6")),
+             dict(x=fl, y=[-155]*len(fl), name="step-72 allocation", line=dict(color="#e87ba4", dash="dot"))],
+            f"{k} V pp: σ = {nz['sigma'][k]['abs']*1e12:.2f} ps per edge — system {nz['sys'][k]['false']['total_ps']:.2f} / "
+            f"{nz['sys'][k]['true']['total_ps']:.2f} ps, L(300 kHz) {nz['sys'][k]['false']['L300k']:.1f} / {nz['sys'][k]['true']['L300k']:.1f} dBc/Hz")
+def lay(fig):
+    fig.update_xaxes(type="log", title_text="offset (Hz)"); fig.update_yaxes(title_text="L at 50 MHz (dBc/Hz)", range=[-170, -135])
+show(sweep([0.4, 1.0, 3.3], frame, "V_pp", fmt="{}", active=2, layout=lay))
+""")
+b.md("**Figure 76.2 — transient-noise edge times (method M15).** Each point is one `refclk` rising edge; the spread is the per-edge jitter.")
+b.code(V76 + r"""
+fig = go.Figure()
+for r, c in zip([r for r in tn["runs"] if r["Sw"] > 0], ("#2a78d6", "#1baf7a", "#eb6834")):
+    x = np.array(r["dev"]); k = np.arange(len(x)); x = x - np.polyval(np.polyfit(k, x, 4), k)
+    fig.add_trace(go.Scatter(y=x*1e12, mode="lines", name=f"{r['vpp']} V pp (σ {x.std()*1e12:.2f} ps)", line=dict(color=c, width=1)))
+fig.update_layout(height=400, xaxis_title="edge number", yaxis_title="deviation from the ideal grid (ps)")
+show(fig)
+""")
+b.md("**Figure 76.3 — delay, duty and supply current over corners and amplitudes** (drawn circuit with PDK passives). Hover for the condition.")
+b.code(V76 + r"""
+fig = make_subplots(rows=1, cols=3, subplot_titles=("delay pad → refclk (ns)", "duty (%)", "power (mW)"))
+lab = [f"{r['corner']}/{r['temp']}°C/{r['vdda']} V/{r['vpp']} V pp {r['wave']}/{r['f']/1e6:.0f} MHz/VDDL {r['vddl']}" for r in sim["tran"]]
+for i, (k, sc) in enumerate((("delay", 1e9), ("duty", 100), ("power", 1e3))):
+    fig.add_trace(go.Scatter(x=list(range(len(lab))), y=[r[k]*sc for r in sim["tran"]], mode="markers", text=lab,
+                             marker=dict(color="#2a78d6", size=7), showlegend=False), row=1, col=i + 1)
+fig.add_hline(y=45, line_dash="dot", line_color="#eb6834", row=1, col=2)
+fig.update_xaxes(title_text="condition #"); fig.update_layout(height=400)
+show(fig)
+""")
+b.md("**The schematics** (receiver top → S1 cell, R_B cell, level shifter from step 75; LVS-clean against the simulated netlist).")
+b.code(r"""
+from IPython.display import Image, display
+for n in ("refbuf", "refbuf_s1", "refbuf_rb"):
+    print("sspll_" + n); display(Image(filename=f"../docs/img/step76_sch_{n}.png", width=900))
+""")
+b.md(r"""
+### Sizing table and results
+| Device | Model | W per finger × nf × m | L | Role |
+|---|---|---|---|---|
+| XRPU / XRPD | res_xhigh_po_0p35 | 0.35 | 87.48 µm | pad divider, 500 kΩ each |
+| XCAC | cap_mim_m3_1 | 30 × 30 µm × 2 | — | $C_{AC}$ = 3.6 pF (bottom plate on the pad) |
+| xrb (10 segments) | res_xhigh_po_0p35 | 0.35 | 87.48 µm | $R_B$ = 5 MΩ |
+| XPD / XPH | pfet_g5v0d10v5 | 2 × 1 × (1 / 24) | 4 µm | bias diode / header (60 µA) |
+| XCH | cap_mim_m3_1 | 30 × 30 µm | — | $C_H$ = 1.8 pF |
+| XP1 / XN1 | p/nfet_g5v0d10v5 | 10 × 12 | 1 µm | S1, moderate inversion; XP1 body = source |
+| XPEN / XNS1 | p/nfet_g5v0d10v5 | 2 × 1 | 0.5 µm | enable |
+| XP2 / XN2 | p/nfet_g5v0d10v5 | 2 / 1 | 0.5 µm | S2 (VDDA) |
+| XPL / XNL | p/nfet_g5v0d10v5 | 2 / 1 | 0.5 µm | 3.3 → 1.8 V inverter on VDDL |
+| XPB, XPB2 / XNB, XNB2 | p/nfet_01v8 | 4 / 1 | 0.15 µm | output NOR |
+
+Per-edge jitter 0.23 / 0.61 / 1.15 ps at 3.3 / 1.0 / 0.4 V pp; system at 3.3 V pp 1.95 / 1.26 ps, L(300 kHz)
+−111.0 / −120.7 dBc/Hz (FFNC off / on). Full report: `docs/design/step76_refbuf.md`.
+""")
+b.qa(QA76, 76)
 b.save(os.path.join(os.path.dirname(__file__), "..", "phase7_design.ipynb"))
