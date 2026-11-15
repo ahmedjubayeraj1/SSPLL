@@ -157,3 +157,39 @@ Generated from `design/log/log_data.py` (also in `design/SSPLL_design_log.xlsx`,
 **How to run it.** `design/cco/step75_sim.py (section E)`
 
 **Limits.** Static control bits: speed hardly matters, only correct switching.
+
+## M14. Crossing-point noise analysis (.noise at the self-bias point) (step 76)
+
+**What it gives.** Gate-referred noise spectrum of a threshold circuit at the instant of its crossing, incl. flicker and bias-resistor noise
+
+**Why this method.** A self-biased inverter rests exactly at its trip point, i.e. at the operating point it passes through at every crossing. A small-signal .noise there is exact for the slow (quasi-static) noise that shifts the crossing, and it shows which device or resistor dominates. It is fast enough to be used for sizing.
+
+**How it works.** Output noise of S1 (.noise, source = the pad generator through 50 ohm) divided by the gain |v(s1)/v(vin)| gives the gate-referred PSD. Jitter PSD = S_gate/s_gate^2 with s_gate = pi f V_pp |v(vin)/v(pad)| at 50 MHz; L(f) = (2 pi f_ref)^2 S_t(f)/2 for f << f_ref.
+
+**How to run it.** `design/refbuf/refbuf.py: input_noise(); step76_noise.py`
+
+**Limits.** Valid for slow noise only; the white, fast noise of a switching comparator needs M15.
+
+## M15. Transient-noise jitter (trnoise injection, edge-time statistics) (step 76)
+
+**What it gives.** Per-edge jitter and its spectrum for the real, non-linear switching of the receiver
+
+**Why this method.** In a high-gain comparator the small-signal gain at DC (~190) is not the gain that applies while the input sweeps through the threshold (~30), so 'integrated output noise / output slope' is wrong by about 2x. Simulating the switching with noise present measures the jitter directly.
+
+**How it works.** The white plateau of the M14 noise, referred to the pad, is injected as a trnoise voltage (time step 10 ps, i.e. 50 GHz bandwidth) in series with the 50 ohm source of a noiseless circuit. 300 refclk rising-edge times are interpolated; a 4th-order polynomial removes the deterministic settling of the AC-coupling bias; the rms deviation is the per-edge jitter (period jitter / sqrt 2 agrees, so the jitter is white). L_floor = (2 pi f sigma)^2 / f.
+
+**How to run it.** `design/refbuf/tn_run.py (refbuf.tnoise, edge_stats)`
+
+**Limits.** Noise sources stationary at their crossing-point level; 300 edges give sigma to about +/-4 %; ~10 min per run.
+
+## M16. Large-signal transient: delay, duty, edge rate, supply current, supply sensitivity, start-up (step 76)
+
+**What it gives.** Delay pad->out, duty, 10-90 % rise time, average supply currents over corners, amplitudes, frequencies and supplies; edge-time sensitivity to VDDA / VDDL; start-up after enable; the disabled state
+
+**Why this method.** These are large-signal properties of a switching circuit; only a transient shows them. A finite difference of two transients (supply +10 mV) gives the supply sensitivity of the edge time directly in ps/mV.
+
+**How it works.** Sine (or square) source at the pad through 50 ohm; 14 cycles, the last 5 evaluated in numpy from the waveforms (interpolated crossings). Start-up: pll_en steps at 0.5 us, 25 us run, first edge after which all periods are within 2 % of 1/f.
+
+**How to run it.** `design/refbuf/step76_sim.py; xschem: tb_refin (to be drawn in phase 8)`
+
+**Limits.** Drawn netlist with PDK resistors and MIM capacitors; no layout parasitics yet.

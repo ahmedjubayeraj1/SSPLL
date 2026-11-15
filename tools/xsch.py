@@ -128,7 +128,7 @@ class Sch:
             for p in list(pts_all) + list(pinpts):
                 if on(p, s):
                     interior = p not in ((s[0], s[1]), (s[2], s[3]))
-                    if interior and p in pinpts and p not in pts_all:
+                    if interior and p in pinpts:
                         errs.append(f"wire {s[:4]} passes through pin {pinpts[p]} (connects it - draw to it instead)")
                     u(p, (s[0], s[1]))
         # collinear overlaps of different nets
