@@ -412,3 +412,17 @@ _set("Power, FFNC off", "typ", 7.75, source="as above minus NCB")
 _set("Power, FFNC off", "max over PVT", 11.66, source="as above minus NCB")
 _set("Jitter FoM", "typ", -228.3, source="1.256 ps, 9.20 mW")
 MARGIN = list(_m.values())
+
+
+# ------------------------------------------------------------------------------------------------ testbench guide (15 Nov)
+PROBLEMS += [
+ (74, "simulation setup", "VCO simulated without the PDK .spiceinit (ngbehavior=hsa)",
+  "stand-alone deck tb_vco_tran: 1.676 GHz at 1.437 mA instead of 1.602 GHz; ring node 1.40 V instead of 1.45 V",
+  "design/vco/vco.py ran ngspice without copying the PDK spinit; the CCO, REF buffer and tb/ decks load it",
+  "always run through tb/run.sh or copy spinit to .spiceinit; re-run the step-74 characterisation (f(I), K_VCO, ISF "
+  "phase noise, corners) and update the CCO clamp model and the budget. Corrected: tt 1.6 GHz at ~1.35 mA, ss/110 C "
+  "1.76 GHz at ~1.93 mA (ring 1.70 V), K_VCO ~ -366 MHz/V", "open - re-run step 74"),
+ (76, "testbench", "Wrong trnoise amplitude in the stand-alone deck", "deck gave 1.8 ps instead of 0.6 ps",
+  "NA = sqrt(S/(2 NT)) mis-computed by hand (2.64 instead of 0.836 mV)",
+  "corrected; habit: noiseless baseline run + comparison with the ideal circuit before trusting a noise result", "fixed"),
+]
