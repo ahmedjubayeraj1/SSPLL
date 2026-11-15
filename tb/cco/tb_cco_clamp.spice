@@ -1,0 +1,30 @@
+* tb_cco_clamp - method M12: ring-node voltage with the ring's real I-V and the active clamp (step 75)
+* Run:  tb/run.sh tb/cco/tb_cco_clamp.spice ss 110
+* Simulating the whole ring for every code takes hours; for DC only its average current at each supply voltage
+* matters. "Bring" is a behavioural current sink whose current is a piece-wise linear function of its own voltage:
+* the ring's I-V measured with method M1 at ss / 110 C, 10 fF per node. The operating point is the intersection of
+* the CCO output characteristic, the clamp and this curve (a load-line solution).
+* Worst case: IBIAS +20 % (6 uA), VDDA max (3.63 V), code 31. The ring node must stay <= 1.8 V.
+.lib __PDK__/libs.tech/ngspice/sky130.lib.spice __CORNER__
+.temp __TEMP__
+.include __DUT__/sspll_cco.spice
+vdda VDDA 0 3.63
+vddd VDDD 0 1.8
+vddl VDDL 0 1.8
+iib  0 ibias 6u
+vt   vtest 0 1.45
+ven  pll_en 0 1.8
+vvt  vtest_en 0 0
+Bring vring 0 I = pwl(v(vring), 0,0, 1.38,0.9m, 1.51,1.3m, 1.627,1.7m, 1.737,2.1m, 1.817,2.4m, 1.95,2.9m, 2.2,3.9m)
+vc0 code0 0 1.8
+vc1 code1 0 1.8
+vc2 code2 0 1.8
+vc3 code3 0 1.8
+vc4 code4 0 1.8
+x1 VDDA VDDD VDDL 0 vring ibias vtest code0 code1 code2 code3 code4 pll_en vtest_en sspll_cco
+.control
+op
+let iring = @bring[i]
+echo "RESULT ring node = $&v(vring) V, ring current = $&iring A"
+.endc
+.end
