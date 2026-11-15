@@ -142,6 +142,11 @@ PROBLEMS = [  # step, area, problem, how it shows up, cause, solution, status
   "(matches the PDK buffer to 0.001 %); ISF and LVS with PDK devices", "solved"),
  (74, "power", "Ring needs 9 % more current after the flicker fix", "typ power 9.55 mW vs 'about 9'",
   "larger switch / TG capacitance", "accept (FoM unchanged -227.8 dB) or recover 0.5 mW from LDO reserve, dummy buffers, NCB", "watch"),
+ (74, "power (guaranteed)", "Worst-case power may exceed the 15 / 13 mW maxima after layout",
+  "margin tracker: 15.23 / 13.15 mW post-layout estimate", "ring needs 2.0-2.3 mA at ss/110 C for 1.76 GHz, fed from 3.63 V "
+  "through a 1:8 mirror (1/8 extra current in the reference branch)",
+  "step 75: 1:16 CCO mirror (-0.5 mW worst); layout rule <= 10 fF per ring node (-1.0 mW); replace the x1.3 worst-case "
+  "factor on the other blocks with simulated values", "open - fix in step 75"),
 ]
 
 RESULTS = [  # parameter, value, spec / target, unit, kind ("max" = value must be <= target, "min" = >=), step, note
@@ -164,4 +169,37 @@ RESULTS = [  # parameter, value, spec / target, unit, kind ("max" = value must b
  ("Jitter FFNC on, typ, with step-74 VCO", 1.318, 1.4, "ps", "max", 74, ""),
  ("Jitter FFNC off, typ, with step-74 VCO", 2.040, 2.3, "ps", "max", 74, ""),
  ("Power FFNC on, typ, with step-74 VCO", 9.55, 9.0, "mW", "max", 74, "about 9 mW in the proposal"),
+]
+
+# Margin tracker: every proposal spec vs the best pre-layout number so far and the expected post-layout change.
+# kind: "max" (value must be <= limit) or "min" (>=); target: "guaranteed" (min/max column of the proposal, must hold
+# post-layout over PVT) or "typ" (design target at tt).  pre = None -> not simulated yet.
+# change = expected post-layout shift in the spec's own unit (worsening direction), an engineering estimate:
+#   jitter +10 % (parasitics recovered by more current and re-trimmed codes), power +0.97 mW worst (ring wiring
+#   15 fF instead of 10 fF at ss/110 C) / +8 % typ, phase noise +1 dB, ring node +70 mV (15 fF), area +25 % (routing).
+# guard = margin wanted *after* that change before calling a spec safe.
+MARGIN = [  # spec, condition, target, kind, limit, unit, pre, change, guard, source, verify in
+ ("RMS jitter, FFNC on", "typ, 10 kHz-40 MHz", "typ", "max", 1.4, "ps", 1.318, 0.132, 0.05, "step-72 model + step-74 ring", "121"),
+ ("RMS jitter, FFNC on", "max over PVT", "guaranteed", "max", 3.2, "ps", 1.73, 0.17, 0.5, "step-72 model, pessimistic set", "121"),
+ ("RMS jitter, FFNC off", "typ", "typ", "max", 2.3, "ps", 2.04, 0.20, 0.05, "step-72 model + step-74 ring", "121"),
+ ("RMS jitter, FFNC off", "max over PVT", "guaranteed", "max", 4.7, "ps", 2.71, 0.27, 0.5, "step-72 model, pessimistic set", "121"),
+ ("Jitter reduction by FFNC", "min, after calibration", "guaranteed", "min", 20, "%", 36, 5, 5, "step-72 model, pessimistic set", "121"),
+ ("Phase noise 300 kHz, FFNC off", "typ", "typ", "max", -110, "dBc/Hz", -110.6, 1.0, 0.5, "step-72 model + step-74 ring", "121"),
+ ("Phase noise 300 kHz, FFNC off", "max", "guaranteed", "max", -102, "dBc/Hz", -106.7, 1.0, 2.0, "step-72 model, pessimistic set", "121"),
+ ("Phase noise 300 kHz, FFNC on", "typ", "typ", "max", -120, "dBc/Hz", -120.0, 1.0, 0.5, "step-72 model + step-74 ring", "121"),
+ ("Phase noise 300 kHz, FFNC on", "max", "guaranteed", "max", -110, "dBc/Hz", -114.5, 1.0, 2.0, "step-72 model, pessimistic set", "121"),
+ ("Power, FFNC on", "typ", "typ", "max", 9.0, "mW", 9.55, 0.76, 0.3, "step-72 table + step-74 ring 1.437 mA", "120"),
+ ("Power, FFNC on", "max over PVT", "guaranteed", "max", 15, "mW", 14.26, 0.97, 0.75, "ring 2.02 mA at ss/110 C, 3.63 V; others typ x1.3", "120"),
+ ("Power, FFNC off", "typ", "typ", "max", 7.5, "mW", 8.10, 0.65, 0.3, "as above minus NCB", "120"),
+ ("Power, FFNC off", "max over PVT", "guaranteed", "max", 13, "mW", 12.18, 0.97, 0.65, "as above minus NCB", "120"),
+ ("Area", "standalone, excl. pads", "guaranteed", "max", 0.12, "mm2", 0.0575, 0.0144, 0.01, "step-72 area table incl. LDO", "115"),
+ ("Area", "typ", "typ", "max", 0.08, "mm2", 0.0575, 0.0144, 0.005, "step-72 area table incl. LDO", "115"),
+ ("Ring supply node", "absolute limit, any code/corner", "guaranteed", "max", 1.80, "V", 1.71, 0.07, 0.05, "step 74, 1.76 GHz ss/110 C, 10 fF/node", "118"),
+ ("Output frequency range", "1.44-1.76 GHz reachable", "guaranteed", "min", 1.76, "GHz", 1.98, 0.08, 0.05, "step 74: ss/110 C at 2.4 mA, 10 fF", "118"),
+ ("Jitter FoM", "typ", "typ", "max", -227.5, "dB", -227.8, 0.8, 0.2, "1.318 ps, 9.55 mW", "121"),
+ ("Lock time", "max", "guaranteed", "max", 20, "us", None, None, 5, "phase loop 0.34 us (step 73); FLL not designed", "104"),
+ ("Reference spur, FFNC off", "max", "guaranteed", "max", -45, "dBc", None, None, 5, "not simulated", "105"),
+ ("Reference spur, FFNC on", "max", "guaranteed", "max", -42, "dBc", None, None, 5, "not simulated", "105"),
+ ("Regulated analog rail", "1.71-1.89 V", "guaranteed", "max", 1.89, "V", None, None, 0.03, "LDO not designed", "LDO step"),
+ ("Power, output dividers", "max", "guaranteed", "max", 1.0, "mW", None, None, 0.2, "dividers not designed", "85"),
 ]

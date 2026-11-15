@@ -43,6 +43,7 @@ info = [("SSPLL + FFNC design log (Chipalooza #4, SKY130A)", None),
         ("PDK limits", "legal ranges per device model (from the frozen PDK model bins and pcell / DRC rules)"),
         ("Problems", "potential and real design problems: symptom, cause, solution, status"),
         ("Results", "key numbers vs spec/target; Margin and Pass are formulas"),
+        ("Margin tracker", "every proposal spec: pre-layout value, expected post-layout change, margin and status (formulas)"),
         ("Colours", "blue text = values copied from simulation or the spec (inputs); black = formulas")]
 for r, (a, b) in enumerate(info, 1):
     ws.cell(r, 1, a).font = Font(name=F, bold=(r in (1, 3)), size=12 if r == 1 else 10)
@@ -82,6 +83,39 @@ for i in range(2, len(D.RESULTS) + 2):
     rs[f"I{i}"] = f'=IF(H{i}>=0,"PASS","FAIL")'
 rs.conditional_formatting.add(f"I2:I{len(D.RESULTS) + 1}", FormulaRule(formula=['I2="PASS"'], fill=green))
 rs.conditional_formatting.add(f"I2:I{len(D.RESULTS) + 1}", FormulaRule(formula=['I2="FAIL"'], fill=red))
+
+# Margin tracker
+hdr = ["Spec", "Condition", "Target type", "Kind (max/min)", "Spec limit", "Unit", "Pre-layout value",
+       "Expected post-layout change", "Post-layout estimate", "Margin after layout", "Guard band wanted", "Status",
+       "Source of pre-layout value", "Verified in step"]
+mt = sheet(wb, "Margin tracker", hdr, [r[:8] + (None, None) + (r[8], None, r[9], r[10]) for r in D.MARGIN],
+           [28, 24, 11, 9, 9, 8, 11, 12, 11, 11, 10, 18, 40, 9], inputs=(5, 7, 8, 11))
+n = len(D.MARGIN) + 1
+for i in range(2, n + 1):
+    mt[f"I{i}"] = f'=IF(G{i}="","",IF(D{i}="max",G{i}+H{i},G{i}-H{i}))'
+    mt[f"J{i}"] = f'=IF(G{i}="","",IF(D{i}="max",E{i}-I{i},I{i}-E{i}))'
+    mt[f"L{i}"] = (f'=IF(G{i}="","not simulated yet",IF(J{i}>=K{i},"OK",IF(J{i}>=0,"TIGHT",'
+                   f'IF(C{i}="typ","typ target missed","AT RISK"))))')
+    for c in "EGHIJK":
+        mt[f"{c}{i}"].number_format = "0.00##"
+amber = PatternFill("solid", fgColor="FFE699"); grey = PatternFill("solid", fgColor="E7E6E6")
+rng = f"L2:L{n}"
+mt.conditional_formatting.add(rng, FormulaRule(formula=['L2="OK"'], fill=green))
+mt.conditional_formatting.add(rng, FormulaRule(formula=['L2="TIGHT"'], fill=amber))
+mt.conditional_formatting.add(rng, FormulaRule(formula=['OR(L2="AT RISK",L2="typ target missed")'], fill=red))
+mt.conditional_formatting.add(rng, FormulaRule(formula=['L2="not simulated yet"'], fill=grey))
+r0 = n + 2
+notes = ["Status: OK = margin after the expected post-layout change >= guard band; TIGHT = still inside the limit but less "
+         "than the guard band; AT RISK = a guaranteed (min/max) spec expected to fail after layout; typ target missed = a "
+         "typical value (design target at tt, not guaranteed) expected to miss.",
+         "Blue cells are inputs: spec limits from the proposal (13 Nov 2026), pre-layout values from the step reports, "
+         "and the expected post-layout change, which is an engineering estimate (see design/log/log_data.py).",
+         "Summary:"]
+for k, t in enumerate(notes):
+    mt.cell(r0 + k, 1, t).font = Font(name=F, size=9, italic=True, bold=(k == 2))
+for k, st in enumerate(("OK", "TIGHT", "AT RISK", "typ target missed", "not simulated yet")):
+    mt.cell(r0 + 3 + k, 1, st).font = BODY
+    mt.cell(r0 + 3 + k, 2, f'=COUNTIF($L$2:$L${n},A{r0 + 3 + k})').font = BODY
 
 out = os.path.join(ROOT, "design", "SSPLL_design_log.xlsx")
 wb.save(out)
