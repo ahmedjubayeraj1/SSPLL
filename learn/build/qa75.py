@@ -5,17 +5,18 @@ QA75 = [
  "where it draws exactly that current, so the current sets the frequency (K_I ≈ 0.85 GHz/mA). The current source's high "
  "output impedance isolates the ring from VDDA noise, and the DAC gives the coarse tuning."),
 ("Draw the CCO from IBIAS to the ring node.",
- "IBIAS (5 µA) → 2-unit nMOS diode → unit sinks of 2.5 µA (13 base + binary 1, 2, 4, 8, 16, switched by cco_code) → "
- "pMOS diode MREF (1 unit) → 10 MΩ / 7.3 pF RC filter → MOUT (25 units) → ring node. I_out = 25 × 2.5 µA × (13 + code) = "
- "62.5 µA × (13 + code): 0.81–2.75 mA."),
+ "IBIAS (5 µA) → 2-unit nMOS diode → unit sinks of 2.5 µA (11 base + binary 1, 2, 4, 8, 16, switched by cco_code) → "
+ "pMOS diode MREF (1 unit) → 10 MΩ / 7.3 pF RC filter → MOUT (25 units) → ring node. I_out = 25 × 2.5 µA × (11 + code) = "
+ "62.5 µA × (11 + code): 0.69–2.63 mA."),
 ("Why a 1:25 output mirror and not 1:8?",
  "The reference branch also draws its current from VDDA: with 1:8 that is +12.5 % of the ring current, with 1:25 only +4 %. "
  "At the worst corner (2.0–2.3 mA at 3.63 V) that saves 0.6–0.7 mW, which brings the worst-case power back under 15 mW. "
  "The price: reference-side noise is multiplied by 25 — which the RC filter removes."),
-("Why is the DAC range 0.81–2.75 mA when the ring only needs 0.97–2.26 mA?",
+("Why is the DAC range 0.69–2.63 mA when the ring only needs 0.89–1.93 mA?",
  "IBIAS from the harness may be 4.0–6.0 µA (±20 %), and the DAC current scales with it. At IBIAS = 6 µA, code 0 must still "
- "be low enough for 1.44 GHz at ff/−40 °C (0.97 mA); at 4 µA, code 31 must still reach 1.76 GHz at ss/110 °C (2.02 mA at "
- "10 fF/node). The ±20 % costs a 3.4:1 code range."),
+ "be low enough for 1.44 GHz at ff/−40 °C (0.89 mA); at 4 µA, code 31 must still reach 1.76 GHz at ss/110 °C (1.93 mA at "
+ "10 fF/node). The ±20 % costs a 3.8:1 code range (11 base + 31 units). The base count was moved from 13 to 11 when the "
+ "corrected ring simulation lowered the ff requirement."),
 ("How fine is the coarse tuning and why is it fine enough?",
  "One LSB is 62.5 µA, i.e. about 53 MHz at tt (K_I 0.85 GHz/mA). The fine-tune range over the 0.75–1.2 V lock window is "
  "about 150 MHz, roughly 3 LSBs, so after the coarse code is chosen the loop can always reach lock with margin for "

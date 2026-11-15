@@ -16,8 +16,8 @@ xnb outb y VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=1 l=0.5 nf=1 m=1
 .subckt sspll_cco_dac vgr ibias en c0 c1 c2 c3 c4 VSS
 * IBIAS 5 uA -> 2-unit diode; unit sinks 2.5 uA: NBASE always-on units (switch = en) + binary 1..16
 xnb ibias ibias VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=1.000 l=4.0 nf=1 m=2 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
-xu0 d0 ibias VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=1.000 l=4.0 nf=1 m=13 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
-xs0 vgr en d0 VSS sky130_fd_pr__nfet_g5v0d10v5 w=1.000 l=0.5 nf=1 m=13 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
+xu0 d0 ibias VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=1.000 l=4.0 nf=1 m=11 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
+xs0 vgr en d0 VSS sky130_fd_pr__nfet_g5v0d10v5 w=1.000 l=0.5 nf=1 m=11 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
 xu1 d1 ibias VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=1.000 l=4.0 nf=1 m=1 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
 xs1 vgr c0 d1 VSS sky130_fd_pr__nfet_g5v0d10v5 w=1.000 l=0.5 nf=1 m=1 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
 xu2 d2 ibias VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=1.000 l=4.0 nf=1 m=2 ad=0.2900 as=0.2900 pd=2.580 ps=2.580

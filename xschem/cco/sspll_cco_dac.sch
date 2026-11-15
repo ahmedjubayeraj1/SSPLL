@@ -5,7 +5,7 @@ V {}
 S {}
 E {}
 T {sspll_cco_dac: unit current sinks (2.5 uA each at IBIAS = 5 uA) switched into vgr} 40 -420 0 0 0.35 0.35 {}
-T {base: 13 units (switch = en) | binary: 1, 2, 4, 8, 16 units (switches = c0..c4) | 3.3 V devices} 40 -375 0 0 0.25 0.25 {}
+T {base: 11 units (switch = en) | binary: 1, 2, 4, 8, 16 units (switches = c0..c4) | 3.3 V devices} 40 -375 0 0 0.25 0.25 {}
 N 60 260 1900 260 {lab=}
 N 60 0 160 0 {lab=}
 N 160 0 240 0 {lab=}
@@ -67,8 +67,8 @@ N 1880 -200 1900 -200 {lab=}
 C {devices/iopin.sym} 60 0 0 0 {name=p_ibias lab=ibias}
 C {devices/iopin.sym} 60 260 0 0 {name=p_VSS lab=VSS}
 C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 220 60 0 0 {name=XNB L=4.0 W=1 nf=1 mult=2 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 460 -60 0 0 {name=XS0 L=0.5 W=1 nf=1 mult=13 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 460 90 0 0 {name=XU0 L=4.0 W=1 nf=1 mult=13 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 460 -60 0 0 {name=XS0 L=0.5 W=1 nf=1 mult=11 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 460 90 0 0 {name=XU0 L=4.0 W=1 nf=1 mult=11 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
 C {devices/ipin.sym} 410 -130 0 0 {name=p_en lab=en}
 C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 740 -60 0 0 {name=XS1 L=0.5 W=1 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
 C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 740 90 0 0 {name=XU1 L=4.0 W=1 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}

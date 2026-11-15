@@ -4,7 +4,9 @@ import re, sys
 from multiprocessing import Pool
 import cco
 from step75_sim import tb
-RING = "Bring vring 0 I = pwl(v(vring), 0,0, 1.38,0.9m, 1.51,1.3m, 1.627,1.7m, 1.737,2.1m, 1.817,2.4m, 1.95,2.9m, 2.2,3.9m)"
+# ring I-V at ss / 110 C (step 74 re-run with the PDK .spiceinit, 15 Nov): 0.9-2.4 mA simulated (M1), above 2.4 mA
+# extrapolated with the measured slope 0.287 V/mA
+RING = "Bring vring 0 I = pwl(v(vring), 0,0, 1.303,0.9m, 1.449,1.3m, 1.58,1.7m, 1.70,2.1m, 1.785,2.4m, 1.93,2.9m, 2.07,3.4m, 2.21,3.9m)"
 def one(args):
     ib, code = args
     o = cco.run(tb("ss", 110, 3.63, ib, code, vring=RING, ctl="op\nprint v(vring)"))

@@ -59,8 +59,9 @@ Corrected f(I) from `tb_vco_fi` at 10 fF per node:
 K_VCO over the 0.7–1.2 V lock window is ≈ −366 MHz/V (was −300), from `tb_vco_ktune`.
 
 Every change goes in the safe direction (less current, lower ring voltage), and the CCO range of step 75 still covers
-it. The step-74 characterisation must still be re-run with the correct setup (phase noise, K_VCO, K_I, corners), and
-the numbers that depend on it must be updated (CCO clamp check, system budget). That is the next action I recommend.
+it. **Done on 15 Nov:** the step-74 characterisation was re-run with the correct setup (see the correction table in
+`docs/design/step74_vco.md`). The CCO base count went from 13 to 11 units for the lower ff current. The clamp
+model, the budget and the margin tracker were updated.
 **Lesson for your own work:** always load the PDK `.spiceinit`. `tb/run.sh` does it for you.
 
 ---
@@ -216,7 +217,7 @@ All CCO decks drive the code bits as DC levels (0 / 1.8 V) and use the real leve
   - IBIAS = 5 µA into the block.
   - A loop sets the five code-bit sources from the code: `b0 = c % 2`, `b1 = floor(c/2) % 2` and so on.
 - **Why `op`.** A current source is a DC circuit; an operating point is exact and takes milliseconds.
-- **Result.** Code 0 / 10 / 31 = 0.837 / 1.471 / 2.791 mA, against 62.5 µA × (13 + code) ideal.
+- **Result.** Code 0 / 10 / 31 = 0.710 / 1.344 / 2.666 mA, against 62.5 µA × (11 + code) ideal.
 - **What to do with it.** Run all 5 corners. Change `iib` to 4u and 6u and `vdda` to 2.97 / 3.63 V. Code 31 must stay
   ≥ the ss/110 °C requirement and code 0 ≤ the ff/−40 °C requirement.
 
@@ -224,13 +225,13 @@ All CCO decks drive the code bits as DC levels (0 / 1.8 V) and use the real leve
 - **Set-up.** `dc vr 0 2.4 0.05` at code 31.
 - **Reading.** The current must be flat up to ≈ 1.8 V (output pMOS saturated). Above VDDL the clamp sinks current and
   the curve falls.
-- **Result (tt).** 2.86 mA at 0.4 V, 2.79 at 1.4 V, 2.77 at 1.7 V, 1.07 mA at 1.8 V (clamp active).
+- **Result (tt).** 2.73 mA at 0.4 V, 2.67 at 1.4 V, 2.64 at 1.7 V, 0.94 mA at 1.8 V (clamp active).
 - **Worst case.** Set `vdda` to 2.97 and `iib` to 4u, and run `ss 110`.
 
 #### tb_cco_noise — output-current noise (M11)
 - **Set-up.** Like tb_dev_noise: ammeter `vm` plus CCVS `h1`. The ring source stays at 1.45 V, code 10.
 - **Measurement.** `wrdata` writes the spectrum. Single-frequency `noise … lin 1 f f` runs print exact values.
-- **Result.** 8.9 pA/√Hz at 1 MHz (requirement ≤ 10.3), 132 pA/√Hz at 10 kHz (filtered reference flicker).
+- **Result.** 8.7 pA/√Hz at 1 MHz (requirement ≤ 10.3), 122 pA/√Hz at 10 kHz (filtered reference flicker).
 - **Then.** The spectrum goes into the PLL model (M9): S_φ = K_I²·S_i/f², shaped by |(1−G_c)(1−H)|².
 
 #### tb_cco_psr — supply → current (M11)
@@ -244,9 +245,9 @@ All CCO decks drive the code bits as DC levels (0 / 1.8 V) and use the real leve
   - The worst case: IBIAS 6 µA, VDDA 3.63 V, code 31.
 - **Why.** The DC result of the real ring + CCO + clamp is the intersection of their characteristics (load line).
   Simulating the oscillating ring for every code would take hours and give the same DC point.
-- **Result (ss, 110 °C).** Ring node 1.7926 V, ring current 2.31 mA.
-- **Note.** The pwl table comes from the step-74 runs without `.spiceinit` and will be refreshed with the corrected
-  data.
+- **Result (ss, 110 °C).** Ring node 1.785 V, ring current 2.40 mA.
+- **Note.** The pwl table comes from the corrected step-74 runs (0.9–2.4 mA simulated, extrapolated above with the
+  measured slope of 0.287 V/mA).
 
 #### tb_ls_tran — level shifter (M13)
 - **Set-up.** Lowest VDDD (1.71 V) with highest VDDA (3.63 V), 20 fF loads, a pulse at the input.

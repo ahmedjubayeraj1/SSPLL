@@ -15,6 +15,13 @@ python3 design/loop/step73_plots.py                 # docs/img/step73_*.png
 The exact sampled-data loop model is `design/loop/sampled_loop.py`. The interactive version is in
 `learn/phase7_design.ipynb`, step 73.
 
+
+> **Update 15 Nov 2026.** The corrected step-74 ring (re-run with the PDK `.spiceinit`) has K_VCO = −326 MHz/V averaged
+> over 0.6–1.2 V instead of the −300 assumed here. Only β·K_VCO sets f_c and PM, so the loop filter (R1, C1, C2) stays
+> as designed. The Gm unit becomes **26.0 µS** (3 units = 78.1 µS, β = 0.781 µA/rad); that is the requirement on
+> step 79. The corner spread of K_VCO (×0.68 at ss/110 °C, ×1.48 at ff/−40 °C) stays inside the icp_trim range (2–5
+> units).
+
 ## The design sheet
 
 | Parameter | Value | Set by |

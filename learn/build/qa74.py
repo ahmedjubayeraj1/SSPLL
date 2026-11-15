@@ -20,7 +20,7 @@ QA74 = [
 ("How is the frequency tuned?",
  "Coarse: the CCO current into the ring's supply node (5-bit DAC, step 75) - more current, faster edges. Fine: vtune turns "
  "on switch S, which hangs a MOS capacitor on each output; more vtune means more capacitance and a lower frequency, so "
- "K_VCO is negative (−300 MHz/V average over 0.6–1.2 V). The loop's charge-pump polarity is chosen to match."),
+ "K_VCO is negative (−326 MHz/V average over 0.6–1.2 V). The loop's charge-pump polarity is chosen to match."),
 ("Why is K_VCO negative and does it matter?",
  "Raising vtune connects more capacitance, slowing the ring. A negative gain is fine as long as the sign of the detector or "
  "the charge pump is flipped so the loop has negative feedback. It must be documented, because a wrong sign makes the "
@@ -35,8 +35,13 @@ QA74 = [
  "change the load - that is directly a frequency modulation, i.e. up-converted flicker (the dc part of the ISF)."),
 ("How was the 1/f³ corner reduced and what did it cost?",
  "The switch and the TG nMOS were drawn at L = 0.3 µm (switch W 2.25 → 4.5 µm to keep W/L; TG nMOS 0.63 → 0.84 µm). "
- "Corner 1.02 → 0.57 MHz (spec ≤ 0.6). The bigger devices add capacitance: 9 % more current for 1.6 GHz (1.314 → 1.437 mA, "
- "ring power 4.86 → 5.33 mW). L = 0.5 µm was tried first and cost 21 % of speed - rejected."),
+ "Corner 1.06 → 0.60 MHz (spec ≤ 0.6). The bigger devices add capacitance: 10 % more current for 1.6 GHz (1.225 → 1.352 mA, "
+ "corrected values with the PDK .spiceinit). L = 0.5 µm was tried first and cost 21 % of speed - rejected."),
+("Why must ngspice load the PDK .spiceinit, and what happened when it did not?",
+ "The sky130 model files are written for HSPICE; the PDK's spinit sets ngbehavior=hsa so ngspice reads them the HSPICE "
+ "way. The first step-74 runs did not load it: multi-finger devices were read wrongly and the ring ran 4.6 % slow "
+ "(1.437 instead of 1.352 mA for 1.6 GHz). Single-finger devices were unaffected, which is why the device noise tables did "
+ "not change. Found when the stand-alone testbench decks disagreed with the design scripts; everything was re-run."),
 ("Why not simply make the main inverters bigger to lower the noise?",
  "Scaling the whole ring by k lowers all noise by 10·log k but costs k× power - the FoM does not change. The ISF showed the "
  "flicker came from two small devices; fixing those costs 9 % power for 2.6 dB lower close-in noise, far better than scaling."),

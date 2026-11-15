@@ -408,8 +408,8 @@ b.md(r"""
 | XT1N/XT2N | nfet_01v8 | 0.84 µm × 1 | **0.30 µm** | coupling TG nMOS |
 | XT1P/XT2P | pfet_01v8 | 0.63 µm × 1 | 0.15 µm | coupling TG pMOS |
 
-1.437 mA for 1.6 GHz (tt), ring node 1.45 V; $\mathcal{L}$(1 MHz) −98.7 dBc/Hz thermal, $1/f^3$ corner 0.57 MHz;
-$K_{VCO}$ −300 MHz/V (0.6–1.2 V); $K_I$ 0.85 GHz/mA; 1.44–1.76 GHz over corners with the ring node ≤ 1.71 V (10 fF/node);
+1.352 mA for 1.6 GHz (tt), ring node 1.38 V; $\mathcal{L}$(1 MHz) −98.66 dBc/Hz thermal, $1/f^3$ corner 0.60 MHz;
+$K_{VCO}$ −326 MHz/V (0.6–1.2 V); $K_I$ 0.84 GHz/mA; 1.44–1.76 GHz over corners with the ring node ≤ 1.65 V (10 fF/node);
 start-up < 9 ns. System: 2.04 / 1.32 ps (FFNC off/on), 9.55 mW, FoM −227.8 dB. Full report: `docs/design/step74_vco.md`.
 """)
 b.qa(QA74, 74)
@@ -430,8 +430,8 @@ node, and the ring settles at the voltage where it draws exactly that current. T
 knob, set by a 5-bit code. IBIAS (5 µA from the harness) is the only reference.
 
 ### How it happens
-$$I_{CCO} = M\,I_u\,(N_{base} + \text{code}) = 25 \times 2.5\,\mu\text{A} \times (13 + \text{code}) = 0.81\ldots2.75\ \text{mA}$$
-IBIAS → 2-unit nMOS diode → unit sinks (13 always on + binary 1…16) → 1-unit pMOS diode MREF → RC filter
+$$I_{CCO} = M\,I_u\,(N_{base} + \text{code}) = 25 \times 2.5\,\mu\text{A} \times (11 + \text{code}) = 0.69\ldots2.63\ \text{mA}$$
+IBIAS → 2-unit nMOS diode → unit sinks (11 always on + binary 1…16) → 1-unit pMOS diode MREF → RC filter
 ($R_F$ = 10 MΩ, $C_F$ = 7.3 pF) → 25-unit pMOS MOUT → ring node. The filter makes the reference side invisible above
 $f_F = 1/(2\pi R_F C_F) \approx 2$ kHz; what is left is MOUT's own noise plus the resistor's:
 $$S_{i,out} \approx 4kT\gamma g_{m,out} + g_{m,out}^2\,\frac{4kTR_F}{1+(2\pi f R_F C_F)^2}
@@ -504,7 +504,7 @@ b.md(r"""
 | Device | Model | W × nf × m | L | Role |
 |---|---|---|---|---|
 | XNB | nfet_g5v0d10v5 | 1 × 1 × 2 | 4 µm | IBIAS input diode (2 units) |
-| XU0…XU5 | nfet_g5v0d10v5 | 1 × 1 × (13, 1, 2, 4, 8, 16) | 4 µm | DAC unit sinks, 2.5 µA each |
+| XU0…XU5 | nfet_g5v0d10v5 | 1 × 1 × (11, 1, 2, 4, 8, 16) | 4 µm | DAC unit sinks, 2.5 µA each |
 | XS0…XS5 | nfet_g5v0d10v5 | 1 × 1 × same | 0.5 µm | DAC switches (en, c0…c4) |
 | XMREF | pfet_g5v0d10v5 | 40 (2 × 20) × 1 | 2 µm | reference diode (1 unit) |
 | XMOUT | pfet_g5v0d10v5 | 40 (2 × 20) × 25 | 2 µm | output mirror (25 units) |
@@ -515,7 +515,7 @@ b.md(r"""
 | XNSH | nfet_01v8 | 20 (4 × 5) | 0.15 µm | clamp shunt |
 | XTGN / XTGP / XRINJ | g5v0 2/0.5 / xhigh_po_0p35 3.39 µm | | | VTEST injection, 20 kΩ |
 
-Every device passes `tools/pdk_limits.py`. tt code 0/10/31: 0.84 / 1.47 / 2.79 mA; over 5 corners × VDDA 2.97–3.63 V
+Every device passes `tools/pdk_limits.py`. tt code 0/10/31: 0.71 / 1.34 / 2.67 mA (after the 15 Nov correction, NBASE 11); over 5 corners × VDDA 2.97–3.63 V
 × IBIAS 4–6 µA: code 31 ≥ 2.20 mA (needs 2.02), code 0 ≤ 1.02 mA (needs 0.97 — the 50 µA excess at ff/−40 °C/IBIAS
 6 µA is ≈ 60 MHz, inside the ±75 MHz fine-tune range). Ring node ≤ 1.793 V in the worst case. Output noise 8.9 pA/√Hz at
 1 MHz (needs ≤ 10.3); CCO jitter 0.70 / 0.44 ps, system 1.96 / 1.27 ps, L(300 kHz) −110.9 / −120.0 dBc/Hz.
