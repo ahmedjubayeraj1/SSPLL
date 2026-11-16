@@ -16,6 +16,11 @@ PHASES = {1: ("phase1.py", "phase1_fundamentals", "PLL fundamentals (steps 11–
           5: ("phase5.py", "phase5_vcdl", "Voltage-controlled delay line / NCB (steps 59–64)"),
           6: ("phase6.py", "phase6_ffnc", "Feedforward noise cancellation (steps 65–71)"),
           7: ("phase7.py", "phase7_design", "Phase 7 · block design (steps 72–76)")}
+V2 = os.environ.get("SSPLL_V2") == "1"   # version 2: teacher's edition, its own folder html/v2 and a Phase 0 toolkit
+if V2:
+    PHASES = {0: ("phase0.py", "phase0_toolkit", "The toolkit: mathematics, circuits and noise from zero"), **PHASES}
+    PHASES = {p: (a, b + "_v2", c) for p, (a, b, c) in PHASES.items()}
+    OUT = os.path.join(OUT, "v2")
 sel = [int(a) for a in sys.argv[1:]] or [p for p in PHASES if os.path.exists(os.path.join(HERE, PHASES[p][0]))]
 os.makedirs(OUT, exist_ok=True)
 import plotly
@@ -64,12 +69,16 @@ for p in avail:
     if os.path.exists(os.path.join(LEARN, stem + ".ipynb")):
         n_q = open(os.path.join(LEARN, stem + ".ipynb"), encoding="utf-8").read().count("<summary><b>Q")
     rows.append(f'<tr><td>Phase {p}</td><td><a href="{stem}.html">{html.escape(title)}</a></td><td>{n_q}</td></tr>')
+v2note = ("<p><b>Version 2 — teacher's edition.</b> The same notebooks with a teacher's layer: a map and a symbol "
+          "glossary for every phase, and after every equation a box that names each symbol (meaning, unit, our value), "
+          "says the equation in words, explains where it comes from and works one number. Phase 0 teaches the "
+          "mathematics, circuit and noise basics from zero. Version 1 stays available.</p>") if V2 else ""
 idx = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SSPLL + FFNC learning notebooks</title>
 <style>body{{font:16px/1.5 system-ui,sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#0f172a}}
 table{{border-collapse:collapse;width:100%}}td,th{{border-bottom:1px solid #e2e8f0;padding:.5rem;text-align:left}}
 a{{color:#1d4ed8}}</style></head><body>
-<h1>SSPLL + FFNC for SKY130 — learning notebooks</h1>
+<h1>SSPLL + FFNC for SKY130 — learning notebooks{" (version 2)" if V2 else ""}</h1>{v2note}
 <p>Phases 1–6 of the Chipalooza #4 roadmap: the theory from first principles, with interactive figures (drag the slider
 under a plot, hover for values, drag to zoom, double-click to reset) and interview questions for every step (tap a question
 to open the answer). Design numbers follow the submitted proposal: 50 MHz × 32 = 1.6 GHz, f<sub>c</sub> ≈ 2.5 MHz, FFNC on/off.</p>
