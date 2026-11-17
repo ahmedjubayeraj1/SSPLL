@@ -4,14 +4,23 @@
 Design files: `design/clkgen/` · schematics: `xschem/clkgen/` · decks: `tb/clkgen/` · data: `design/clkgen/data/` ·
 methods: M16, M17 in `docs/methods.md`.
 
+> **Revised in step 78 (17 Nov 2026).** The Gm now reads C1 *before* the hold transfer: sample → gap 1 → Gm pulse →
+> gap 2 → hold pulse. In the first version the Gm pulse came after the hold pulse and read C2, which after the C1–C2
+> charge sharing is v2[k] = ½·v1[k] + ½·v2[k−1]: a pole z = 0.5 in the loop, 16° of phase lag at f_c = f_ref/20 that
+> step 73 did not include. A small NOR latch (`sspll_ckg_hlatch`) now triggers the hold pulser: it is set by ckg and
+> reset while refclk is low, so the 2.6 ns RC of the hold pulser is reset for ~10 ns every period (a 200 ps trigger
+> could not reset it). t_p falls from 2.63 ns to **0.28 ns** (about +1.5° phase margin). Sampling path and jitter
+> unchanged. All tables below are the revised circuit.
+
 ## Result in one paragraph
 From the reference edge `refclk` (step 76) the clock generator makes three complementary pairs on VDDL = 1.8 V:
-**cks/cksb** for the sampling switch (it tracks the VCO and opens 226 ps after the refclk rising edge), **ckh/ckhb** for
-the hold-transfer switch (a 2.15 ns pulse) and **ckg/ckgb** for the pulsed-Gm charge pump (a **202 ps** pulse). The
-non-overlap gaps are 186 / 182 ps (≥ 115 ps at every corner). The loop delay from the sampling instant to the middle of
-the Gm pulse is **t_p = 2.63 ns** (1.82–4.30 ns over 21 conditions; requirement ≤ 5 ns). The sampling edge adds
-**0.15 ps** of jitter (−163.4 dBc/Hz at 50 MHz, allocation −160). Power **78 µW** typ (69–108 µW). The Gm pulse width
-alone spreads 106–408 ps over PVT, but it tracks the VCO gain: **τ·K_VCO stays within ×0.86–1.21** of nominal. The
+**cks/cksb** for the sampling switch (it tracks the VCO and opens 228 ps after the refclk rising edge), **ckg/ckgb** for
+the pulsed-Gm charge pump (a **200 ps** pulse that reads C1 right after the sample) and **ckh/ckhb** for the
+hold-transfer switch (a 2.16 ns pulse that shares C1 onto C2 for the NCB). The non-overlap gaps are 171 / 318 ps
+(≥ 110 ps at every corner). The loop delay from the sampling instant to the middle of the Gm pulse is
+**t_p = 0.28 ns** (0.18–0.50 ns over 21 conditions; requirement ≤ 5 ns). The sampling edge adds **0.15 ps** of
+jitter (−163.4 dBc/Hz at 50 MHz, allocation −160). Power **82 µW** typ (73–111 µW). The Gm pulse width alone
+spreads 106–405 ps over PVT, but it tracks the VCO gain: **τ·K_VCO stays within ×0.86–1.21** of nominal. The
 final β·K_VCO check moves to step 79 (g_m, A). With this block the system gives **1.963 / 1.254 ps and L(300 kHz)
 −110.9 / −121.0 dBc/Hz** (FFNC off / on, 3.3 V pp reference).
 
@@ -20,7 +29,9 @@ final β·K_VCO check moves to step 79 (g_m, A). With this block the system give
 ## What happens, how, why
 
 ### What happens
-Every reference period the SSPD does three things in a fixed order: **sample** the VCO on C1 (sw1 opens), **transfer**
+Every reference period the SSPD does three things in a fixed order: **sample** the VCO on C1 (sw1 opens), **convert**
+it into charge with a short Gm current pulse of width τ (the Gm reads C1), then **transfer** the sample to C2 for the
+NCB (sw2 closes for W_H). (The first version, described in the next sentence, transferred first:) **transfer**
 the sample to C2 (sw2 closes for W_H), then **convert** it into a charge with a short Gm current pulse of width τ.
 The clock generator turns one edge into these three phases and guarantees they never overlap.
 
@@ -29,18 +40,19 @@ The clock generator turns one edge into these three phases and guarantees they n
 ### How it happens
 - **Sampling pair.** refclk → two inverters (buffer) → a complementary driver: cks falls (sw1 opens) one buffer +
   three stages after refclk rises; cksb is its complement, made by a two-stage path (skew ≈ 12 ps).
-- **Hold pulse.** The buffered edge goes through two more inverters (gap 1) into the **RC pulser** `sspll_ckg_pulse_h`:
+- **Gm pulse.** The buffered edge goes through two more inverters (gap 1) into the **RC pulser** `sspll_ckg_pulse_g`:
   $$\text{out} = \overline{\overline{\text{in}} + \overline{\text{in}_{RC}}} = \text{in}\cdot\text{in}_{RC},\qquad
   \tau \approx \ln 2\,R\,C + t_{gates}$$
   The input switches at once; its R-C delayed copy reaches the trip point (≈ V_DD/2) after ln2·RC. The NOR is high only
-  between the two, so each rising edge makes one pulse. R_H = 34.9 kΩ (xhigh_po, 0.35 × 6 µm), C_H = 76 fF (MIM 6 × 6 µm):
-  ln2·RC = 1.84 ns + 0.31 ns of gates = 2.15 ns.
-- **Gm pulse.** The end of the hold pulse (three inverters = gap 2, inverting so the falling edge of ph triggers) fires
-  `sspll_ckg_pulse_g`: R_G = 3.48 kΩ (minimum length 0.5 µm), C_G = 27 fF (3.5 × 3.5 µm): ln2·RC = 65 ps + ≈ 137 ps
-  of gates = 202 ps.
+  between the two, so each rising edge makes one pulse. R_G = 3.48 kΩ (minimum length 0.5 µm), C_G = 27 fF
+  (3.5 × 3.5 µm): ln2·RC = 65 ps + ≈ 135 ps of gates = 200 ps.
+- **Hold pulse.** The latch `sspll_ckg_hlatch` (three NOR2) is set by ckg and reset while cks = 1 (refclk low). Its
+  output q·NOT(ckg) rises when the Gm pulse ends (gap 2) and fires `sspll_ckg_pulse_h`: R_H = 34.9 kΩ (xhigh_po,
+  0.35 × 6 µm), C_H = 76 fF (MIM 6 × 6 µm): ln2·RC = 1.84 ns + 0.32 ns of gates = 2.16 ns.
 - **Loop delay.**
-  $$t_p = t_{gap1} + W_H + t_{gap2} + \frac{\tau}{2},\qquad \beta = 2A\,g_m\frac{\tau}{T}$$
-  (measured from the cks edge). 186 + 2151 + 182 + 101 ps ≈ 2.62 ns, the deck gives 2.63 ns.
+  $$t_p = t_{gap1} + \frac{\tau}{2},\qquad \beta = 2A\,g_m\frac{\tau}{T}$$
+  (measured from the cks edge). 171 + 100 ps ≈ 0.27 ns, the deck gives 0.28 ns. (First version:
+  t_p = gap1 + W_H + gap2 + τ/2 = 2.63 ns.)
 - **Jitter.** Only the sampling edge matters (the later edges act on a sample that is already taken):
   $$\mathcal{L}_{floor} = \frac{(2\pi f_{ref}\,\sigma_t)^2}{f_{ref}},\qquad NA = \sqrt{\frac{S_i}{2\,NT}}$$
   The second formula is the size of the trnoise current source that reproduces a white noise density S_i in a
@@ -63,31 +75,32 @@ The clock generator turns one edge into these three phases and guarantees they n
 | Pulse generator | RC pulser, inverter-chain pulser, DLL-locked delay | **RC pulser + NOR** | small, few devices, W_H needs ns (an inverter chain would be 20+ stages) |
 | R type | xhigh_po, high_po (TC +7.6 %), MOS-R | **xhigh_po 0.35 µm** | smallest area for 35 kΩ; TC tolerated (W_H has margin) |
 | τ set by | RC, gates | **gates (R at minimum length)** | τ tracks K_VCO; RC TC would have added ±10 % |
-| Trigger of Gm pulse | refclk delayed, end of hold pulse | **end of hold pulse** | gap 2 can never collapse, whatever W_H does |
+| Order of the phases | hold then Gm (reads C2), Gm then hold (reads C1) | **Gm then hold** (revised in step 78) | reading C2 after charge sharing adds a pole z = 0.5 (16° at f_c) to the loop |
+| Hold trigger | 200 ps Gm pulse, latch | **NOR latch set by ckg, reset by cks** | the hold pulser's 2.6 ns RC needs a long reset; gap 2 can never collapse |
 | Drivers | single inverter, 2/3-stage complementary | **2/3-stage driver, 4/8 µm output** | sharp 70–80 ps edges into 20–30 fF |
 | Enable | own pin, via refclk | **via refclk** | refclk = 0 when disabled → track, no pulses |
 
 ## B. Timing over 21 conditions (method M16)
 ![corners](../img/step77_corners.png)
 
-| Condition | t_s (ps) | gap1 | W_H (ns) | gap2 | τ (ps) | t_p (ns) | P (µW) |
+| Condition | t_s (ps) | gap1 | τ (ps) | gap2 | W_H (ns) | t_p (ps) | P (µW) |
 |---|---|---|---|---|---|---|---|
-| tt 27 °C 1.8 V | 226 | 186 | 2.15 | 182 | 202 | 2.63 | 78 |
-| tt 27 °C 1.71 / 1.89 V | 250 / 208 | 204 / 171 | 2.17 / 2.14 | 198 / 170 | 219 / 189 | 2.70 / 2.59 | 69 / 88 |
-| tt −40 / 110 °C | 222 / 235 | 185 / 186 | 2.46 / 1.88 | 172 / 191 | 226 / 180 | 2.94 / 2.36 | 75 / 85 |
-| ss_hh 110 °C 1.71 V | 344 | 310 | 2.33 | 313 | 333 | 3.15 | 75 |
-| **ss_hh −40 °C 1.71 V** | 377 | 324 | 3.50 | 281 | **408** | **4.30** | 69 |
-| ff_ll −40 °C 1.89 V | 142 | 119 | 1.95 | 116 | 128 | 2.26 | 85 |
-| **ff_ll 110 °C 1.89 V** | 171 | 125 | **1.51** | 131 | **106** | 1.82 | **108** |
-| ss 110 °C 1.71 V | 344 | 310 | 2.03 | 311 | 255 | 2.81 | 72 |
-| ff −40 °C 1.89 V | 142 | 119 | 2.34 | **115** | 164 | 2.66 | 89 |
-| sf / fs 27 °C | 231 / 243 | 224 / 166 | 2.74 / 1.65 | 178 / 194 | 238 / 174 | 3.26 / 2.12 | 79 / 80 |
-| hl / lh 27 °C | 226 / 226 | 186 / 186 | 1.95 / 2.32 | 181 / 183 | 140 / 251 | 2.40 / 2.82 | 75 / 82 |
-| f_ref 45 / 55 MHz | 226 | 186 | 2.18 / 2.11 | 182 | 202 | 2.66 / 2.60 | 71 / 86 |
-| duty 35 / 65 % | 226 | 186 | 2.22 / 1.95 | 182 | 202 | 2.70 / 2.44 | 78 |
-| refclk rise 230 / 410 ps | 220 / 235 | 186 | 2.15 | 182 | 202 | 2.63 | 78 |
+| tt 27 °C 1.8 V | 228 | 171 | 200 | 318 | 2.16 | 282 | 82 |
+| tt 27 °C 1.71 / 1.89 V | 251 / 209 | 188 / 158 | 217 / 187 | 348 / 293 | 2.18 / 2.15 | 307 / 262 | 73 / 92 |
+| tt −40 / 110 °C | 224 / 237 | 170 / 173 | 224 / 179 | 313 / 321 | 2.48 / 1.88 | 290 / 275 | 79 / 89 |
+| ss_hh 110 °C 1.71 V | 346 | 288 | 330 | 526 | 2.36 | 485 | 78 |
+| **ss_hh −40 °C 1.71 V** | 379 | 293 | 405 | 539 | 3.55 | 495 | 73 |
+| ff_ll −40 °C 1.89 V | 144 | 110 | 127 | 205 | 1.95 | 181 | 88 |
+| **ff_ll 110 °C 1.89 V** | 172 | 116 | 106 | 221 | 1.51 | 176 | 111 |
+| ss 110 °C 1.71 V | 346 | 285 | 252 | 526 | 2.04 | 443 | 76 |
+| ff −40 °C 1.89 V | 144 | 110 | 164 | 205 | 2.34 | 200 | 92 |
+| sf / fs 27 °C | 233 / 245 | 200 / 155 | 233 / 174 | 367 / 303 | 2.76 / 1.65 | 317 / 266 | 83 / 84 |
+| hl / lh 27 °C | 228 / 228 | 170 / 172 | 138 / 250 | 318 / 317 | 1.96 / 2.33 | 249 / 308 | 78 / 85 |
+| f_ref 45 / 55 MHz | 228 / 228 | 171 / 171 | 200 / 200 | 318 / 318 | 2.19 / 2.13 | 282 / 282 | 74 / 90 |
+| duty 35 / 65 % | 228 / 228 | 171 / 171 | 200 / 201 | 318 / 318 | 2.22 / 1.98 | 282 / 282 | 82 / 82 |
+| refclk rise 230 / 410 ps | 221 / 237 | 171 / 171 | 200 / 200 | 318 / 318 | 2.16 / 2.16 | 282 / 282 | 82 / 82 |
 
-**Requirements:** t_p ≤ 5 ns ✔ (max 4.30), gaps ≥ 100 ps ✔ (min 115), W_H ≥ 1.5 ns ✔ (min 1.51, the tightest item),
+**Requirements:** t_p ≤ 5 ns ✔ (max 0.50 ns), gaps ≥ 100 ps ✔ (min 110 ps), W_H ≥ 1.5 ns ✔ (min 1.51, the tightest item),
 power inside the 0.12 mA SSPD + clock-generator allocation ✔.
 
 ### τ and the loop gain
@@ -106,7 +119,7 @@ sample amplitude A.
 
 ### Duty-cycle dependence of W_H
 The hold pulser's RC node is reset during the low half of refclk. At 65 % duty (3 ns less reset time) it starts
-partly charged and the pulse is 1.95 ns instead of 2.15 ns; at 35 % it is 2.22 ns. Still above 1.5 ns. A reset nMOS
+partly charged and the pulse is 1.98 ns instead of 2.16 ns; at 35 % it is 2.22 ns. Still above 1.5 ns. A reset nMOS
 on the RC node would remove the effect if a later step needs more margin.
 
 ## C. Jitter of the sampling edge (method M17)
@@ -122,7 +135,7 @@ on the RC node would remove the effect if a later step needs more margin.
 
 ## D. Schematics (hierarchical, real wiring, LVS-clean)
 `sspll_clkgen` (top: input buffer, gap inverters, three drivers, two pulsers) → `sspll_ckg_pulse_h`,
-`sspll_ckg_pulse_g` (same drawing, different R and C) and `sspll_ckg_drv`. All four cells match the simulated netlist
+`sspll_ckg_pulse_g` (same drawing, different R and C), `sspll_ckg_hlatch` (hold trigger, step 78) and `sspll_ckg_drv`. All five cells match the simulated netlist
 (`netgen`: "Circuits match uniquely"); the drawing checker reports no crossings, overlaps or wires through pins.
 
 ![pulser](../img/step77_sch_ckg_pulse_h.png)
@@ -134,13 +147,13 @@ on the RC node would remove the effect if a later step needs more margin.
 | INVS (n / p) | nfet_01v8 / pfet_01v8 | 0.42 / 0.84 × 1 | 0.15 µm | gap and pulser inverters, driver input |
 | INVM (n / p) | nfet_01v8 / pfet_01v8 | 1 / 2 × 1 | 0.15 µm | refclk buffer, driver middle stage |
 | INVL (n / p) | nfet_01v8 / pfet_01v8 | 2 / 4 × 2 | 0.15 µm | driver outputs (4 / 8 µm) |
-| NOR2 (n / p) | nfet_01v8 / pfet_01v8 | 0.84 / 1.68 × 1 | 0.15 µm | pulser gate (series pMOS 2× wider) |
+| NOR2 (n / p) | nfet_01v8 / pfet_01v8 | 0.84 / 1.68 × 1 | 0.15 µm | pulser gates and the 3-NOR hold latch (series pMOS 2× wider) |
 | R_H | res_xhigh_po_0p35 | 0.35 | 6.0 µm | 34.9 kΩ, hold pulse |
 | C_H | cap_mim_m3_1 | 6 × 6 µm | — | 76 fF, hold pulse |
 | R_G | res_xhigh_po_0p35 | 0.35 | 0.5 µm (min) | 3.48 kΩ, Gm pulse |
 | C_G | cap_mim_m3_1 | 3.5 × 3.5 µm | — | 27 fF, Gm pulse |
 
-61 transistors, 2 resistors, 2 MIM capacitors. Estimated area ≈ 30 × 25 µm (MIMs placed over the logic).
+67 transistors (with the 3-NOR hold latch; the first version's 3 gap-2 inverters were removed), 2 resistors, 2 MIM capacitors. Estimated area ≈ 30 × 25 µm (MIMs placed over the logic).
 
 ## F. Effect on the system (margin tracker, `design/SSPLL_design_log.xlsx`)
 * Clock-generator floor −163.4 instead of the −160 placeholder: FFNC-on jitter 1.254 ps (was 1.26), L(300 kHz)
@@ -162,19 +175,19 @@ work: `docs/testbench_guide.md`, section "Step 77".
 ## Interview questions (step 77)
 
 **Q1. What does the clock generator do in this sub-sampling PLL?**  
-From one reference edge (refclk) it makes three complementary control pairs, in a fixed order: cks/cksb for the sampling switch (it tracks the VCO and opens at the reference edge), ckh/ckhb for the hold switch that copies the sample from C1 to C2, and ckg/ckgb for the short current pulse of the pulsed-Gm charge pump. It is the timing skeleton of the SSPD + charge pump.
+From one reference edge (refclk) it makes three complementary control pairs, in a fixed order: cks/cksb for the sampling switch (it tracks the VCO and opens at the reference edge), ckg/ckgb for the short current pulse of the pulsed-Gm charge pump, which reads C1 right after the sample, and ckh/ckhb for the hold switch that then shares C1 onto C2 for the NCB. It is the timing skeleton of the SSPD + charge pump (order revised in step 78).
 
 **Q2. Why does the sampling happen on the falling edge of cks and not on a rising edge?**  
 While cks = 1 the switch conducts and the sampling capacitor follows the VCO (track). The sample is the voltage at the moment the switch opens, i.e. when cks falls. The reference's rising edge is the timing reference, so cks must fall in response to refclk rising: the driver gives cks from the inverted path.
 
 **Q3. Why are there gaps between the three phases?**  
-Two switches must never conduct at the same time. If sw2 (hold) closed while sw1 still tracked the VCO, C2 would see the VCO directly and the sample would be corrupted; if the Gm current flowed while sw2 was still transferring, the current would depend on an unsettled voltage. Gap 1 (cks fall → ckh rise) and gap 2 (ckh fall → ckg rise) are non-overlap times; here 186 / 182 ps typical, at least 115 ps over all corners (requirement ≥ 100 ps).
+Two switches must never conduct at the same time, and the Gm must read a settled sample. If the Gm current flowed while sw1 still tracked the VCO, it would see the VCO instead of the sample; if sw2 shared C1 with C2 while the Gm current flowed, the current would follow the sharing transient. Gap 1 (cks fall → ckg rise) and gap 2 (ckg fall → ckh rise) are the non-overlap times: 171 / 318 ps typical, at least 110 ps over all corners (requirement ≥ 100 ps).
 
 **Q4. How does an RC pulser make a pulse from an edge?**  
 The input and a delayed, inverted copy of it go into a gate (here a NOR of the inverted input and the inverted delayed input, which is input AND NOT delayed). After a rising edge both conditions are true until the delayed copy has also switched, so the output is high for one delay: the pulse width is the delay of the R-C stage plus the gates. A falling edge produces no pulse.
 
 **Q5. What sets the width of the RC pulse?**  
-The RC node charges exponentially and the next inverter switches when it crosses its trip point (about half the supply), so the RC part is ≈ ln2 · R·C. To it add the delays of the inverters and the NOR. For the hold pulse RC dominates (R_H ≈ 34 kΩ, C_H ≈ 75 fF → ≈ 1.8 ns of the 2.15 ns); for the 200 ps Gm pulse the gates dominate (minimum-length resistor).
+The RC node charges exponentially and the next inverter switches when it crosses its trip point (about half the supply), so the RC part is ≈ ln2 · R·C. To it add the delays of the inverters and the NOR. For the hold pulse RC dominates (R_H ≈ 34 kΩ, C_H ≈ 75 fF → ≈ 1.8 ns of the 2.16 ns); for the 200 ps Gm pulse the gates dominate (minimum-length resistor).
 
 **Q6. Why does the Gm pulse width τ matter so much?**  
 The charge pump delivers a charge g_m · v_sample · τ per reference period, so the phase-detector gain is β = 2A·g_m·τ/T. The loop bandwidth and phase margin depend on β·K_VCO. A τ that varies ±50 % over PVT moves the bandwidth by ±50 % unless something else compensates.
@@ -189,13 +202,13 @@ A poly resistor's temperature coefficient (xhigh_po −19 % over −40…110 °C
 The PDK has MOS corners (tt, ss, ff, sf, fs) and resistor/capacitor corners. The combined library sections such as ss_hh (slow MOS, high R, high C) and ff_ll move both together, and hl / lh move R and C the opposite way. A circuit whose timing is R·C plus gate delay has its extremes there, not at plain ss/ff: τ's worst cases came from ss_hh (408 ps) and ff_ll (106 ps).
 
 **Q10. What is t_p and why must it be ≤ 5 ns?**  
-t_p is the delay from the sampling instant to the centre of the Gm current pulse: the loop's transport delay. In the loop gain it appears as e^{−s·t_p}, i.e. a phase lag ω_c·t_p at the crossover. Step 73 allowed up to 5 ns for ≤ 1° of phase-margin loss at the chosen bandwidth. Here t_p = 2.63 ns typical and 4.30 ns worst.
+t_p is the delay from the sampling instant to the centre of the Gm current pulse: the loop's transport delay. In the loop gain it appears as e^{−s·t_p}, i.e. a phase lag ω_c·t_p at the crossover. Step 73 allowed up to 5 ns for ≤ 3° of phase-margin loss. With the Gm right after the sample t_p = 0.28 ns typical and 0.50 ns worst (it was 2.63 ns when the Gm came after the hold pulse).
 
 **Q11. Why must W_H be at least 1.5 ns?**  
-During the hold pulse the charge on C1 is shared with C2 through sw2. The transfer must settle (several R_on·C time constants) before the Gm pulse uses the voltage on C2, and some time is reserved for the switch's own charge injection to die away. 1.5 ns is the step-73 requirement; the minimum over corners is 1.51 ns (ff_ll, 110 °C).
+During the hold pulse the charge on C1 is shared with C2 through sw2. The transfer must settle (several R_on·C time constants) so that C2, which the NCB reads for the whole next period, holds the final shared value, and some time is reserved for the switch's own charge injection to die away. 1.5 ns is the requirement; the minimum over corners is 1.51 ns (ff_ll, 110 °C).
 
 **Q12. Why does the hold pulse width depend on the reference duty cycle?**  
-The RC node of the hold pulser is reset during the low part of the input. With a short low time (duty 65 %) the node is not fully discharged at the next edge, so it reaches the trip point earlier and the pulse shrinks (1.95 ns at 65 % vs 2.22 ns at 35 %). It stays above 1.5 ns; a faster reset path (a reset nMOS) would remove the dependence if needed.
+The RC node of the hold pulser is reset while its trigger is low, i.e. while refclk is low. With a short low time (duty 65 %) the node is not fully discharged at the next edge, so it reaches the trip point earlier and the pulse shrinks (1.98 ns at 65 % vs 2.22 ns at 35 %). It stays above 1.5 ns; a reset nMOS on the RC node would remove the dependence if needed.
 
 **Q13. How is the clock generator disabled when the PLL is off?**  
 It has no enable pin. When pll_en = 0 the reference buffer holds refclk at 0: cks stays 1 (the sampling switch tracks), and no hold or Gm pulses are produced, so the charge pump injects no charge and the circuit draws only leakage.
@@ -227,11 +240,17 @@ One output needs the inverted signal, so its path has one more stage. The extra 
 **Q22. Which requirements does step 77 hand on to later steps?**  
 Loads ≤ 30 fF on cks/cksb and ≤ 20 fF on the others (switch sizes in steps 78/79); the Gm switch must handle pulses as short as 106 ps; β·K_VCO must be checked over corners with the real g_m and A (step 79); the layout must keep the sampling path short and symmetric (parasitic delay adds to t_p and to jitter).
 
-**Q23. How would you check this block in Cadence?**  
+**Q23. Why was the order of the Gm and hold pulses changed in step 78?**  
+Charge sharing makes C2 a memory: v2[k] = (C1 v1[k] + C2 v2[k−1])/(C1 + C2), a first-order low-pass with a pole at z = C2/(C1 + C2) = 0.5. If the Gm read C2 (or C1 after the sharing), that pole would sit inside the PLL loop and cost about 16° of phase margin at f_c = f_ref/20; step 73 did not include it. Reading C1 before the sharing gives the Gm the fresh sample; the NCB, which reads C2, keeps the pole that the FFNC model already contains.
+
+**Q24. Why does the hold pulser need a latch as its trigger?**  
+The hold pulser's RC node (R_H·C_H ≈ 2.6 ns) is reset only while its input is low. Triggered directly by the end of the 200 ps Gm pulse, its input would be low for only 200 ps and the pulser would never fire. The latch is set by ckg and reset while refclk is low (cks = 1); its output q·NOT(ckg) rises when the Gm pulse ends and stays high until refclk falls, so the RC node gets ~10 ns to reset every period.
+
+**Q25. How would you check this block in Cadence?**  
 Same testbench: an ideal 50 MHz pulse on refclk, capacitive loads, tran with the Calculator's cross() and delay() for the edges, Corners setup with the combined MOS+R/C sections. Jitter by Spectre transient noise (noisefmax ≈ 500 GHz) or, better, pss + pnoise with sampled (jitter) output at the cks crossing.
 
-**Q24. What would you change if τ had to be accurate to ±10 %?**  
+**Q26. What would you change if τ had to be accurate to ±10 %?**  
 Replace the RC pulser by a delay that is locked to the reference: e.g. a current-starved delay biased from a replica delay line in a DLL, or trim the R with a few switched segments after measurement. Both cost area and power; with this loop the natural τ·K_VCO compensation makes them unnecessary.
 
-**Q25. Why are all the devices thin-oxide 1.8 V transistors at minimum length?**  
+**Q27. Why are all the devices thin-oxide 1.8 V transistors at minimum length?**  
 The block runs from VDDL = 1.8 V and has to be fast: minimum L gives the smallest gate capacitance and delay, and the power is dominated by switching, not leakage. Matching is not important here because the absolute delays are re-referenced every period and only their noise matters.
