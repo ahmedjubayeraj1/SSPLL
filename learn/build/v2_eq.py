@@ -587,25 +587,22 @@ EXPLAIN = [
     "Gm: $0.693\\times3.48\\,\\text{k}\\times27\\,\\text{fF} = 65$ ps, + 137 ps of gates = 202 ps.",
     "A falling input edge gives no pulse, and the RC node must be reset during the low half of the input; a short low "
     "time leaves it partly charged and the pulse shrinks (duty 65 %: 1.95 ns).")),
-("t_p = t_{gap1} + W_H + t_{gap2} + \\frac{\\tau}{2}", E(
-    [("$t_p$", "loop delay: from the sampling instant to the middle of the Gm current pulse", "s", "2.63 ns (≤ 5 ns required)"),
-     ("$t_{gap1}$", "non-overlap time: sampling switch open → hold switch closes", "s", "186 ps"),
-     ("$W_H$", "hold-pulse width (C1 → C2 transfer)", "s", "2.15 ns"),
-     ("$t_{gap2}$", "non-overlap time: hold switch open → Gm current starts", "s", "182 ps"),
-     ("$\\tau$", "width of the Gm current pulse", "s", "202 ps"),
+("t_p = t_{gap1} + \\frac{\\tau}{2},\\qquad \\beta", E(
+    [("$t_p$", "loop delay: from the sampling instant to the middle of the Gm current pulse", "s", "0.28 ns (≤ 5 ns required)"),
+     ("$t_{gap1}$", "non-overlap time: sampling switch open → Gm current starts", "s", "171 ps"),
+     ("$\\tau$", "width of the Gm current pulse", "s", "200 ps"),
      ("$\\beta$", "phase-detector + charge-pump gain: average current per radian of VCO phase error", "A/rad", "0.781 µA/rad"),
-     ("$A$", "amplitude of the sampled VCO waveform (each side)", "V", "0.5 V"),
+     ("$A$", "slope of the sampled VCO waveform at the lock point, per side, in volts per radian", "V", "0.5 V (step 78: 0.514)"),
      ("$g_m$", "transconductance of the Gm cell", "S", "78.1 µS"),
      ("$T$", "reference period", "s", "20 ns")],
     "The loop waits from the sample until (the middle of) the current pulse; the charge it then delivers per radian, "
     "averaged over a period, is β.",
-    "The phases follow one after another, so the delays add; the centre of a rectangular pulse is its 'effective' "
-    "time, hence τ/2. A differential sample changes by 2A per radian, the Gm turns it into a current $g_m\\cdot2A$ "
-    "that flows for τ out of every T.",
-    "$t_p = 0.186+2.151+0.182+0.101 = 2.62$ ns. $\\beta = 2\\times0.5\\times78.1\\,\\mu\\text{S}\\times200\\,\\text{ps}/20\\,\\text{ns} "
+    "The centre of a rectangular pulse is its 'effective' time, hence τ/2. A differential sample changes by 2A per "
+    "radian; the Gm turns it into a current $g_m\\cdot2A$ that flows for τ out of every T.",
+    "$t_p = 0.171+0.100 = 0.27$ ns. $\\beta = 2\\times0.5\\times78.1\\,\\mu\\text{S}\\times200\\,\\text{ps}/20\\,\\text{ns} "
     "= 0.781\\,\\mu$A/rad.",
-    "τ spreads 106–408 ps over PVT, so β does too; only the product β·K_VCO sets the loop, and K_VCO moves the other way "
-    "(×0.86–1.21 overall). The final check with g_m and A is step 79.")),
+    "The first version fired the Gm after the hold pulse (t_p = 2.63 ns) and read C2, which carries the charge-sharing "
+    "memory — a loop pole. τ spreads 106–405 ps over PVT; only the product β·K_VCO sets the loop (step 79).")),
 ("\\mathcal{L}_{floor} = \\frac{(2\\pi f_{ref}\\,\\sigma_t)^2}{f_{ref}},\\qquad NA", E(
     [("$\\mathcal L_{floor}$", "white phase-noise floor made by random jitter on every reference edge", "dBc/Hz", "−163.4"),
      ("$f_{ref}$", "reference frequency (one edge per period)", "Hz", "50 MHz"),
@@ -622,4 +619,46 @@ EXPLAIN = [
     "INVL: $NA = \\sqrt{5.18\\times10^{-23}/(2\\times10^{-12})} = 5.09\\,\\mu$A.",
     "The raw edge times also drift by ~1.2 ps because of the time grid (seen with the noise switched off): remove a "
     "slow trend and always run the noiseless baseline.")),
+# ------------------------------------------------------------------------------------------------ step 78
+("A = \\frac{1}{\\omega_0}\\left.\\frac{dv}{dt}\\right|_{cross} = \\frac{V_{DD}}{2\\,\\omega_0\\,\\tau_s}", E(
+    [("$A$", "detector gain per side: volts of sample per radian of VCO phase at the lock point", "V/rad", "0.514"),
+     ("$\\omega_0 = 2\\pi f_0$", "VCO angular frequency", "rad/s", "$2\\pi\\cdot1.6$ GHz"),
+     ("$dv/dt|_{cross}$", "slope of the shaped waveform where it crosses its middle", "V/s", "5.2 V/ns"),
+     ("$V_{DD}/2$", "amplitude of the square from the isolation buffer (±0.9 V around mid-rail)", "V", "0.9"),
+     ("$\\tau_s$", "time constant of the shaping network", "s", "≈ 175 ps"),
+     ("$R_s, R_{buf}, R_{sw}$", "series resistor, buffer output resistance, switch on-resistance", "Ω", "2.16 k + ≈ 1.6 k"),
+     ("$C_{1,tot}$", "everything on the C1 node: MIM + Gm input + switch junctions", "F", "≈ 46 fF")],
+    "The gain is the waveform's slope converted from volts per second into volts per radian, and for an RC-rounded "
+    "square that slope is simply amplitude over time constant.",
+    "After an edge $v(t) = a\\left(1 - \\frac{2e^{-t/\\tau}}{1+e^{-T/2\\tau}}\\right)$; it crosses zero where "
+    "$e^{-t_c/\\tau} = (1+e^{-T/2\\tau})/2$, and there $dv/dt = a/\\tau$ exactly. Divide by $\\omega_0$ to get volts per "
+    "radian (one radian of phase lasts $1/\\omega_0$ seconds).",
+    "Target A = 0.5 V: $\\tau_s = 0.9/(0.5\\times1.005\\times10^{10}) = 179$ ps → $R_{tot} = 179\\,\\text{ps}/46\\,\\text{fF} "
+    "= 3.9$ kΩ.",
+    "A ∝ 1/(RC): the R/C process corner moves it (0.35–0.77 V); the loop's icp_trim recentres that. A ∝ V_DD too.")),
+("v_2[k] = (1-\\alpha)\\,v_1[k] + \\alpha\\,v_2[k-1]", E(
+    [("$v_1[k]$", "the new sample on C1 in period k", "V", "—"),
+     ("$v_2[k]$", "the held value on C2 after the transfer in period k", "V", "—"),
+     ("$\\alpha$", "memory factor = share of C2 in the total capacitance", "—", "0.473 (measured)"),
+     ("$C_{1,tot}, C_{2,tot}$", "total capacitance on each node", "F", "≈ 44 / 39 fF")],
+    "When the switch connects the two capacitors the charge is shared: the result is a weighted average of the new sample "
+    "and the old held value.",
+    "Charge conservation: $C_1v_1 + C_2v_2^{old} = (C_1 + C_2)v_2^{new}$. Repeated every period it is a first-order "
+    "low-pass with a pole at $z = \\alpha$ and unity gain at DC.",
+    "α = 39/(44 + 39) ≈ 0.47; the fit of the beat run gives 0.473 and a + b = 1.000.",
+    "That pole is why the Gm reads C1 (before the sharing): inside the PLL loop it would cost 16° of phase margin.")),
+("\\mathcal{L}_{kT/C} = \\frac{kT}{2\\,C\\,A^2 f_{ref}}", E(
+    [("$\\mathcal L_{kT/C}$", "white phase-noise floor caused by the sampling noise", "dBc/Hz", "−144.7"),
+     ("$kT$", "thermal energy", "J", "$4.14\\times10^{-21}$"),
+     ("$C$", "sampling capacitance per side (C1 node)", "F", "46 fF"),
+     ("$A$", "detector gain per side", "V/rad", "0.514"),
+     ("$f_{ref}$", "sampling rate", "Hz", "50 MHz")],
+    "Each sample carries kT/C of noise per side; divided by the gain it is a phase error on every sample, i.e. a flat "
+    "phase-noise floor.",
+    "The differential sample has variance 2kT/C; its slope is 2A per radian, so the phase variance is "
+    "$2kT/C/(2A)^2 = kT/(2CA^2)$ per sample. Independent samples at $f_{ref}$ spread it over $f_{ref}/2$: "
+    "$S_\\phi = 2\\sigma_\\phi^2/f_{ref}$, $\\mathcal L = S_\\phi/2$.",
+    "$4.14\\times10^{-21}/(2\\times46\\times10^{-15}\\times0.264\\times5\\times10^7) = 3.4\\times10^{-15}$ → −144.7 dBc/Hz.",
+    "It is detector noise, not reference noise: no N². The isolation buffers' timing noise, in contrast, is "
+    "reference-like (×N²).")),
 ]

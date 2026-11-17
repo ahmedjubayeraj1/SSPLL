@@ -62,6 +62,9 @@ if __name__ == "__main__":
     if "timing" in old and os.environ.get("ONLY_JITTER"):
         res = dict(timing=old["timing"])
     S = old.get("jitter", {}).get("S")
+    if os.environ.get("ONLY_TIMING") and "jitter" in old:
+        res["jitter"] = old["jitter"]
+        json.dump(res, open(os.path.join(HERE, "data", "step77_sim.json"), "w")); raise SystemExit
     res["jitter"] = jitter(S=S)
     res["jitter"]["baseline"] = jitter(S=res["jitter"]["S"], scale=1e-6)["sigma"]
     s = res["jitter"]["sigma"]

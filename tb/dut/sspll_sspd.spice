@@ -1,0 +1,29 @@
+* sspll_sspd (step 78): ports clkp clkm v1p v1m v2p v2m cks cksb ckh ckhb VDD VSS
+.subckt sspll_sspd_tg a b g gb VDD VSS
+* transmission gate: on while g = 1 (gb = 0)
+xxn a g b VSS sky130_fd_pr__nfet_01v8_lvt w=3.000 l=0.15 nf=1 m=1 ad=0.8700 as=0.8700 pd=6.580 ps=6.580
+xxp a gb b VDD sky130_fd_pr__pfet_01v8 w=1.500 l=0.15 nf=1 m=1 ad=0.4350 as=0.4350 pd=3.580 ps=3.580
+.ends
+.subckt sspll_sspd_tgh a b g gb VDD VSS
+* hold transmission gate (smaller)
+xxn a g b VSS sky130_fd_pr__nfet_01v8_lvt w=1.000 l=0.15 nf=1 m=1 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
+xxp a gb b VDD sky130_fd_pr__pfet_01v8 w=1.000 l=0.15 nf=1 m=1 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
+.ends
+.subckt sspll_sspd_side clk v1 v2 cks cksb ckh ckhb VDD VSS
+* isolation buffer -> R_s -> sampler sw1/C1 + dummy sampler swd/CD (opposite phase) ; hold sw2/C2
+xxb1n b1 clk VSS VSS sky130_fd_pr__nfet_01v8 w=0.420 l=0.15 nf=1 m=1 ad=0.1218 as=0.1218 pd=1.420 ps=1.420
+xxb1p b1 clk VDD VDD sky130_fd_pr__pfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
+xxb2n b2 b1 VSS VSS sky130_fd_pr__nfet_01v8 w=2.000 l=0.15 nf=1 m=1 ad=0.5800 as=0.5800 pd=4.580 ps=4.580
+xxb2p b2 b1 VDD VDD sky130_fd_pr__pfet_01v8 w=4.000 l=0.15 nf=1 m=1 ad=1.1600 as=1.1600 pd=8.580 ps=8.580
+xrs b2 f VSS sky130_fd_pr__res_xhigh_po_0p69 l=0.6 mult=1 m=1
+xs1 f v1 cks cksb VDD VSS sspll_sspd_tg
+xsd f vd cksb cks VDD VSS sspll_sspd_tg
+xs2 v1 v2 ckh ckhb VDD VSS sspll_sspd_tgh
+xc1 v1 VSS sky130_fd_pr__cap_mim_m3_1 w=4.0 l=4.0 m=1
+xcd vd VSS sky130_fd_pr__cap_mim_m3_1 w=4.35 l=4.35 m=1
+xc2 v2 VSS sky130_fd_pr__cap_mim_m3_1 w=4.0 l=4.0 m=1
+.ends
+.subckt sspll_sspd clkp clkm v1p v1m v2p v2m cks cksb ckh ckhb VDD VSS
+xsp clkp v1p v2p cks cksb ckh ckhb VDD VSS sspll_sspd_side
+xsm clkm v1m v2m cks cksb ckh ckhb VDD VSS sspll_sspd_side
+.ends

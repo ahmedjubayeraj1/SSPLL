@@ -2,18 +2,18 @@
 QA77 = [
 ("What does the clock generator do in this sub-sampling PLL?",
  "From one reference edge (refclk) it makes three complementary control pairs, in a fixed order: cks/cksb for the "
- "sampling switch (it tracks the VCO and opens at the reference edge), ckh/ckhb for the hold switch that copies the "
- "sample from C1 to C2, and ckg/ckgb for the short current pulse of the pulsed-Gm charge pump. It is the timing "
- "skeleton of the SSPD + charge pump."),
+ "sampling switch (it tracks the VCO and opens at the reference edge), ckg/ckgb for the short current pulse of the "
+ "pulsed-Gm charge pump, which reads C1 right after the sample, and ckh/ckhb for the hold switch that then shares C1 "
+ "onto C2 for the NCB. It is the timing skeleton of the SSPD + charge pump (order revised in step 78)."),
 ("Why does the sampling happen on the falling edge of cks and not on a rising edge?",
  "While cks = 1 the switch conducts and the sampling capacitor follows the VCO (track). The sample is the voltage at "
  "the moment the switch opens, i.e. when cks falls. The reference's rising edge is the timing reference, so cks must "
  "fall in response to refclk rising: the driver gives cks from the inverted path."),
 ("Why are there gaps between the three phases?",
- "Two switches must never conduct at the same time. If sw2 (hold) closed while sw1 still tracked the VCO, C2 would see "
- "the VCO directly and the sample would be corrupted; if the Gm current flowed while sw2 was still transferring, the "
- "current would depend on an unsettled voltage. Gap 1 (cks fall → ckh rise) and gap 2 (ckh fall → ckg rise) are "
- "non-overlap times; here 186 / 182 ps typical, at least 115 ps over all corners (requirement ≥ 100 ps)."),
+ "Two switches must never conduct at the same time, and the Gm must read a settled sample. If the Gm current flowed "
+ "while sw1 still tracked the VCO, it would see the VCO instead of the sample; if sw2 shared C1 with C2 while the Gm "
+ "current flowed, the current would follow the sharing transient. Gap 1 (cks fall → ckg rise) and gap 2 (ckg fall → "
+ "ckh rise) are the non-overlap times: 171 / 318 ps typical, at least 110 ps over all corners (requirement ≥ 100 ps)."),
 ("How does an RC pulser make a pulse from an edge?",
  "The input and a delayed, inverted copy of it go into a gate (here a NOR of the inverted input and the inverted "
  "delayed input, which is input AND NOT delayed). After a rising edge both conditions are true until the delayed copy "
@@ -45,16 +45,18 @@ QA77 = [
 ("What is t_p and why must it be ≤ 5 ns?",
  "t_p is the delay from the sampling instant to the centre of the Gm current pulse: the loop's transport delay. In "
  "the loop gain it appears as e^{−s·t_p}, i.e. a phase lag ω_c·t_p at the crossover. Step 73 allowed up to 5 ns for "
- "≤ 1° of phase-margin loss at the chosen bandwidth. Here t_p = 2.63 ns typical and 4.30 ns worst."),
+ "≤ 3° of phase-margin loss. With the Gm right after the sample t_p = 0.28 ns typical and 0.50 ns worst (it was "
+ "2.63 ns when the Gm came after the hold pulse)."),
 ("Why must W_H be at least 1.5 ns?",
  "During the hold pulse the charge on C1 is shared with C2 through sw2. The transfer must settle (several R_on·C time "
- "constants) before the Gm pulse uses the voltage on C2, and some time is reserved for the switch's own charge "
- "injection to die away. 1.5 ns is the step-73 requirement; the minimum over corners is 1.51 ns (ff_ll, 110 °C)."),
+ "constants) so that C2, which the NCB reads for the whole next period, holds the final shared value, and some "
+ "time is reserved for the switch's own charge injection to die away. 1.5 ns is the requirement; the minimum over "
+ "corners is 1.51 ns (ff_ll, 110 °C)."),
 ("Why does the hold pulse width depend on the reference duty cycle?",
- "The RC node of the hold pulser is reset during the low part of the input. With a short low time (duty 65 %) the "
- "node is not fully discharged at the next edge, so it reaches the trip point earlier and the pulse shrinks "
- "(1.95 ns at 65 % vs 2.22 ns at 35 %). It stays above 1.5 ns; a faster reset path (a reset nMOS) would remove the "
- "dependence if needed."),
+ "The RC node of the hold pulser is reset while its trigger is low, i.e. while refclk is low. With a short low "
+ "time (duty 65 %) the node is not fully discharged at the next edge, so it reaches the trip point earlier and the "
+ "pulse shrinks (1.98 ns at 65 % vs 2.22 ns at 35 %). It stays above 1.5 ns; a reset nMOS on the RC node would remove "
+ "the dependence if needed."),
 ("How is the clock generator disabled when the PLL is off?",
  "It has no enable pin. When pll_en = 0 the reference buffer holds refclk at 0: cks stays 1 (the sampling switch "
  "tracks), and no hold or Gm pulses are produced, so the charge pump injects no charge and the circuit draws only "
@@ -95,6 +97,16 @@ QA77 = [
  "Loads ≤ 30 fF on cks/cksb and ≤ 20 fF on the others (switch sizes in steps 78/79); the Gm switch must handle pulses "
  "as short as 106 ps; β·K_VCO must be checked over corners with the real g_m and A (step 79); the layout must keep "
  "the sampling path short and symmetric (parasitic delay adds to t_p and to jitter)."),
+("Why was the order of the Gm and hold pulses changed in step 78?",
+ "Charge sharing makes C2 a memory: v2[k] = (C1 v1[k] + C2 v2[k−1])/(C1 + C2), a first-order low-pass with a pole at "
+ "z = C2/(C1 + C2) = 0.5. If the Gm read C2 (or C1 after the sharing), that pole would sit inside the PLL loop and cost "
+ "about 16° of phase margin at f_c = f_ref/20; step 73 did not include it. Reading C1 before the sharing gives the Gm "
+ "the fresh sample; the NCB, which reads C2, keeps the pole that the FFNC model already contains."),
+("Why does the hold pulser need a latch as its trigger?",
+ "The hold pulser's RC node (R_H·C_H ≈ 2.6 ns) is reset only while its input is low. Triggered directly by the end of "
+ "the 200 ps Gm pulse, its input would be low for only 200 ps and the pulser would never fire. The latch is set by ckg "
+ "and reset while refclk is low (cks = 1); its output q·NOT(ckg) rises when the Gm pulse ends and stays high until "
+ "refclk falls, so the RC node gets ~10 ns to reset every period."),
 ("How would you check this block in Cadence?",
  "Same testbench: an ideal 50 MHz pulse on refclk, capacitive loads, tran with the Calculator's cross() and delay() "
  "for the edges, Corners setup with the combined MOS+R/C sections. Jitter by Spectre transient noise (noisefmax "
