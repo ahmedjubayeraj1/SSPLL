@@ -315,6 +315,69 @@ input.
   - First real clock edge 4.33 µs, i.e. 3.8 µs after enable. The single edge at the enable instant is a glitch.
   - Mean period afterwards 19.99 ns.
 
+### Step 77 — clock generator (`tb/clkgen/`)
+
+The DUT is `sspll_clkgen` (from `tb/dut/sspll_clkgen.spice`). Its only input is `refclk`, the reference buffer's
+output, so the decks drive it with an **ideal 1.8 V pulse** (50 MHz, 375 ps edges = the measured refclk rise time).
+The six outputs are loaded with the gate capacitance of the switches they will drive: **30 fF** on cks / cksb
+(sampling switch, step 78) and **20 fF** on ckh / ckhb / ckg / ckgb. These loads are part of the specification: if
+step 78/79 draws a bigger switch, rerun the deck.
+
+#### tb_clkgen_tran — timing of the three clock pairs and power (M16)
+- **Idea.** Everything the loop needs is a time difference between edges: when sampling happens, how long the hold
+  pulse is, the gaps that make sure two switches never conduct together, and how wide the Gm pulse is.
+- **Set-up.** `tran 1p 100n`; measurements on the **4th** reference edge (the first ones still carry the start-up of
+  the RC nodes).
+- **Measurements** (all `meas tran … trig … targ`, at half supply = 0.9 V):
+
+| Name | trig | targ | What it is |
+|---|---|---|---|
+| t_s | refclk rise | cks fall | sampling instant after the reference edge |
+| gap1 | cks fall | ckh rise | sw1 open before sw2 closes (no charge sharing with the VCO) |
+| W_H | ckh rise | ckh fall | hold-transfer time (C1 → C2 must settle) |
+| gap2 | ckh fall | ckg rise | sw2 open before the Gm current flows |
+| tau | ckg rise | ckg fall | Gm pulse width (sets β with g_m and A) |
+| t_p | cks fall | ckg middle | loop delay; requirement ≤ 5 ns |
+| power | — | — | average I(vdd) × 1.8 V over 5 periods |
+
+- **Result (tt, 27 °C):** `t_s 226 ps, gap1 198 ps, W_H 2.151 ns, gap2 182 ps, tau 202 ps, t_p 2.632 ns, power
+  78 µW`. (gap1 of the deck is measured from cks to ckh, the script from the later of cks/cksb: 186 ps.)
+- **Corners.** Change `__CORNER__` / `.temp` in `run.sh` or the deck. **For this block use the combined MOS + R/C
+  corners** of the PDK (`ss_hh`, `ff_ll`, `hl`, `lh`, …), not only `ss`/`ff`: the pulse widths are R × C, and the
+  plain `ss`/`ff` sections keep R and C typical. Worst cases found: τ = 106 ps (`ff_ll`, 110 °C) to 408 ps (`ss_hh`,
+  −40 °C).
+
+#### tb_clkgen_jitter — jitter of the sampling edge (M17)
+- **Why a special method.** The sampling edge (cks falling) is the time reference of the whole PLL: noise here is
+  reference noise, multiplied by N = 32 in band. A buffer chain's jitter is far below a picosecond, so the method must
+  resolve tens of femtoseconds, and ngspice has no device noise in a transient.
+- **Set-up.**
+  1. A **flat copy** of the sampling path (input buffer xi0, xi1 and the driver xa–xe), so every internal node has a name.
+  2. At **each node** a white noise current `trnoise(NA 1p 0 0)` to ground. Its size is the noise current of the
+     inverter that drives the node, **at its trip point** (where both devices conduct and the node voltage is most
+     sensitive). That density S_i comes from `.noise` on one inverter biased at V_M (`clkgen.inv_noise`):
+     INVS 2.43, INVM 3.57, INVL 7.20 pA/√Hz.
+  3. NA = √(S_i / (2·NT)) with NT = 1 ps. Example INVL: √(5.18×10⁻²³ / 2×10⁻¹²) = 5.09 µA (the deck says 5.088u).
+     **Check every NA by hand** (lesson of step 76).
+  4. Input: a noiseless 500 MHz pulse. The chain forgets each edge within about 1 ns, so 10× more edges per run give
+     the same per-edge statistics 10× faster. 248 ns → 122 falling edges of cks.
+- **Post-processing.** `python3 tb/edges.py tb/out/tb_clkgen_jitter/edges.txt 50e6 --fall --col 3`
+  (`--fall`: falling edges, `--col 3`: the second saved vector, v(cks)). Ignore the "floor L" line here: it assumes
+  50 MHz edges. Compute L from σ with f_ref = 50 MHz yourself.
+- **Result.** 0.18 ps per edge (deck, 122 edges); the design script gives 0.15 ps (123 edges, seed 1). ±7 % is
+  the statistical spread of ~120 edges, so they agree. Floor at the reference: (2π·50 MHz·0.15 ps)²/50 MHz =
+  **−163.4 dBc/Hz**, 3.4 dB under the −160 allocation.
+- **Pitfalls.**
+  - **Numerical drift.** The raw edge times wander by ~1.2 ps over the run, *also with the noise scaled to 10⁻⁶*.
+    That is the time grid of the simulator, not noise. `edges.py` removes a 4th-order trend; always run the
+    noiseless baseline once (scale all NA by 10⁻⁶: it must give ≈ 0, here 0.0002 ps).
+  - **Edge pairing.** Match each output edge to its own input edge (within 0.6 ns), else one missing edge shifts all
+    later pairs by a period.
+  - **Time-step failure.** With seed 1 this deck stops near 251 ns ("timestep too small" on the source branch).
+    That is why it runs 248 ns. Another seed or a shorter run works around it.
+- **In Cadence.** Spectre *transient noise* (noisefmax 500 GHz) needs no injected sources; better, **pss + pnoise**
+  (sampled jitter at the cks crossing) gives the jitter directly. Use either as the cross-check.
+
 ---
 
 ## 5. Drawing a testbench in xschem (same recipe for every deck)
@@ -365,6 +428,7 @@ and save the numbers to `design/<block>/data/*.json`. The plots in `docs/img/` c
 | VCO | `vco.py` (netlist, run, freq_sweep, isf_noise, noise_table), `step74_char.py` |
 | CCO | `cco.py`, `step75_sim.py`, `step75_noise.py`, `clamp_ring.py` |
 | Reference buffer | `refbuf.py` (op, tran, noise_s1, input_noise, tnoise), `step76_sim.py`, `tn_run.py`, `step76_noise.py` |
+| Clock generator | `clkgen.py` (cells, tran, inv_noise), `step77_sim.py` (timing over 21 conditions, jitter) |
 
 When you change a design, run `python3 tb/make_dut.py` and rerun the decks first: they are the quickest way to see
 whether anything moved.

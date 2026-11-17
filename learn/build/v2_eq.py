@@ -570,4 +570,56 @@ EXPLAIN = [
     "The slope of $\\tfrac{V_{pp}}{2}\\sin(2\\pi ft)$ at zero is $\\pi fV_{pp}$. White per-edge jitter σ sampled at "
     "$f_{ref}$ has $S_\\phi = 2(2\\pi f_{ref}\\sigma)^2/f_{ref}$, $\\mathcal L = S_\\phi/2$.",
     "σ = 0.23 ps at 50 MHz: $(2\\pi\\cdot5\\times10^7\\cdot2.3\\times10^{-13})^2/5\\times10^7 = 1.0\\times10^{-16}$ → −160 dBc/Hz.")),
+# ------------------------------------------------------------------------------------------------ step 77
+("\\text{out} = \\overline{\\overline{\\text{in}} + \\overline{\\text{in}_{RC}}}", E(
+    [("in", "the logic input of the pulser (a rising edge starts the pulse)", "—", "h2 (hold) or g3 (Gm)"),
+     ("$\\text{in}_{RC}$", "the input after the R-C delay and one inverter — read: 'the delayed copy has not switched yet'", "—", "node dly"),
+     ("$\\overline{x}$, $+$, $\\cdot$", "logic NOT, OR, AND", "—", "—"),
+     ("$\\tau$", "width of the output pulse", "s", "2.15 ns (hold), 202 ps (Gm)"),
+     ("$R$, $C$", "the delay resistor and capacitor", "Ω, F", "34.9 kΩ / 76 fF (hold); 3.48 kΩ / 27 fF (Gm)"),
+     ("$\\ln 2$", "time constants an RC node needs to go from 0 to half of the supply: $1-e^{-t/RC} = 1/2$", "—", "0.693"),
+     ("$t_{gates}$", "delays of the inverters and the NOR along the path", "s", "≈ 0.3 ns (hold), ≈ 0.14 ns (Gm)")],
+    "The output is high only while the input is already high but its slow copy has not followed yet; that window is "
+    "the pulse.",
+    "By De Morgan, NOR of two inverted signals is the AND of the signals. The slow copy is an RC charging curve; the "
+    "next inverter switches at about half the supply, which takes ln2 · RC. The gates add their own delays.",
+    "Hold: $0.693\\times34.9\\,\\text{k}\\Omega\\times76\\,\\text{fF} = 1.84$ ns, + 0.31 ns of gates = 2.15 ns. "
+    "Gm: $0.693\\times3.48\\,\\text{k}\\times27\\,\\text{fF} = 65$ ps, + 137 ps of gates = 202 ps.",
+    "A falling input edge gives no pulse, and the RC node must be reset during the low half of the input; a short low "
+    "time leaves it partly charged and the pulse shrinks (duty 65 %: 1.95 ns).")),
+("t_p = t_{gap1} + W_H + t_{gap2} + \\frac{\\tau}{2}", E(
+    [("$t_p$", "loop delay: from the sampling instant to the middle of the Gm current pulse", "s", "2.63 ns (≤ 5 ns required)"),
+     ("$t_{gap1}$", "non-overlap time: sampling switch open → hold switch closes", "s", "186 ps"),
+     ("$W_H$", "hold-pulse width (C1 → C2 transfer)", "s", "2.15 ns"),
+     ("$t_{gap2}$", "non-overlap time: hold switch open → Gm current starts", "s", "182 ps"),
+     ("$\\tau$", "width of the Gm current pulse", "s", "202 ps"),
+     ("$\\beta$", "phase-detector + charge-pump gain: average current per radian of VCO phase error", "A/rad", "0.781 µA/rad"),
+     ("$A$", "amplitude of the sampled VCO waveform (each side)", "V", "0.5 V"),
+     ("$g_m$", "transconductance of the Gm cell", "S", "78.1 µS"),
+     ("$T$", "reference period", "s", "20 ns")],
+    "The loop waits from the sample until (the middle of) the current pulse; the charge it then delivers per radian, "
+    "averaged over a period, is β.",
+    "The phases follow one after another, so the delays add; the centre of a rectangular pulse is its 'effective' "
+    "time, hence τ/2. A differential sample changes by 2A per radian, the Gm turns it into a current $g_m\\cdot2A$ "
+    "that flows for τ out of every T.",
+    "$t_p = 0.186+2.151+0.182+0.101 = 2.62$ ns. $\\beta = 2\\times0.5\\times78.1\\,\\mu\\text{S}\\times200\\,\\text{ps}/20\\,\\text{ns} "
+    "= 0.781\\,\\mu$A/rad.",
+    "τ spreads 106–408 ps over PVT, so β does too; only the product β·K_VCO sets the loop, and K_VCO moves the other way "
+    "(×0.86–1.21 overall). The final check with g_m and A is step 79.")),
+("\\mathcal{L}_{floor} = \\frac{(2\\pi f_{ref}\\,\\sigma_t)^2}{f_{ref}},\\qquad NA", E(
+    [("$\\mathcal L_{floor}$", "white phase-noise floor made by random jitter on every reference edge", "dBc/Hz", "−163.4"),
+     ("$f_{ref}$", "reference frequency (one edge per period)", "Hz", "50 MHz"),
+     ("$\\sigma_t$", "rms jitter of one sampling edge (cks falling)", "s", "0.152 ps"),
+     ("$NA$", "rms amplitude of each noise sample of an ngspice trnoise source", "A", "1.7–5.1 µA"),
+     ("$S_i$", "white noise current density of the inverter at its trip point (from .noise)", "A²/Hz", "(2.43–7.20 pA/√Hz)²"),
+     ("$NT$", "time between noise samples = the simulator time step", "s", "1 ps")],
+    "Jitter becomes a phase-noise floor; a sampled random source of amplitude NA every NT has the same density as the "
+    "real inverter noise.",
+    "Timing error σ is a phase error $2\\pi f_{ref}\\sigma$; spread over the band $f_{ref}/2$ of a sampled sequence "
+    "(single-sided, and $\\mathcal L = S_\\phi/2$) it gives the formula. A random sequence with variance NA² held for NT has "
+    "a single-sided density $2\\,NA^2\\,NT$ up to $1/(2NT)$; solve for NA.",
+    "$(2\\pi\\cdot5\\times10^7\\cdot1.52\\times10^{-13})^2/5\\times10^7 = 4.6\\times10^{-17}$ → −163.4 dBc/Hz. "
+    "INVL: $NA = \\sqrt{5.18\\times10^{-23}/(2\\times10^{-12})} = 5.09\\,\\mu$A.",
+    "The raw edge times also drift by ~1.2 ps because of the time grid (seen with the noise switched off): remove a "
+    "slow trend and always run the noiseless baseline.")),
 ]

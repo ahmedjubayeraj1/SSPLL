@@ -180,8 +180,9 @@ match, which is why there is a calibration. It also inherits aliased noise from 
 - VCO: a ring with its noise computed from the ISF.
 - CCO: its current-feed DAC.
 - Reference buffer.
+- Clock generator: the three timed phases of the SSPD.
 
-For every block: what it does, how it was sized, how it was verified (methods M1–M16), and what was learned when a
+For every block: what it does, how it was sized, how it was verified (methods M1–M17), and what was learned when a
 number did not come out as expected.""",
  need="Phases 1–6, and the device basics of Phase 0, section 10. The testbench guide (`docs/testbench_guide.md`) "
       "shows how each simulation was set up.",
@@ -195,7 +196,9 @@ number did not come out as expected.""",
     ("$K_I$", "VCO frequency per current", "Hz/A", "0.84 GHz/mA"),
     ("$I_{CCO}$, $M$, $I_u$, $N_{base}$", "CCO current, mirror ratio, unit current, base units", "A, —, A, —", "—, 25, 2.5 µA, 11"),
     ("$R_F$, $C_F$", "CCO filter", "Ω, F", "10 MΩ, 7.3 pF"),
-    ("$\\sigma_v$, $s$", "threshold noise, input slope", "V, V/s", "—")])),
+    ("$\\sigma_v$, $s$", "threshold noise, input slope", "V, V/s", "—"),
+    ("$W_H$, $\\tau$", "hold-pulse width, Gm-pulse width", "s", "2.15 ns, 202 ps"),
+    ("$NA$, $NT$", "trnoise amplitude and time step", "A, s", "—, 1 ps")])),
 }
 
 
