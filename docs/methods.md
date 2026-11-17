@@ -193,3 +193,15 @@ Generated from `design/log/log_data.py` (also in `design/SSPLL_design_log.xlsx`,
 **How to run it.** `design/refbuf/step76_sim.py; xschem: tb_refin (to be drawn in phase 8)`
 
 **Limits.** Drawn netlist with PDK resistors and MIM capacitors; no layout parasitics yet.
+
+## M17. Transient-noise jitter of a logic path with per-node noise currents (step 77)
+
+**What it gives.** rms jitter added by a chain of CMOS gates to an edge (the sampling edge cks), and its phase-noise floor at f_ref
+
+**Why this method.** ngspice has no device noise in transient; a gate is noisy only while it switches (around its trip point), so a white current of the trip-point density at every node gives a simple, slightly pessimistic estimate
+
+**How it works.** .noise on each inverter size at V_M -> S_i; flat netlist with trnoise(NA 1p 0 0) at every node, NA = sqrt(S_i/(2 NT)); noiseless 500 MHz input, 120+ edges, edges paired within 0.6 ns, 4th-order detrend; baseline with NA x 1e-6
+
+**How to run it.** `ONLY_JITTER=1 design/clkgen/step77_sim.py; tb/clkgen/tb_clkgen_jitter.spice + tb/edges.py --fall --col 3`
+
+**Limits.** white only; trip-point density during the whole run is pessimistic; 120 edges -> +-7 %; cross-check: Spectre transient noise or pss + pnoise

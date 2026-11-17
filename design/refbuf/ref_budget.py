@@ -16,7 +16,7 @@ _sp = importlib.util.spec_from_file_location("cco_budget", os.path.join(ROOT, "d
 _cb = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(_cb)
 RING, KI_TT = _cb.RING, _cb.KI_TT
 
-CLKGEN = (-160.0, 30e3)   # placeholder for the clock-generator edge (step 77), receiver-only result here
+CLKGEN = (-163.4, 30e3)   # clock-generator sampling edge (step 77: 0.15 ps per edge, M17); flicker corner still assumed
 NAME = "REF receiver + clock generator edge"
 
 
