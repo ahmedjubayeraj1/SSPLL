@@ -31,6 +31,8 @@ MJSRC = "/tmp/package/es5/tex-svg.js"
 if not os.path.exists(MJSRC):
     subprocess.run("cd /tmp && npm pack mathjax@3 >/dev/null 2>&1 && tar xzf mathjax-3*.tgz", shell=True, check=True)
 shutil.copy(MJSRC, os.path.join(OUT, "mathjax-tex-svg.js"))
+sys.path.insert(0, HERE)
+from darkmode import add_dark
 avail = [p for p in PHASES if os.path.exists(os.path.join(HERE, PHASES[p][0]))]
 
 
@@ -57,6 +59,7 @@ for p in sel:
     h = re.sub(r'<!-- Load mathjax -->.*?<!-- End of mathjax configuration -->', lambda m: MJ, h, count=1, flags=re.S)
     h = re.sub(r"(<body[^>]*>)", r"\1" + nav(p), h, count=1)
     h = re.sub(r"<title>.*?</title>", f"<title>Phase {p} — {html.escape(title)}</title>", h, count=1, flags=re.S)
+    h = add_dark(h)                                                     # light/dark toggle (darkmode.py)
     open(os.path.join(OUT, stem + ".html"), "w", encoding="utf-8").write(h)
     nerr = h.count('class="ansi-red-fg"') + h.count("Traceback (most recent call last)")
     print(f"phase {p}: {os.path.getsize(os.path.join(OUT, stem + '.html'))/1e6:.1f} MB, errors in outputs: {nerr}")
@@ -85,5 +88,5 @@ to open the answer). Design numbers follow the submitted proposal: 50 MHz × 32 
 <table><tr><th></th><th>Notebook</th><th>Interview questions</th></tr>{''.join(rows)}</table>
 <p>Source: <code>learn/</code> in github.com/ahmedjubayeraj1/SSPLL — run the same notebooks in Jupyter
 (<code>./tools/setup_python.sh</code>, then open <code>learn/*.ipynb</code>).</p></body></html>"""
-open(os.path.join(OUT, "index.html"), "w", encoding="utf-8").write(idx)
+open(os.path.join(OUT, "index.html"), "w", encoding="utf-8").write(add_dark(idx))
 print("site ->", OUT)
