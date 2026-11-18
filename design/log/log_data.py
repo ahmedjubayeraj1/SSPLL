@@ -605,3 +605,21 @@ _set("Power, FFNC off", "typ", 8.08, source="as above minus NCB")
 _set("Power, FFNC off", "max over PVT", 12.15, source="as above minus NCB")
 _set("Jitter FoM", "typ", -228.2, source="1.256 ps, 9.53 mW")
 MARGIN = list(_m.values())
+
+
+# ------------------------------------------------------------------------------------------------ device-rule migration (18 Nov 2026)
+STEPS.append(("M0", "Device-rule migration: 5 V analog devices, 1.8 V logic; VCO feasibility; 800 MHz decision", "done",
+              "docs/design/hv_vco_feasibility.md, hv_devices.md, hv_output_divider.md",
+              "ring in g5v0d10v5 reaches 1.07-1.10 GHz at ss 110 C (ring 2.6 V): 1.6 GHz infeasible; 800 MHz = 50 MHz x 16, "
+              "3-stage pseudo-differential ring, no LDO, output divider /1/2/4/8/16; proposal and roadmap updated"))
+PROBLEMS += [
+ ("M0", "rule", "New rule: analog blocks only in nfet/pfet_g5v0d10v5; digital in 1.8 V devices",
+  "organisers' guidance (Chipalooza chat): 3v3_nvt are native devices, the 5 V devices are the ones to use",
+  "thick oxide (L >= 0.5 um): f_T ~11 GHz (n) / 3.8 GHz (p) at gm/Id = 10, vs 58 GHz for nfet_01v8",
+  "VCO feasibility over 3 ring types; frequency lowered to 800 MHz; LDO dropped; level shifters at every domain "
+  "crossing; steps 72-76 and 78 to be redone, 77 kept", "decided - migration in progress"),
+ ("M0", "frequency", "1.6 GHz not reachable in 5 V devices", "loaded 3-stage ring: 1.07-1.10 GHz at ss 110 C, 1.37 GHz even at 3.0 V",
+  "low g_m/C of thick-oxide devices; CCO headroom leaves 2.6 V for the ring at VDDA 3.0 V",
+  "800 MHz with ring B (25 % margin at the worst corner); reduced-swing Maneatis ring tried and rejected (slower, 2-5x power)",
+  "decided"),
+]
