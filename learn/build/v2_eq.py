@@ -21,6 +21,46 @@ def E(rows, words, why="", num="", watch=""):
 
 
 EXPLAIN = [
+("K_{vdd} = K_I\\left|\\frac{dI_{out}}{dV_{DDA}}\\right|", E(
+    [("$I_{out}$", "current the CCO pushes into the ring's supply node", "A", "0.991 mA at code 10 (tt)"),
+     ("$I_{BIAS}$", "reference current from the harness", "A", "5 µA (±20 %)"),
+     ("17", "mirror ratio MOUT : MREF", "—", "17"),
+     ("14 + code", "number of 2.5 µA DAC units that are on", "—", "14…45"),
+     ("$K_I$", "ring frequency per ampere of feed current (step 74)", "Hz/A", "0.62 GHz/mA tt, 0.41 ss, 0.85 ff"),
+     ("$dI_{out}/dV_{DDA}$", "output-current change per volt of VDDA, ring node held", "A/V", "7.8 µA/V at 1 MHz (tt)"),
+     ("$K_{vdd}$", "frequency change per volt of VDDA (supply pushing)", "Hz/V", "4.8 MHz/V (tt); allocation 5")],
+    "The code picks how many unit currents flow; the mirror multiplies them by 17. Any VDDA ripple that leaks into that "
+    "current moves the ring frequency by K_I per ampere, so K_vdd is the CCO's leak times the ring's gain.",
+    "The ring is current-fed: its frequency follows its current. So the only way VDDA can move the frequency is by "
+    "changing the current, and the chain rule gives the product.",
+    "dI/dV = 7.77 µA/V × 0.62 GHz/mA = 4.8 MHz/V. 100 nV/√Hz on VDDA then gives 0.48 Hz/√Hz of frequency noise: "
+    "S_φ(1 MHz) = (0.48/10⁶)² → L ≈ −129 dBc/Hz, far below the ring's −105.",
+    "K_vdd depends on frequency: above 2 MHz capacitive coupling takes over and it rises ∝ f.")),
+("\\delta I_{out}\\big|_{mirror}", E(
+    [("$\\delta V_{DDA}$", "ripple on the analog supply", "V", "100 nV/√Hz typ (no LDO)"),
+     ("$g_{ds,out}$", "output conductance of MOUT (17 × 40 µm / 2 µm pMOS)", "S", "≈ 100 µA/V"),
+     ("$g_{ds,c}$, $g_{m,c}$", "output conductance and transconductance of the cascode MC", "S", "g_m·r_o ≈ 30–50"),
+     ("$\\delta I_{out}$", "resulting change of the ring feed current", "A", "plain 107–180 µA/V; cascode 7.8 µA/V")],
+    "In a plain mirror whose gate follows VDDA, the full ripple appears across MOUT's drain-source, because the ring "
+    "node does not follow VDDA. With a cascode whose gate follows VDDA, MOUT sees nothing; only MC sees the ripple, and "
+    "MC's own gain divides it.",
+    "A cascode multiplies the output resistance by its intrinsic gain g_m·r_o: r_out ≈ g_m,c·r_o,c·r_o,out.",
+    "Plain: 66–110 MHz/V. Cascode: 4.8 MHz/V at tt, a factor ≈ 20 better.",
+    "The gain only exists while both devices are saturated: V_DDA − V_ring must exceed V_SD,sat(MOUT) + V_SD,sat(MC). "
+    "At ss/110 °C with VDDA 2.97 V that fails, and K_vdd rises to 40 MHz/V.")),
+("S_{\\phi,VDDA}(f)", E(
+    [("$S_{\\phi,CCO}$", "phase noise from the CCO's own current noise", "rad²/Hz", ""),
+     ("$\\overline{i_n^2}$", "CCO output-current noise density", "A²/Hz", "(7.10 pA/√Hz)² at 1 MHz"),
+     ("$S_{\\phi,VDDA}$", "phase noise from VDDA noise via supply pushing", "rad²/Hz", ""),
+     ("$\\overline{v_n^2}$", "VDDA noise density at the die", "V²/Hz", "(100 nV/√Hz)² typ, (300)² pess"),
+     ("$f$", "offset frequency", "Hz", "10 kHz–40 MHz")],
+    "A noise current is a noise frequency (K_I per ampere); frequency noise integrates into phase, so its power "
+    "spectrum falls as 1/f². The same for VDDA noise, through K_vdd.",
+    "Phase is the integral of frequency: dividing by jω in amplitude is 1/f² in power. Inside the PLL both terms are "
+    "suppressed by the loop like VCO noise, |1−H|², and partly by the FFNC.",
+    "CCO: K_I·i_n = 0.62e12 × 7.1e-12 = 4.4 Hz/√Hz → S_φ(1 MHz) = 1.9e-11 → L = −110.2 dBc/Hz (the allocation). "
+    "In the system: 0.82 ps FFNC off, 0.52 ps on.",
+    "")),
 ("\\mathcal{L}_{th,ring}", E(
     [("$f$", "ring oscillation frequency", "Hz", "800 MHz"),
      ("$I$", "current the CCO pushes into the ring's supply node", "A", "0.994 mA"),

@@ -455,6 +455,30 @@ of the trip-point size (2.43 and 5.11 pA/√Hz), 312 edges at 1.6 GHz, 4th-order
   - Make the window long enough for r1 cycles at the lowest frequency (60 ns).
   - The injection runs save only `v(vop) v(vom) v(vddvco) vdda#branch`. Every vector a `meas` uses must be in that list.
 
+#### 5 V CCO benches (M10, M11, M13, step 75 redo) — `design/cco/cco_hv.py`
+- **Purpose.** Prove that the CCO delivers the ring's current range at every corner, that it stays a current source up to the ring-node voltage, that VDDA noise does not reach the ring (there is no LDO), and that its own noise fits the budget.
+- **Common setup (`tb()`).**
+  - The drawn circuit `full()`: 7 level shifters, DAC, MREF, R_F (PDK xhigh-poly, body VDDA), C_F (MIM), MOUT, cascode MC, MB, R_CAS, C_CAS, enable devices and the VTEST gate.
+  - Ideal `vdda` (3.3 V, or 2.97 / 3.63 V), ideal `vddd` 1.8 V, current source `iib` 5 µA (4 / 6 µA for IBIAS ±20 %).
+  - The ring is replaced by an ideal voltage source `vr` at the ring-node voltage of the corner (tt 1.89 V, ss/110 °C 2.37 V, ff/−40 °C 1.60 V). `i(vr)` is the output current.
+  - Code bits come from ideal 1.8 V sources through the level shifters, as on the chip.
+- **Why the ring is a voltage source.** The CCO's job is to deliver a current into a node whose voltage the ring decides. A voltage source at the worst-case node voltage tests the current source under exactly that drain voltage. For supply rejection it is the worst case: a real ring node has a finite impedance that would absorb part of the current ripple.
+- **Benches.**
+  - **A — DC (`op`, `step75hv_sim.py`).** 5 corners × VDDA 2.97/3.63 V × IBIAS 4/5/6 µA × code 0/10/31, plus a code sweep at tt. Pass: code 31 at IBIAS 4 µA ≥ 1.462 mA and code 0 at IBIAS 6 µA ≤ 0.704 mA, each within the fine-tune range.
+  - **B — compliance (`dc vr 0 2.8 0.1`).** Current vs ring-node voltage at the least headroom (ss/110 °C, 2.97 V, code 31, IBIAS 4 µA). Pass: ≤ 3 % drop at 2.37 V.
+  - **C — supply rejection (`ac` with `vdda dc 3.3 ac 1`).** |i(vr)| per volt of VDDA from 100 Hz to 100 MHz. K_vdd = K_I·|dI/dVDDA| with K_I from step 74 (0.62 / 0.41 / 0.85 GHz/mA). Pass: ≤ 5 MHz/V at 1 MHz (tt).
+  - **`step75hv_vdda.py`.** Bench C at 1 MHz for VDDA 2.97…3.63 V at three operating points, combined with `op` to read the current. Shows where the cascode loses saturation.
+  - **D — disable and VTEST (`op`).** pll_en = 0: output current ≈ 0. vtest_en = 1 with vtest 10 mV above the ring node: current step = 10 mV / R_INJ.
+  - **E — level shifter (`tran`).** One `sspll_ls_1v8_3v3` with 20 fF loads, a 1.8 V pulse in, delays read with `meas ... when v(out)=VDDA/2`, levels with `max`/`min`. ss/110 °C and ff/−40 °C, VDDA 2.97/3.63 V, VDDD 1.71/1.89 V.
+  - **Noise (`cco_hv.noise()`).** `.noise v(o) iib dec 10 1e3 1e8`: the ring source `vr` is split by an ammeter `vm`, and a CCVS `h1 o 0 vm 1` turns the output current into a voltage, so `onoise_spectrum` is in A/√Hz. Pass: ≤ 7.05 pA/√Hz at 1 MHz.
+  - **`step75hv_noise.py`.** Puts the noise spectrum and K_vdd(f) into the step-72 HV phase-domain model with the step-74 HV ring and the step-73 HV filter (typ / pess / worst).
+- **Pitfalls.**
+  - ngspice prints the pMOS-output current with a sign; plots use |I|.
+  - Give R_F's and R_CAS's xhigh-poly segments their body terminal (3rd pin) explicitly: on VSS it costs 7× in supply rejection.
+  - `.noise` needs the `.spiceinit` of the PDK in the run directory; `noise()` copies it.
+  - A PSR run with code 31 at IBIAS 5 µA at ss pushes 1.8 mA, more than any corner needs: do not use that point for the budget.
+- **xschem.** `xschem/cco_hv/sspll_cco_hv.sym` in a testbench with `vsource` for VDDA (value `dc 3.3 ac 1` for C), `isource` for IBIAS, `vsource` at the ring pin, and a `code_shown` block with the `.control` lines above. Cadence: the same with `vdc`/`idc`, an `ac` analysis with `acm=1` on VDDA, and `noise` with the output as `i(vr)` (Spectre supports current outputs directly).
+
 #### moscap_hv_cv — C-V of the 5 V loop-filter capacitor (M6, step 73 redo)
 - **Purpose.** Step 73 needs the capacitance per area of the thick-oxide MOS capacitor that now forms C1, and the
   V_cont range over which it is flat. It also needs MIM1 and MIM2 for comparison.

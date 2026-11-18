@@ -728,3 +728,38 @@ RESULTS += [
  ("Jitter FFNC off, typ, with the 5 V ring", 1.99, 2.6, "ps", "max", "74-HV", "proposal typ 2.6"),
  ("Power FFNC on, typ, with the 5 V ring", 7.55, 9.15, "mW", "max", "74-HV", "proposal typ 9.1"),
 ]
+
+# ------------------------------------------------------------------ step 75 redo: CCO in 5 V devices, no LDO (19 Nov 2026)
+STEPS.append(("75-HV", "CCO in 5 V devices: 1:17 mirror with VDDA-tracking cascode, no clamp, no LDO", "done",
+              "docs/design/step75_hv_cco.md, design/cco/cco_hv.py, step75hv_*.py, schematics_hv.py, xschem/cco_hv/",
+              "I_out = 42.5 uA x (14 + code): 0.58-1.83 mA tt; code 31 @ IBIAS -20 % >= 1.440 mA, code 0 @ +20 % <= 0.706 mA "
+              "(both within fine tune); noise 7.10 pA/rtHz at 1 MHz (alloc 7.05); K_vdd 4.8 MHz/V tt, 8.5 at ss/110 C VDDA 3.13 V, "
+              "40 at 2.97 V; compliance drop 1.7 % at 2.37 V; LVS clean; system 1.98 / 1.34 ps typ, worst 3.71 / 2.53 ps"))
+PROBLEMS += [
+ ("75-HV", "supply rejection", "plain mirror: K_vdd 66-110 MHz/V (allocation 5)", "AC VDDA -> i(vr)",
+  "MOUT's g_ds: gate and source follow VDDA, the drain (ring node) does not", "cascode MC whose gate follows VDDA (diode MB + 4 DAC units)", "fixed"),
+ ("75-HV", "supply rejection", "cascode still 34 uA/V", "high-frequency gate ripple on vgo",
+  "R_F xhigh-poly body on VSS: ~60 fF poly-to-substrate pulls the gate towards VSS", "R_F (and R_CAS) body on VDDA (n-well)", "fixed"),
+ ("75-HV", "noise", "output noise 12 pA/rtHz at 1 MHz with the cascode", ".noise contributions: IBIAS diode via vcas",
+  "the cascode bias is a plain mirror of IBIAS, not behind R_F", "R_CAS 4 MOhm + C_CAS 7.3 pF (5.5 kHz): 7.10 pA/rtHz", "fixed"),
+ ("75-HV", "sizing", "wider MOUT / MC made tt rejection worse (11-24 MHz/V)", "variant study",
+  "more g_ds and C_gd", "kept W40 / W80, C_F 6 tiles, C_CAS 4 tiles", "fixed"),
+ ("75-HV", "headroom", "K_vdd 40 MHz/V (800 MHz) / 120 MHz/V (880 MHz) at ss/110 C, VDDA 2.97 V", "K_vdd vs VDDA sweep",
+  "0.60-0.72 V for two thick-oxide pMOS: both in triode", "inherent; quantified: worst-case jitter 2.53 ps FFNC on (max 3.2); "
+  "<= 8.5 MHz/V for VDDA >= 3.13 V", "accepted"),
+ ("75-HV", "modelling", "flat K_vdd underestimates VDDA noise", "AC: K_vdd rises above 2 MHz",
+  "capacitive path VDDA -> MC junction / C_gd -> ring node (~0.6 pF)", "jitter model uses the measured K_vdd(f): typ +0.07 ps", "fixed"),
+ ("75-HV", "schematic", "4-way junction at the MB node", "drawing check", "gate, drain and R_CAS feed at one point",
+  "two T-taps", "fixed"),
+]
+RESULTS += [
+ ("CCO code 31 at IBIAS -20 %, all corners (5 V)", 1.440, 1.40, "mA", "min", "75-HV", "need 1.462 - fine tune (~0.13 mA)"),
+ ("CCO code 0 at IBIAS +20 %, all corners (5 V)", 0.706, 0.80, "mA", "max", "75-HV", "need 0.704 + fine tune"),
+ ("CCO output noise at 1 MHz (5 V)", 7.10, 7.4, "pA/rtHz", "max", "75-HV", "allocation 7.05 (+0.4 dB)"),
+ ("K_vdd at 1 MHz, tt (CCO cascode)", 4.82, 5, "MHz/V", "max", "75-HV", "step 72 HV allocation"),
+ ("K_vdd at 1 MHz, ss/110 C, 800 MHz, VDDA 3.13 V", 8.54, 20, "MHz/V", "max", "75-HV", "pessimistic allocation"),
+ ("CCO compliance drop at 2.37 V, ss/110 C, 2.97 V", 1.7, 3, "%", "max", "75-HV", ""),
+ ("Jitter FFNC on, typ, with the 5 V CCO", 1.34, 1.6, "ps", "max", "75-HV", "proposal typ 1.6"),
+ ("Jitter FFNC on, worst (ss/110 C, VDDA 2.97 V)", 2.53, 3.2, "ps", "max", "75-HV", "proposal max 3.2"),
+ ("Jitter FFNC off, worst (ss/110 C, VDDA 2.97 V)", 3.71, 5.0, "ps", "max", "75-HV", "proposal max 5.0"),
+]

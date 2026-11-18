@@ -5,7 +5,7 @@ from nb import Book
 from qa72 import QA72, QA72HV
 from qa73 import QA73, QA73HV
 from qa74 import QA74, QA74HV
-from qa75 import QA75
+from qa75 import QA75, QA75HV
 from qa76 import QA76
 from qa77 import QA77
 from qa78 import QA78
@@ -807,6 +807,117 @@ Every device passes `tools/pdk_limits.py`. tt code 0/10/31: 0.71 / 1.34 / 2.67 m
 Supply → current ≤ 0.25 µA/mV. Level shifter: full 3.63 V swing, rise 1.4–1.6 ns. Full report: `docs/design/step75_cco.md`.
 """)
 b.qa(QA75, 75)
+
+# ------------------------------------------------------------------------------------------------ step 75 redo (5 V, no LDO)
+V75H = r"""
+import json, os
+import numpy as np
+DC = "../design/cco/data"
+ld = lambda n: json.load(open(os.path.join(DC, f"step75hv_{n}.json")))
+SIM, VD, NZ, HR = ld("sim"), ld("vdda"), ld("noise"), ld("headroom")
+"""
+b.md(r"""
+<a id='step-75-hv'></a>
+### Step 75 redo — the CCO in 5 V devices, without the LDO (19 Nov 2026)
+
+**What happens.** The CCO still feeds the ring a programmable current, now from 5 V devices and straight from VDDA:
+there is no LDO any more. So besides delivering the right current with low noise, it must stop VDDA noise from turning
+into current — and current is frequency. The 1.6 GHz CCO's clamp and its 1.8 V rail are gone: the ring is 5 V-rated.
+
+**How it happens.** IBIAS → 2.5 µA DAC units → one-unit pMOS diode MREF → 10 MΩ / 10.9 pF filter → 17-unit mirror MOUT
+→ **cascode MC whose gate follows VDDA** → ring node. The numbers that matter:
+
+$$I_{out} = 17\cdot\frac{I_{BIAS}}{2}\,(14+\text{code}),\qquad K_{vdd} = K_I\left|\frac{dI_{out}}{dV_{DDA}}\right|$$
+
+$$\delta I_{out}\big|_{mirror} = g_{ds,out}\,\delta V_{DDA},\qquad
+\delta I_{out}\big|_{cascode} \approx \frac{g_{ds,c}\,g_{ds,out}}{g_{m,c}}\,\delta V_{DDA}$$
+
+$$S_{\phi,CCO}(f) = \frac{K_I^2\,\overline{i_n^2}}{f^2},\qquad S_{\phi,VDDA}(f) = \frac{K_{vdd}(f)^2\,\overline{v_n^2}}{f^2}$$
+
+**Why it happens this way.**
+- A plain mirror whose gate follows VDDA still has its drain on the ring node, which does *not* follow VDDA: the whole
+  ripple appears across g_ds. That gave 66–110 MHz/V against an allocation of 5.
+- A cascode whose gate follows VDDA keeps MOUT's drain moving with VDDA too, and divides what is left by g_m·r_o:
+  4.8 MHz/V at tt.
+- Every parasitic of the gate network must also go to VDDA: R_F's body on VSS brought 34 µA/V back.
+- The cascode bias is a plain mirror of IBIAS, so it needed its own RC filter, or the IBIAS diode's noise came through.
+- The weak point is physics: at ss/110 °C the ring node sits at 2.25–2.37 V, so with VDDA at 2.97 V two thick-oxide
+  pMOS share only 0.6–0.7 V and leave saturation.
+
+Full write-up: `docs/design/step75_hv_cco.md`.
+""")
+b.md(r"""
+**Figure 75.5 — supply pushing against the VDDA level (headroom).** Move the slider through the VDDA values. The bars
+are K_vdd at 1 MHz for three operating points; the dashed line is the 5 MHz/V allocation and the dotted line the 20 MHz/V
+pessimistic allocation. Watch the slow corner fall off a cliff below about 3.1 V.
+""")
+b.code(V75H + r"""
+TAGS = [("tt_800", "tt 27 °C, 800 MHz"), ("ss_800", "ss 110 °C, 800 MHz"), ("ss_880", "ss 110 °C, 880 MHz")]
+VS = [q["vdda"] for q in VD["tt_800"]]
+def frame(i):
+    v = VS[i]
+    ks = [next(q for q in VD[t] if q["vdda"] == v) for t, _ in TAGS]
+    return ([dict(x=[l for _, l in TAGS], y=[k["kvdd"]/1e6 for k in ks], name="K_vdd (MHz/V)", mode="lines+markers",
+                  line=dict(color="#2a78d6"), marker=dict(size=12)),
+             dict(x=[l for _, l in TAGS], y=[5]*3, name="allocation 5 MHz/V", mode="lines", line=dict(color="#f0a30a", dash="dash")),
+             dict(x=[l for _, l in TAGS], y=[20]*3, name="pessimistic 20 MHz/V", mode="lines", line=dict(color="#f0a30a", dash="dot"))],
+            f"VDDA {v:.2f} V: " + ", ".join(f"{l} {k['kvdd']/1e6:.1f} MHz/V at {k['i']*1e3:.3f} mA" for (_, l), k in zip(TAGS, ks)))
+def lay(fig):
+    fig.update_yaxes(type="log", title="K_vdd at 1 MHz (MHz/V)", range=[0.5, 2.2])
+show(sweep(list(range(len(VS))), frame, "VDDA step", fmt="{:d}", active=4, layout=lay))
+""")
+b.md(r"""
+**Figure 75.6 — supply pushing against the ripple frequency.** The flat part is the cascode's resistive leak; above about
+2 MHz the capacitance of the cascode (its n-well junction and $C_{gd}$, ≈ 0.6 pF) couples VDDA into the ring node and
+K_vdd rises with f. The jitter model uses this curve, not a single number.
+""")
+b.code(V75H + r"""
+KI = {"tt": 0.62e12, "ss": 0.41e12, "ff": 0.85e12}
+LAB = {"tt": "tt 27 °C, 3.3 V, code 10", "ss": "ss 110 °C, 2.97 V, code 31 at 1.78 mA (beyond need)", "ff": "ff −40 °C, 3.63 V, code 0"}
+fig = go.Figure()
+for (cn, d), col in zip(SIM["psr"].items(), ["#2a78d6", "#eb6834", "#1baf7a"]):
+    d = np.array(d); fig.add_trace(go.Scatter(x=d[:, 0], y=d[:, 1]*KI[cn]/1e6, name=LAB[cn], line=dict(color=col)))
+fig.add_hline(y=5, line_dash="dash", line_color="#f0a30a")
+fig.update_layout(height=420, xaxis_type="log", yaxis_type="log", xaxis_title="VDDA ripple frequency (Hz)",
+                  yaxis_title="K_vdd (MHz/V)", title="VDDA → ring frequency, ring node held (AC)")
+show(fig)
+""")
+b.md(r"""
+**Figure 75.7 — the cascode design study and the output noise.** Left: K_vdd of each variant at tt and at the slow corner
+(VDDA 3.3 V, node 2.37 V). Right: the chosen CCO's output-current noise against the 7.05 pA/√Hz allocation.
+""")
+b.code(V75H + r"""
+ks = list(HR)
+fig = make_subplots(rows=1, cols=2, subplot_titles=("cascode variants: K_vdd at 1 MHz", "output current noise (tt, code 10)"))
+fig.add_trace(go.Bar(y=ks, x=[HR[k]["k_tt"]/1e6 for k in ks], orientation="h", name="tt, 3.3 V", marker_color="#2a78d6"), 1, 1)
+fig.add_trace(go.Bar(y=ks, x=[HR[k]["k_ss33"]/1e6 for k in ks], orientation="h", name="ss 110 °C, 3.3 V, 2.37 V node", marker_color="#eb6834"), 1, 1)
+fig.add_trace(go.Scatter(x=NZ["f"], y=np.array(NZ["n"])*1e12, name="i_n (pA/√Hz)", line=dict(color="#1baf7a")), 1, 2)
+fig.add_trace(go.Scatter(x=[1e6], y=[NZ["alloc_1M"]*1e12], mode="markers", marker=dict(size=11, symbol="diamond", color="#f0a30a"),
+                         name="allocation at 1 MHz"), 1, 2)
+fig.update_xaxes(type="log", title="MHz/V", row=1, col=1); fig.update_xaxes(type="log", title="offset (Hz)", row=1, col=2)
+fig.update_yaxes(type="log", title="pA/√Hz", row=1, col=2)
+fig.update_layout(height=470, barmode="group")
+show(fig)
+""")
+b.code(V75H + r"""
+print("coarse range (all corners x VDDA +-10 %):")
+for ib in (4e-6, 5e-6, 6e-6):
+    for code in (0, 31):
+        v = [r[-1] for r in SIM["dc"][:90] if r[3] == ib and r[4] == code]
+        print(f"  IBIAS {ib*1e6:.0f} uA, code {code:2d}: {min(v)*1e3:.3f}-{max(v)*1e3:.3f} mA")
+print("need: <= 0.704 mA (ff/-40 C, 720 MHz) and >= 1.462 mA (ss/110 C, 880 MHz), each +- the fine-tune range")
+print(f"noise at 1 MHz {NZ['at']['1000000.0']*1e12:.2f} pA/rtHz (allocation {NZ['alloc_1M']*1e12:.2f})")
+print("K_vdd (MHz/V):", {k: round(v/1e6, 1) for k, v in NZ["kvdd"].items()})
+for cn in ("typ", "pess", "worst"):
+    print(f"  {cn:5s} jitter FFNC off {NZ[cn]['off']['total']:.2f} ps, on {NZ[cn]['on']['total']:.2f} ps "
+          f"(CCO {NZ[cn]['on']['cco']:.2f}, VDDA {NZ[cn]['on']['vdda']:.2f}); L(300 kHz) on {NZ[cn]['on']['L300k']:.1f} dBc/Hz")
+""")
+b.code(r"""
+from IPython.display import Image, display
+for n in ("sspll_cco_hv", "sspll_cco_hv_dac"):
+    print(n); display(Image(filename=f"../docs/img/step75hv_sch_{n}.png", width=900))
+""")
+b.qa(QA75HV, "75 — 800 MHz redo")
 
 # ------------------------------------------------------------------------------------------------ step 76
 V76 = r"""

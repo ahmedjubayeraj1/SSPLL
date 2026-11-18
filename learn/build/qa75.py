@@ -110,3 +110,59 @@ QA75 = [
  "'from pll_en with coarse code set' — but the code must be set before the CCO is enabled, and the slow filter is "
  "precisely why the test plan sets cco_code first."),
 ]
+
+# Step 75 redo for the device-rule migration: CCO in 5 V devices, no LDO (docs/design/step75_hv_cco.md)
+QA75HV = [
+("Without an LDO, what number tells you how much VDDA noise reaches the ring's frequency, and how do you measure it?",
+ "K_vdd = K_I·|dI_out/dV_DDA| in Hz/V: the frequency change per volt of VDDA. Measure |dI_out/dV_DDA| with an AC "
+ "source of 1 V on VDDA while the ring node is held by an ideal voltage source (the CCO output current flows into "
+ "that source), and multiply by K_I from the ring (0.62 GHz/mA at tt). The phase noise it causes is "
+ "S_phi = K_vdd²·v_n²/f², shaped by the loop like VCO noise. Here: 4.8 MHz/V at 1 MHz (tt), allocation 5."),
+("Why can a plain pMOS mirror not meet 5 MHz/V, even with its gate filtered to VDDA?",
+ "The filter capacitor C_F goes to VDDA, so MOUT's gate and source move together with VDDA: V_SG is constant. But "
+ "the drain sits on the ring node, which the ring sets and which does not follow VDDA. So V_SD changes by the full "
+ "ripple and the current changes by g_ds·delta V_DDA. A 40 µm / 2 µm thick-oxide pMOS at 1 mA has g_ds of the order "
+ "of 100 µA/V: 66-110 MHz/V, 13-22× the allocation."),
+("Why must the cascode gate follow VDDA and not VSS?",
+ "The cascode is meant to keep MOUT's V_SD constant. MOUT's drain is the cascode's source vc = vcas + V_SG(MC). If "
+ "vcas followed VDDA, vc follows VDDA and MOUT sees no change on any terminal. If vcas were fixed to VSS, vc would be "
+ "fixed while MOUT's source moves with VDDA, and V_SD(MOUT) would change by the full ripple: the plain mirror again. "
+ "So vcas = VDDA − V_SG(MB) from a pMOS diode on VDDA, held to VDDA at high frequency by C_CAS."),
+("What did the substrate terminal of the R_F resistor have to do with supply rejection?",
+ "The xhigh-poly resistor has about 60 fF of capacitance to whatever lies under it. With its body on VSS, that "
+ "capacitance and the 10 MΩ form a path that pulls MOUT's gate towards VSS at high frequency, so the gate no longer "
+ "follows VDDA: 34 µA/V came back. Drawing R_F (and R_CAS) over an n-well tied to VDDA sends every parasitic of the "
+ "gate network to VDDA. Lesson: in a supply-referred circuit, every parasitic must be referred to the same supply."),
+("The cascode raised the output noise from 7 to 12 pA/√Hz. Why, and what fixed it?",
+ "The cascode bias branch (MB fed by 4 DAC units) is a plain mirror of the IBIAS input diode; it does not go through "
+ "R_F/C_F. So the IBIAS diode's noise appeared on vcas, and vcas noise reaches the output through MOUT's g_ds (it "
+ "moves vc). An RC low-pass R_CAS = 4 MΩ, C_CAS = 7.3 pF (corner 5.5 kHz) between MB and the cascode gate removes "
+ "it above the loop's low-frequency region: 7.10 pA/√Hz at 1 MHz."),
+("Why does K_vdd become large at ss/110 °C with VDDA at 2.97 V, and why is it not fixed by sizing?",
+ "At ss/110 °C the slow thick-oxide ring needs a high node voltage: 2.25 V for 800 MHz, 2.37 V for 880 MHz. With "
+ "VDDA = 2.97 V only 0.60-0.72 V remain for MOUT and MC together, both with |V_T| near 1 V. Both slide into triode, "
+ "g_m·r_o collapses and the rejection is lost: 40 MHz/V (800 MHz) and 120 MHz/V (880 MHz). Wider devices lower "
+ "V_SD,sat only as the square root of W but raise g_ds and C_gd, which made tt worse in the variant study. It is a "
+ "headroom limit. Quantified: worst-case jitter 2.53 ps with FFNC on, inside the 3.2 ps max; for VDDA >= 3.13 V "
+ "K_vdd stays <= 8.5 MHz/V."),
+("Why does K_vdd rise again above 2 MHz, and how did that change the jitter number?",
+ "Capacitance: MC's drain junction to its n-well (VDDA) and its C_gd to vcas (which follows VDDA) couple VDDA to the "
+ "ring node; at high frequency jwC·v_dda (C about 0.6 pF) exceeds the resistive leakage. A flat K_vdd would miss it. "
+ "With the measured K_vdd(f) the VDDA term rose from 0.06 to 0.33 ps (FFNC on) and typ jitter from 1.27 to 1.34 ps; "
+ "FFNC cannot remove it because wide-band ring noise aliases through the NCB's 50 MHz sampling."),
+("Why is the ring node held by an ideal voltage source in the CCO benches, and why is that the worst case?",
+ "The CCO's job is a current into a node whose voltage the ring sets, so a source at the corner's ring-node voltage "
+ "tests the current source at exactly that drain voltage and lets the current be read as i(vr). For supply "
+ "rejection the ideal source is the worst case: it absorbs all of the current ripple, while a real ring node has a "
+ "finite impedance and its voltage would move a little in the direction that reduces the ripple."),
+("How were 17 output units and 14 base units chosen?",
+ "The 5 V ring needs 0.704 mA (ff/−40 °C, 720 MHz) to 1.462 mA (ss/110 °C, 880 MHz), and IBIAS may be ±20 %. With "
+ "2.5 µA units and 1:17, I_out = 42.5 µA·(14+code): code 31 at IBIAS 4 µA gives ≥ 1.440 mA and code 0 at IBIAS 6 µA "
+ "≤ 0.706 mA. Both edges are within 22 µA (9 MHz) of the need, far inside the ±55 MHz fine range. 13 base units "
+ "left code 31 short by 60 µA at ss; the LSB (25 MHz) stays well inside the fine range for the FLL."),
+("What is the VTEST injection for?",
+ "A transmission gate and a 24 kΩ poly resistor connect a pad-level test voltage to the ring node. With vtest a few "
+ "mV above the ring node, a known extra current flows (10 mV → 0.41 µA). Measuring the frequency step gives K_I on "
+ "the real chip, which is needed to turn the measured supply sensitivity into a current-source r_out and to check "
+ "the CCO model after tape-out. Disabled (vtest_en = 0) the gate is off and adds no noise."),
+]
