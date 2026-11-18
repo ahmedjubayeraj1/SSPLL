@@ -3,7 +3,7 @@ import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 from nb import Book
 from qa72 import QA72, QA72HV
-from qa73 import QA73
+from qa73 import QA73, QA73HV
 from qa74 import QA74
 from qa75 import QA75
 from qa76 import QA76
@@ -448,6 +448,82 @@ done with identical Gm unit cells, not with odd-sized devices; the MIM over the 
 routing above. Full sheet with every number: `docs/design/step73_loop.md`.
 """)
 b.qa(QA73, 73)
+
+# ------------------------------------------------------------------------------------------------ step 73 redo (800 MHz, 5 V)
+L73H = r"""
+import sys, json, csv; sys.path.insert(0, "../models"); sys.path.insert(0, "../design/budget"); sys.path.insert(0, "../design/loop")
+import sampled_loop as sl, pllmodel as pm, step72_hv_budget as hv
+DH = json.load(open("../design/loop/data/step73_hv_design.json"))
+fh = pm.freq_axis(n=700)
+"""
+b.md(r"""
+<a id='step-73-hv'></a>
+### Step 73 redo — loop parameters for 800 MHz with 5 V devices (18 Nov 2026)
+
+**What happens.** The loop keeps its shape: $f_c$ = 2.5 MHz, PM = 50°, zero and pole at 0.88 / 7.13 MHz. What changes
+is the big capacitor. $C_1$ must now be a thick-oxide MOS capacitor (`nfet_g5v0d10v5`), which stores 2.6× less charge
+per µm² (2.87 against 7.48 fF/µm²) and is flat only above 1.0 V.
+
+**How it happens.** Only $\beta K_{VCO}/C$ and $R_1C_1$ set the loop. Scale $C_1, C_2$ and $\beta$ down by the same
+factor and $R_1$ up, and the loop is unchanged. The price is the thermal noise of the larger $R_1$, which reaches the VCO
+through the filter divider:
+
+$$S_{\varphi,R_1}(f) = 4kTR_1\left|\frac{C_1}{C_1+C_2+j2\pi fR_1C_1C_2}\right|^2\frac{K_{VCO}^2}{f^2}\,\big|(1-G_c)(1-H)\big|^2$$
+
+**Why it happens this way.** Inversion capacitance is $C_{ox} = \varepsilon_{ox}/t_{ox}$: the thicker oxide of the
+5 V device lowers it, and its higher threshold moves the flat region up. The window moves to 1.0–2.3 V, centred at
+VDDA/2. With 2 tiles ($C_1$ = 8.81 pF, $R_1$ = 20.6 kΩ) the extra $R_1$ noise costs 0.013 ps and the filter fits in
+about 3 800 µm². Full write-up: `docs/design/step73_hv_loop.md`.
+""")
+b.code(L73H + r"""
+print(f"f_c {DH['fc']/1e6:.2f} MHz, PM {DH['pm']:.1f} deg (t_p {DH['tp']*1e9:.1f} ns), zero {DH['fz']/1e6:.3f} MHz, pole {DH['fp']/1e6:.2f} MHz")
+print(f"beta {DH['beta']*1e9:.0f} nA/rad -> g_m {DH['gm']*1e6:.1f} uS = 3 units x {DH['gm']/3*1e6:.2f} uS (A {DH['A']} V/rad, duty {DH['duty']})")
+print(f"C1 {DH['C1']*1e12:.2f} pF = {DH['ntile']} tiles x {DH['tile_pF']:.3f} pF; C2 {DH['C2']*1e12:.3f} pF; R1 {DH['R']/1e3:.2f} kOhm "
+      f"(xhigh_po_2p85, L {DH['R_len']:.1f} um); area ~{DH['area_um2']:.0f} um2")
+print(f"peaking {DH['peak_dB']:.2f} dB, f_3dB {DH['f3dB']/1e6:.2f} MHz, overshoot {DH['overshoot_pct']:.1f} %, settles to +-10 ps in {DH['settle_s']*1e6:.2f} us")
+print("R1 noise (contribution / total, ps):", {k: (round(a, 3), round(b_, 3)) for k, (a, b_) in DH["noise"].items()})
+print(f"residual m 0.75-1.3 at all R/C corners: PM {DH['residual']['0.75-1.3'][0]:.1f}-{DH['residual']['0.75-1.3'][1]:.1f} deg")
+""")
+b.md(r"""
+**Figure 73.6 — the thick-oxide capacitor.** C-V of the 5 V MOS capacitor at three corners against the 1.8 V device of the
+first design. The shaded band is the new $V_{cont}$ window.
+""")
+b.code(r"""
+import csv
+cvh = list(csv.DictReader(open("../design/loop/data/moscap_hv_cv.csv")))
+cvl = list(csv.DictReader(open("../design/loop/data/moscap_cv.csv")))
+fig = go.Figure()
+for (c, t), col, w in ((("tt", "27"), "#2a78d6", 3), (("ss", "-40"), "#7fb0ea", 1.5), (("ff", "110"), "#7fb0ea", 1.5)):
+    rr = [r for r in cvh if r["corner"] == c and r["temp"] == t]
+    fig.add_trace(go.Scatter(x=[float(r["vg"]) for r in rr], y=[float(r["c_mos_fF"])/100 for r in rr], mode="lines+markers",
+                             name=f"nfet_g5v0d10v5 {c} {t} °C", line=dict(color=col, width=w)))
+rr = [r for r in cvl if r["corner"] == "tt" and r["temp"] == "27"]
+fig.add_trace(go.Scatter(x=[float(r["vg"]) for r in rr], y=[float(r["c_mos_fF"])/100 for r in rr], mode="lines",
+                         name="nfet_01v8 (first design) tt", line=dict(color="#eb6834", dash="dash")))
+fig.add_vrect(x0=1.0, x1=2.3, fillcolor="#e6e8eb", opacity=0.5, line_width=0)
+fig.update_layout(height=420, xaxis_title="V_cont (V)", yaxis_title="capacitance density (fF/µm²)", yaxis_range=[0, 9])
+show(fig)
+""")
+b.md(r"""
+**Figure 73.7 — how many C1 tiles?** The loop is the same for any tile count; only $R_1$ and the area change. Slide
+the number of tiles and watch the $R_1$ noise and the totals. Two tiles is the knee: three cost 1 500 µm² more for
+0.013 ps.
+""")
+b.code(L73H + r"""
+TR = {t["ntile"]: t for t in DH["trade"]}
+def frame(n):
+    t = TR[n]; tr = []; note = []
+    for on, col in ((False, "#2a78d6"), (True, "#eb6834")):
+        ff, S = hv.spectra("typ", on, f=fh, lf=(t["R"], t["C1"], t["C2"]))
+        k = "loop-filter resistor R1"
+        tr.append(dict(x=ff, y=10*np.log10(np.maximum(S[k], 1e-30)/2), name=f"R1 noise, FFNC {'on' if on else 'off'}", line=dict(color=col)))
+    return tr, (f"{n} tile(s): C1 {t['C1']*1e12:.1f} pF, R1 {t['R']/1e3:.1f} kΩ, area {t['area']:.0f} µm² — R1 jitter "
+                f"{t['rj_off']:.3f} / {t['rj_on']:.3f} ps, total {t['tot_off']:.3f} / {t['tot_on']:.3f} ps (off / on)")
+def lay(fig):
+    fig.update_xaxes(type="log", title="offset (Hz)"); fig.update_yaxes(title="R1 contribution (dBc/Hz)", range=[-160, -110])
+show(sweep([1, 2, 3, 4, 5, 6], frame, "C1 tiles", fmt="{:d}", active=1, layout=lay))
+""")
+b.qa(QA73HV, "73 — 800 MHz redo")
 
 # ------------------------------------------------------------------------------------------------ step 74
 V74 = r'''

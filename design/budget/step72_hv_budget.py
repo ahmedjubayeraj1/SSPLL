@@ -62,8 +62,9 @@ def loop(fref=FREF, n=N, fc=FC, pmdeg=PMDEG, corner="typ"):
     return beta, d
 
 
-def spectra(corner, ffnc, fref=FREF, n=N, f=None, alias=True, fc=None, pmd=None, over=None):
-    """Output phase-noise PSD per block (rad^2/Hz) at f0 = n*fref. over = {block: value} replaces an allocation."""
+def spectra(corner, ffnc, fref=FREF, n=N, f=None, alias=True, fc=None, pmd=None, over=None, lf=None):
+    """Output phase-noise PSD per block (rad^2/Hz) at f0 = n*fref. over = {block: value} replaces an allocation;
+    lf = (R1, C1, C2) uses a realised loop filter for the R1 noise term (step 73) instead of the closed-form one."""
     f = pm.freq_axis(n=3000) if f is None else f
     fc = FC if fc is None else fc
     pmd = PMDEG if pmd is None else pmd
@@ -89,8 +90,9 @@ def spectra(corner, ffnc, fref=FREF, n=N, f=None, alias=True, fc=None, pmd=None,
             S[name] = lin(pm.floor_L(f, L, 300e3))*T_in
         elif k == "lfr":
             s = 2j*np.pi*f
-            Hr = d["C1"]/((d["C1"] + d["C2"]) + s*d["R"]*d["C1"]*d["C2"])
-            S[name] = 4*kT*d["R"]*np.abs(Hr)**2*(2*np.pi*KV_HZ)**2/(2*np.pi*f)**2*T_vco
+            R_, C1_, C2_ = lf if lf is not None else (d["R"], d["C1"], d["C2"])
+            Hr = C1_/((C1_ + C2_) + s*R_*C1_*C2_)
+            S[name] = 4*kT*R_*np.abs(Hr)**2*(2*np.pi*KV_HZ)**2/(2*np.pi*f)**2*T_vco
         elif k == "vco":
             L1, fc3 = val; S[name] = lin(pm.vco_L(f, L1 + sc, fc3))*T_vco
         elif k == "out":

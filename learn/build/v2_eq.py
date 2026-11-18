@@ -21,6 +21,21 @@ def E(rows, words, why="", num="", watch=""):
 
 
 EXPLAIN = [
+("S_{\\varphi,R_1}", E(
+    [("$S_{\\varphi,R_1}$", "output phase PSD caused by the thermal noise of the loop-filter resistor", "rad²/Hz", "—"),
+     ("$4kTR_1$", "thermal-noise voltage PSD of R1", "V²/Hz", "(18.5 nV/√Hz)² for 20.6 kΩ"),
+     ("$\\frac{C_1}{C_1+C_2+j2\\pi fR_1C_1C_2}$", "divider from R1's noise to the control node (C2 on V_cont)", "—", "≈ C1/(C1+C2) = 0.88 below the pole"),
+     ("$K_{VCO}^2/f^2$", "VCO turns a control-voltage wiggle into phase (integration)", "Hz²/V² ÷ Hz²", "K_VCO = 150 MHz/V"),
+     ("$(1-G_c)(1-H)$", "loop high-pass and FFNC cancellation (R1 noise enters like VCO noise)", "—", "—")],
+    "R1 sits in series with C1, so its noise voltage appears on the control node, divided by the two capacitors; the VCO "
+    "integrates it into phase, and the loop and the FFNC then treat it like the VCO's own noise.",
+    "A resistor has open-circuit noise 4kTR. Seen from the control node, R1's noise source drives C2 through the "
+    "series C1: below the pole the node follows C1/(C1+C2) of it, above the pole C2 shorts it. The VCO turns volts into "
+    "frequency (K_VCO) and frequency into phase (÷ j2πf).",
+    "R1 = 20.6 kΩ: √(4kTR) = 18.5 nV/√Hz → ×0.88 → 16.2 nV/√Hz on V_cont → ×150 MHz/V = 2.4 Hz/√Hz of frequency noise "
+    "→ at 1 MHz: 2.4/1e6 = 2.4 µrad/√Hz → −115 dBc/Hz before the loop and FFNC shaping. Integrated: 0.41 ps (off), "
+    "0.22 ps (on).",
+    "Smaller C1 (fewer tiles) → larger R1 for the same zero → more noise: 1 tile gives 0.59 ps, 2 tiles 0.41, 3 tiles 0.34.")),
 # =============================================================================================== step 72 redo (800 MHz, 5 V)
 ("\\text{FoM}_{ring}", E(
     [("$\\text{FoM}_{ring}$", "oscillator figure of merit: phase noise normalised to power and carrier/offset ratio (lower is better)", "dB", "−155.6 dB (step-74 ring with the CCO supply power)"),

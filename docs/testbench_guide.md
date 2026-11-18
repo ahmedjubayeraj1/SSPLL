@@ -422,6 +422,25 @@ Placeholders: 6 fF on v1p / v1m (Gm input, step 79) and 4 fF on v2p / v2m (NCB a
 of the trip-point size (2.43 and 5.11 pA/√Hz), 312 edges at 1.6 GHz, 4th-order detrend, noiseless baseline. Result
 0.113 ps per side (baseline 0.0001 ps); the differential crossing has 0.113/√2 = 0.080 ps.
 
+#### moscap_hv_cv — C-V of the 5 V loop-filter capacitor (M6, step 73 redo)
+- **Purpose.** Step 73 needs the capacitance per area of the thick-oxide MOS capacitor that now forms C1, and the
+  V_cont range over which it is flat. It also needs MIM1 and MIM2 for comparison.
+- **Setup.** `design/loop/spice/moscap_hv_cv.sp`, three independent one-device circuits, each driven by its own source (DC bias + AC 1):
+  - X1: nfet_g5v0d10v5, W = L = 10 µm. Gate on the source; drain, source and body on ground. This is the capacitor exactly as it sits in the tile.
+  - X2: cap_mim_m3_1, 30 × 30 µm.
+  - X3: cap_mim_m3_2, 30 × 30 µm.
+- **How it works.**
+  - At each DC point, `ac lin 1 1e6 1e6` gives the small-signal current, and C = −Im(I)/(2π·1 MHz).
+  - 1 MHz is well below any RC corner of a 100 µm² gate, so the result is the pure capacitance.
+  - `foreach` steps the bias from 0 to 3.3 V with `alter`.
+  - `run_cv_hv.sh` loops over tt/ss/ff and −40/27/110 °C and appends `corner,temp,vg,c_mos_fF,c_mim1_fF,c_mim2_fF` to `design/loop/data/moscap_hv_cv.csv`.
+- **Result (tt, 27 °C).**
+  - MOS: 2.87 fF/µm² at 1.65 V; 2.81 at 1.0 V; 2.90 at 2.3 V; 1.3 at 0 V.
+  - MIM1 and MIM2: 1.820 pF per 30 × 30 µm each.
+  - Over 1.0–2.3 V and all corners the MOS cap stays within ×0.93–1.06 of its value at 1.65 V.
+- **Run.** `PDK_ROOT=/path/to/pdk design/loop/spice/run_cv_hv.sh` (about 20 s).
+- **Pitfall.** Tie the body to the source/drain (ground). A floating or separately biased body changes the curve.
+
 #### Device noise at fixed g_m/I_D — 5 V vs 1.8 V devices (M20, step 72 redo)
 - **Purpose.** The step-72 budget for 800 MHz assumes that a ring built from 5 V devices can reach the step-74 FoM.
   This bench checks that assumption at the device level: thermal-noise factor γ, 1/f corner and flicker voltage for

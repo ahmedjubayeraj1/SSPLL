@@ -667,3 +667,24 @@ RESULTS += [
  ("Power FFNC on, worst (800 MHz)", 13.53, 15, "mW", "max", "72-HV", ""),
  ("Area (800 MHz, 5 V)", 0.060, 0.10, "mm2", "max", "72-HV", ""),
 ]
+
+# ------------------------------------------------------------------ step 73 redo: loop for 800 MHz, 5 V devices (18 Nov 2026)
+STEPS.append(("73-HV", "Loop parameters for 800 MHz with 5 V devices (thick-oxide C1)", "done",
+              "docs/design/step73_hv_loop.md, design/loop/step73_hv_loop.py, design/loop/spice/run_cv_hv.sh",
+              "f_c 2.50 MHz, PM 50.0 (t_p 0.5 ns); beta 0.911 uA/rad, g_m 3 x 19.0 uS; R1 20.6 kOhm, C1 8.81 pF (2 tiles of "
+              "9 x nfet_g5v0d10v5 + MIM), C2 1.236 pF; V_cont 1.0-2.3 V; ~3800 um2; jitter 2.14 / 1.37 ps typ, 3.45 / 2.20 "
+              "pess; residual m 0.75-1.3: PM 46.5-50.6 deg; proposal unchanged"))
+PROBLEMS += [
+ ("73-HV", "device rule", "loop-filter MOS cap must be thick-oxide: 2.6x less capacitance per area",
+  "nfet_g5v0d10v5 C-V: 2.87 fF/um2 at 1.65 V vs 7.48 for nfet_01v8; flat only above 1.0 V",
+  "C_ox = eps/t_ox with a 2.5-3x thicker gate oxide; higher V_T",
+  "keep the loop, scale beta and C by the same factor (2 tiles of 4.41 pF, beta 0.911 uA/rad, R1 20.6 kOhm: +0.013 ps); "
+  "V_cont window moved to 1.0-2.3 V; MIM2 stacking kept as an option if met5 is allowed", "decided"),
+]
+RESULTS += [
+ ("Loop f_c (800 MHz design)", 2.50, 2.5, "MHz", "max", "73-HV", "sampled loop, t_p 0.5 ns"),
+ ("Loop PM (800 MHz, sampled)", 50.0, 45, "deg", "min", "73-HV", ""),
+ ("Loop PM, residual m 0.75-1.3, all R/C corners", 46.5, 45, "deg", "min", "73-HV", ""),
+ ("Loop-filter area (800 MHz, 5 V)", 3789, 5000, "um2", "max", "73-HV", "CP + LF budget 5000 um2"),
+ ("Phase-step settling to +-10 ps (800 MHz)", 0.40, 5, "us", "max", "73-HV", "lock-time typ 5 us"),
+]

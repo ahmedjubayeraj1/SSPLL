@@ -136,3 +136,41 @@ QA73 = [
  "divider and the detector gain is per radian of VCO phase, so β (A/rad of VCO phase) is the natural unit; I_p/(2πN) of a "
  "CP-PLL corresponds to β."),
 ]
+
+# Step 73 redo for the device-rule migration: 800 MHz, 5 V analog devices (docs/design/step73_hv_loop.md)
+QA73HV = [
+("Why does the 5 V MOS capacitor give 2.6× less capacitance per area, and why is its flat region higher?",
+ "In inversion a MOS capacitor is the gate oxide: C_ox = ε_ox/t_ox. The 5 V devices have a gate oxide roughly 2.5–3× "
+ "thicker than the 1.8 V devices, so C_ox falls to 2.87 fF/µm² against 7.48. The thicker oxide also raises the threshold "
+ "voltage, so the channel forms later: the 5 V cap is flat (within 3 %) only above 1.0 V, while the 1.8 V cap was flat "
+ "above 0.6 V. Below that the capacitance collapses towards the depletion value (1.3 fF/µm² at 0 V)."),
+("C1 has to be smaller now. Why does lowering β keep the loop identical, and what does it cost?",
+ "f_c and PM depend only on β·K_VCO/C and on R·C: C_tot = b·β·K_VCO/ω_c² and R1 = b/(ω_c·C1). Scale C1 and C2 by k and β "
+ "by k, and R1 by 1/k: the zero (1/R1C1) and the pole stay put and the gain curve is unchanged. The cost is R1's thermal "
+ "noise, 4kTR1, which grows as 1/k. Here 2 tiles (8.81 pF, R1 = 20.6 kΩ) cost 0.013 ps more than 3 tiles and save "
+ "1 500 µm²."),
+("Why does f_c come out at 2.5 MHz again at 800 MHz?",
+ "The same two specs pull in opposite directions: L(300 kHz) with FFNC off (now −114 dBc/Hz) needs a wide loop, "
+ "f_c ≥ about 2.25 MHz; the FFNC jitter reduction (35 % typ) needs a narrow one, f_c ≤ about 2.55 MHz. The jitter in "
+ "seconds did not change with the carrier (same ring power and FoM), so the crossing point did not move either."),
+("Why does the phase-step settling to ±10 ps take longer at 800 MHz although the loop is identical?",
+ "The loop dynamics in radians are the same (27.6 % overshoot, same time constants), but the window is in seconds. At "
+ "800 MHz, 10 ps is 2π·0.8 GHz·10 ps = 0.050 rad against 0.10 rad at 1.6 GHz, so the error has to decay twice as far: "
+ "0.40 µs instead of 0.34 µs."),
+("Why is the level shifter in the Gm pulse path not timing-critical for the loop, while the one on the sampling edge is?",
+ "A delay in the Gm pulse only delays the charge packet: it adds 360°·f_c·t_p of phase lag — 0.9° for 1 ns at 2.5 MHz. "
+ "Its jitter does not matter either, because the packet's charge, not its timing, carries the phase information. The "
+ "sampling edge is the phase measurement itself: any jitter on it is reference jitter, multiplied by N² at the output."),
+("Why centre the V_cont window at VDDA/2 (1.0–2.3 V)?",
+ "The lower edge is set by the MOS capacitor (flat above 1.0 V). The upper edge leaves headroom for the Gm output "
+ "cascodes and the FLL charge pump on the 3.3 V supply. Centring the window gives the Gm the most symmetric compliance and "
+ "makes the VCO fine range symmetric around the lock point after the coarse code is set."),
+("When would you stack MIM2 on MIM1 in the C1 tile, and what must you check first?",
+ "cap_mim_m3_2 (met4/capm2, top plate on met5) has the same 2.0 fF/µm² and fits above MIM1, raising a tile from 4.4 to "
+ "6.2 pF. Use it when area is tight. First check that the slot lets you use met5 (the harness may reserve it for power) "
+ "and that the MIM2 rules (enclosure, spacing to MIM1 vias) fit the 35 µm tile."),
+("Why does the flatter thick-oxide C-V improve the phase-margin spread at the C-min corner?",
+ "C1 sets the zero. At the 1.8 V design the MOS share of C1 varied ×0.81–1.08 over its window and corners; the thick-oxide "
+ "cap varies only ×0.93–1.06 over 1.0–2.3 V. A smaller C1 drop moves the zero up less, so the lead at f_c and the PM drop "
+ "less: the residual band m = 0.75–1.3 keeps PM ≥ 46.5° at every R/C corner (45.5° before)."),
+]
