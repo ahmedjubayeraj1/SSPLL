@@ -422,6 +422,39 @@ Placeholders: 6 fF on v1p / v1m (Gm input, step 79) and 4 fF on v2p / v2m (NCB a
 of the trip-point size (2.43 and 5.11 pA/√Hz), 312 edges at 1.6 GHz, 4th-order detrend, noiseless baseline. Result
 0.113 ps per side (baseline 0.0001 ps); the differential crossing has 0.113/√2 = 0.080 ps.
 
+#### 5 V ring VCO benches (M1, M2, step 74 redo) — `design/vco/vco_hv.py`
+- **Purpose.** Size the 3-stage 5 V ring for 800 MHz, measure its phase noise, tuning and range, and prove that it starts.
+- **Common setup (`netlist()`).**
+  - Three `dcell` instances; stage 3 feeds back crossed (outp → inm, outm → inp).
+  - An ideal current source `ivco` stands for the CCO and feeds the ring's supply node `vddvco`, with 0.5 pF of decoupling.
+  - `vtn` sets vtune. `vdda` (3.3 V, or 2.97 / 3.63 V at the corners) feeds the six AC-coupled buffers, each loaded with 15 fF.
+  - `cpar` adds wiring capacitance on every node: 10 fF at tt, 15 at ss, 5 at ff.
+  - `.ic` starts the ring differentially; `uic` skips the operating point.
+- **Read-out.**
+  - f = (r1 − r0)/(t_b − t_a) from the rising zero crossings of vd = v(vop) − v(vom).
+  - The average ring-node voltage (`vdd_avg`) is the voltage the CCO must supply.
+  - `ibuf` = average i(vdda), the buffer current.
+- **Benches built on it.**
+  - **`step74hv_point.py`** (find the current, then the ISF):
+    - A secant search on log f vs log I finds the current for 800 MHz.
+    - `isf_noise()` injects ±4 fC at 12 phases into node p1 (24 runs), each 1 ps wide, and reads the shift of a later zero crossing: h = −2π·Δt/T/(2q).
+    - The bias of every device touching p1 is saved over one period (`@m…[vgs]`, `[vds]`). Their noise comes from tables of a W = 1 µm device on a V_GS × V_DS grid up to 3.3 V (`noise_table()`, ngspice `.noise`: white part at 1 GHz, flicker coefficient from 1 kHz).
+    - L_th and L_fl follow from the ISF formulas; the 1/f³ corner is where they are equal.
+  - **`step74hv_char.py`:**
+    - f vs I at three corners;
+    - f vs vtune at the 800 MHz current;
+    - the currents for 880 MHz (ss/110 °C) and 720 MHz (ff/−40 °C), with the secant search;
+    - sf/fs;
+    - buffer current and swing (`buffer_current()`: one buffer with the PDK MIM and poly resistor, driven by a 1.6 V square wave).
+  - **`step74hv_startup.py`:**
+    - All nodes and `vddvco` start at 0 V, and the current ramps up over 2 ns.
+    - Start-up time = when |vd| first exceeds 1 V. The frequency is counted over 10 periods after 40 ns, and the swing is measured over 40–60 ns.
+    - Repeated with ±2 % width mismatch in stage 1 (`mism=`).
+- **Pitfalls.**
+  - Do not count zero crossings from t = 0 at power-up: vd chatters around 0 V at numerical-noise level and gives nonsense frequencies.
+  - Make the window long enough for r1 cycles at the lowest frequency (60 ns).
+  - The injection runs save only `v(vop) v(vom) v(vddvco) vdda#branch`. Every vector a `meas` uses must be in that list.
+
 #### moscap_hv_cv — C-V of the 5 V loop-filter capacitor (M6, step 73 redo)
 - **Purpose.** Step 73 needs the capacitance per area of the thick-oxide MOS capacitor that now forms C1, and the
   V_cont range over which it is flat. It also needs MIM1 and MIM2 for comparison.

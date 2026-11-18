@@ -21,6 +21,22 @@ def E(rows, words, why="", num="", watch=""):
 
 
 EXPLAIN = [
+("\\mathcal{L}_{th,ring}", E(
+    [("$f$", "ring oscillation frequency", "Hz", "800 MHz"),
+     ("$I$", "current the CCO pushes into the ring's supply node", "A", "0.994 mA"),
+     ("$N$", "number of stages", "—", "3"),
+     ("$C$", "capacitance a stage output charges (gates, junctions, tuning cap, wiring)", "F", "≈ 220 fF (I/(N·V_ring·f))"),
+     ("$V_{ring}$", "voltage the ring settles at (its supply node)", "V", "1.89 V"),
+     ("$h$", "impulse sensitivity function: phase shift per injected charge", "rad/C", "rms ≈ 3.5 rad/pC"),
+     ("$S_{th}$", "white drain-noise current PSD of a device, 4kTγg_m in saturation", "A²/Hz", "—"),
+     ("$\\gamma$", "device thermal-noise factor", "—", "1.1 (5 V nMOS), 0.5 (5 V pMOS)")],
+    "A ring of N stages charges N node capacitors per half period from the current I; the phase noise is the device "
+    "noise currents seen through the ISF, and it shrinks as more charge (C·V) is moved per cycle.",
+    "One half period moves charge C·V_ring per stage: I = N·C·V_ring·f gives the frequency. The noise charge per cycle "
+    "is set by γkT, the signal charge by C·V_ring, so L ∝ γkT/(C·V_ring²)·(f/Δf)², and C·V_ring² = P/(N·f).",
+    "Old ring: 4.64 mW, γ ≈ 1.9, 1.38 V swing → −98.66 dBc/Hz at 1.6 GHz, i.e. −104.7 at 800 MHz. New ring: 3.69 mW "
+    "(−1.0 dB more noise), γ ≈ 1.1 instead of 1.9 (−2.4 dB) → about −106 expected; the ISF gives −105.2 dBc/Hz.",
+    "At fixed power, thicker swing and lower γ win; the slow devices only cost speed, which is why the ring has 3 stages.")),
 ("S_{\\varphi,R_1}", E(
     [("$S_{\\varphi,R_1}$", "output phase PSD caused by the thermal noise of the loop-filter resistor", "rad²/Hz", "—"),
      ("$4kTR_1$", "thermal-noise voltage PSD of R1", "V²/Hz", "(18.5 nV/√Hz)² for 20.6 kΩ"),

@@ -688,3 +688,43 @@ RESULTS += [
  ("Loop-filter area (800 MHz, 5 V)", 3789, 5000, "um2", "max", "73-HV", "CP + LF budget 5000 um2"),
  ("Phase-step settling to +-10 ps (800 MHz)", 0.40, 5, "us", "max", "73-HV", "lock-time typ 5 us"),
 ]
+
+# ------------------------------------------------------------------ step 74 redo: ring VCO in 5 V devices, 800 MHz (19 Nov 2026)
+STEPS.append(("74-HV", "Ring VCO in 5 V devices: 3-stage pseudo-differential, 800 MHz", "done",
+              "docs/design/step74_hv_vco.md, design/vco/vco_hv.py, step74hv_*.py, schematics_hv.py, xschem/vco_hv/",
+              "0.994 mA for 800 MHz (tt), ring node 1.89 V; L(1 MHz) thermal -105.16 dBc/Hz, 1/f3 corner 0.59 MHz; "
+              "3.69 mW from VDDA; K_VCO -173 / -110 / -250 MHz/V over V_cont 1.3-2.3 V; 880 MHz at ss/110 needs 1.462 mA "
+              "(node 2.37 V), 720 MHz at ff/-40 0.704 mA; start-up <= 17.6 ns incl. 2 % mismatch; buffers 2 x 89 uA; "
+              "LVS clean; system 1.99 / 1.29 ps typ, 7.55 mW, FoM -229.0 dB"))
+PROBLEMS += [
+ ("74-HV", "phase noise", "first 5 V ring: 1/f3 corner 1.53 MHz, thermal -102.6 dBc/Hz at 0.79 mA",
+  "ISF shares: TG nMOS 72 % of flicker, tuning switch 33 % of thermal",
+  "minimum-length (0.5 um) thick-oxide nMOS on the nodes: high flicker per um; strong tuning branch",
+  "TG nMOS and switch at L = 1 um (switch same W/L), half the tuning cap, main nMOS 6 um for edge symmetry, all x1.25: "
+  "-105.16 dBc/Hz, 0.59 MHz at 0.994 mA", "fixed"),
+ ("74-HV", "simulation setup", "ISF injection runs returned no result", "TypeError: NoneType - NoneType",
+  "the injection runs save only a few vectors; the new buffer-current measure needs vdda#branch, so every meas failed",
+  "vdda#branch added to the saved vectors", "fixed"),
+ ("74-HV", "models", "5 V nMOS noise table: 8 nan points", "nan at high V_GS, V_DS <= 0.25 V",
+  "the g5v0d10v5 model returns nan for the 1 GHz noise deep in triode",
+  "those points take the largest finite value of their V_GS row (saturation value, conservative)", "worked around"),
+ ("74-HV", "measurement", "ring reported 'not oscillating' below 0.8 mA and at power-up",
+  "f = 0 or 66 GHz with nV swing", "40 ns window shorter than 28 cycles at low f; at power-up the zero-crossing count "
+  "picked up numerical chatter of vd around 0 V", "60 ns window; start-up read out by |vd| > 1 V and a settled f after 40 ns: "
+  "starts in 7-18 ns at all corners, with and without mismatch", "fixed"),
+ ("74-HV", "tuning", "K_VCO collapses below vtune 1.3 V (-65 MHz/V tt, -18 ss)", "flat f(vtune) at the low end",
+  "the nMOS switch conducts only below vtune - V_T; thick-oxide V_T with body effect ~1.1-1.2 V; varactor alternatives "
+  "(nMOS, pMOS) do not tune in the window", "V_cont window moved to 1.3-2.3 V (step 73 revised); Gm unit 16.5 uS", "decided"),
+ ("74-HV", "buffer", "output buffer swings only 1.13 V at ss/110 C/880 MHz", "first inverter at L = 1 um too slow",
+  "thick-oxide long-channel self-biased inverter", "first inverter 1.5 / 0.6 um at L = 0.5 um: 2.86 V swing at ss, 89 uA at tt", "fixed"),
+]
+RESULTS += [
+ ("Ring current for 800 MHz (tt, 5 V ring)", 0.994, 1.31, "mA", "max", "74-HV", "budget 1.31 mA"),
+ ("Ring L(1 MHz) thermal at 800 MHz", -105.16, -104.4, "dBc/Hz", "max", "74-HV", "ISF"),
+ ("Ring 1/f3 corner (5 V ring)", 0.59, 0.6, "MHz", "max", "74-HV", "ISF"),
+ ("Ring node at 880 MHz, ss 110 C, VDDA 2.97 V", 2.37, 2.47, "V", "max", "74-HV", "CCO headroom 0.5 V"),
+ ("Start-up time, worst corner incl. 2 % mismatch", 17.6, 100, "ns", "max", "74-HV", ""),
+ ("Jitter FFNC on, typ, with the 5 V ring", 1.29, 1.6, "ps", "max", "74-HV", "proposal typ 1.6"),
+ ("Jitter FFNC off, typ, with the 5 V ring", 1.99, 2.6, "ps", "max", "74-HV", "proposal typ 2.6"),
+ ("Power FFNC on, typ, with the 5 V ring", 7.55, 9.15, "mW", "max", "74-HV", "proposal typ 9.1"),
+]

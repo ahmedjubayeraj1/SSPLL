@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from nb import Book
 from qa72 import QA72, QA72HV
 from qa73 import QA73, QA73HV
-from qa74 import QA74
+from qa74 import QA74, QA74HV
 from qa75 import QA75
 from qa76 import QA76
 from qa77 import QA77
@@ -623,6 +623,81 @@ $K_{VCO}$ −326 MHz/V (0.6–1.2 V); $K_I$ 0.84 GHz/mA; 1.44–1.76 GHz over co
 start-up < 9 ns. System: 2.04 / 1.32 ps (FFNC off/on), 9.55 mW, FoM −227.8 dB. Full report: `docs/design/step74_vco.md`.
 """)
 b.qa(QA74, 74)
+
+# ------------------------------------------------------------------------------------------------ step 74 redo (800 MHz, 5 V)
+V74H = r"""
+import json, os
+DV = "../design/vco/data"
+ld = lambda n: json.load(open(os.path.join(DV, f"step74hv_{n}.json")))
+CH = json.load(open(os.path.join(DV, "step74hv_char_hl6.json")))
+SY = json.load(open(os.path.join(DV, "step74hv_system.json")))
+"""
+b.md(r"""
+<a id='step-74-hv'></a>
+### Step 74 redo — the ring VCO in 5 V devices, 800 MHz (19 Nov 2026)
+
+**What happens.** The ring becomes a **3-stage** pseudo-differential ring of `nfet/pfet_g5v0d10v5`, still current-fed by
+the CCO. At 0.994 mA it runs at 800 MHz (tt) with the ring node at 1.89 V; its thermal phase noise is −105.2 dBc/Hz at
+1 MHz and its 1/f³ corner 0.59 MHz — both inside the step-72 targets — for 3.69 mW instead of the 4.86 mW budgeted.
+
+**How it happens.** The same physics as at 1.6 GHz: the ring settles where its current equals the CCO current, and
+each device's noise reaches the phase through the impulse sensitivity function:
+
+$$f \approx \frac{I}{N C V_{ring}},\qquad P_{ring} = I V_{ring} \approx N C V_{ring}^2 f,\qquad
+\mathcal{L}_{th,ring} = \frac{2N\langle h^2 S_{th}\rangle}{2(2\pi\Delta f)^2}\ \propto\ \frac{\gamma\,kT}{C V_{ring}^2}\cdot\frac{f^2}{\Delta f^2}$$
+
+**Why it happens this way.** Thick-oxide devices are slow, so only three stages reach 880 MHz at the slow corner. But they
+make less thermal noise per $g_m$ (γ ≈ 1.1 and 0.5 instead of 1.9 and 1.2) and the ring swings over a larger voltage, so
+the noise target is met at less power. Flicker again comes from the smallest devices on a node — the transmission-gate
+nMOS and the tuning switch — and is fixed by drawing them at L = 1 µm. The tuning switch's high threshold moves the
+$V_{cont}$ window to 1.3–2.3 V. Full write-up: `docs/design/step74_hv_vco.md`.
+""")
+b.md(r"""
+**Figure 74.6 — the design study.** Each bar is one ISF run at 800 MHz (about 6 minutes each). Slide through the variants:
+the title shows what changed, the current it needs, the thermal noise and the 1/f³ corner; the two curves show which
+devices make the thermal and the flicker noise.
+""")
+b.code(V74H + r"""
+VAR = [("s2", "feasibility ring ×2 + switched-cap tuning"), ("halftune", "half the switch and cap"),
+       ("hl", "+ TG nMOS at L = 1 µm"), ("hl3", "+ switch at L = 1 µm"), ("hl4", "main nMOS ×1.5"),
+       ("hl5", "main nMOS ×0.5"), ("hl6", "main nMOS 6 µm, all ×1.25 (chosen)")]
+LAB = {"x1.xp2": "main pMOS", "x1.xn2": "main nMOS", "x1.xs2": "tune switch", "x1.xt1n": "TG nMOS own",
+       "x1.xt1p": "TG pMOS own", "x2.xt1n": "TG nMOS next", "x2.xt1p": "TG pMOS next"}
+def frame(i):
+    n, lab = VAR[i]; d = ld(n); ks = list(LAB)
+    return ([dict(x=[LAB[k] for k in ks], y=[100*d["shares"][k][0] for k in ks], name="thermal %", mode="lines+markers",
+                  line=dict(color="#2a78d6"), marker=dict(size=9)),
+             dict(x=[LAB[k] for k in ks], y=[100*d["shares"][k][1] for k in ks], name="flicker %", mode="lines+markers",
+                  line=dict(color="#eb6834"), marker=dict(size=9))],
+            f"{n}: {lab} — {d['I']*1e3:.3f} mA, thermal {d['Lth']:.2f} dBc/Hz (need −104.4), 1/f³ corner {d['fc3']/1e6:.2f} MHz (need 0.6)")
+def lay(fig):
+    fig.update_yaxes(title="share of the node's phase noise (%)", range=[0, 80])
+show(sweep(list(range(len(VAR))), frame, "variant", fmt="{:d}", active=6, layout=lay))
+""")
+b.md(r"""
+**Figure 74.7 — why the $V_{cont}$ window moved.** Frequency against vtune at three corners. Below about 1.3 V the
+tuning switch hardly conducts, so the curve is flat and the loop gain would collapse; the window is 1.3–2.3 V.
+""")
+b.code(V74H + r"""
+fig = go.Figure()
+for (k, v), col in zip(CH["f_vs_vtune"].items(), ["#2a78d6", "#eb6834", "#1baf7a"]):
+    fig.add_trace(go.Scatter(x=[a for a, f, _ in v], y=[f/1e6 for a, f, _ in v], mode="lines+markers", name=k.replace("_", " ") + " °C",
+                             line=dict(color=col)))
+fig.add_vrect(x0=1.3, x1=2.3, fillcolor="#e6e8eb", opacity=0.5, line_width=0)
+fig.update_layout(height=420, xaxis_title="vtune (V)", yaxis_title="f (MHz)", title=f"K_VCO over 1.3–2.3 V: " +
+                  ", ".join(f"{k.replace('_', ' ')} {x/1e6:.0f} MHz/V" for k, x in SY["K"].items()))
+show(fig)
+""")
+b.code(V74H + r"""
+print("range end points (current, ring node):")
+for k, (I, f, vr, vmax) in CH["range"].items():
+    print(f"  {k:14s} {I*1e3:.3f} mA, ring node {vr:.2f} V")
+print("system with this ring (step-72 HV model, step-73 filter):")
+for k, v in SY["budget"].items():
+    print(f"  {k:9s} jitter {v['jit']:.2f} ps (ring {v['ring']:.2f}), L(300 kHz) {v['L300k']:.1f} dBc/Hz")
+print(f"power FFNC on {SY['P_on']:.2f} mW, off {SY['P_off']:.2f} mW; FoM {SY['FoM']:.1f} dB; Gm unit {SY['gm_unit']*1e6:.1f} uS")
+""")
+b.qa(QA74HV, "74 — 800 MHz redo")
 
 # ------------------------------------------------------------------------------------------------ step 75
 V75 = r"""

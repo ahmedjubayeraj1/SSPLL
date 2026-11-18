@@ -18,6 +18,12 @@ python3 design/loop/step73_hv_plots.py                  # docs/img/step73hv_*.pn
 
 The R corners and MIM corners are reused from step 73 (`design/loop/data/rc_corners.csv`); resistors and MIM are not MOS devices, so the rule change does not touch them.
 
+## Revision, 19 Nov 2026 (from step 74 redo)
+
+The 5 V ring's tuning switch does not conduct below about 1.3 V, so the V_cont window is now **1.3–2.3 V**, with the lock point near 1.8 V. Over that window the measured K_VCO is −173 MHz/V (tt), so the Gm unit falls from 19.0 to **16.5 µS**, keeping β·K_VCO constant. R1, C1 and C2 are unchanged.
+
+The narrower window makes the MOS capacitor slightly flatter (×0.95–1.06 instead of ×0.93–1.06), so the robustness numbers below stay conservative. See `step74_hv_vco.md`.
+
 ## Result in one paragraph
 
 The loop keeps the same shape: f_c = 2.5 MHz, PM = 50°, and the zero and pole at 0.88 / 7.13 MHz. The specification pins f_c again, for the same reason as before.

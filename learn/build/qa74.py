@@ -121,3 +121,44 @@ QA74 = [
  "The LDO load reserve (0.33 mW), the dummy-buffer size (8 of 10 buffers only provide equal loading - they can be smaller "
  "inverters with the same input capacitance), and the NCB bias. Not from the ring: its current buys the noise margin."),
 ]
+
+# Step 74 redo for the device-rule migration: 3-stage ring in 5 V devices, 800 MHz (docs/design/step74_hv_vco.md)
+QA74HV = [
+("Why three stages now, when the 1.8 V design had to use five?",
+ "Two reasons. Speed: thick-oxide devices are about 5× slower, and a 5-stage ring would top out well below 880 MHz at "
+ "ss / 110 °C; three stages reach 1.0 GHz there at 1.8 mA. Latch-up: each half of this pseudo-differential ring is "
+ "vop → m1 → p2 → vop, three inversions, an odd loop that cannot latch; the 4-stage ring failed because its halves were "
+ "even loops. Three is the smallest odd count that oscillates."),
+("The first 5 V ring (feasibility ring ×2) had a 1/f³ corner of 1.5 MHz. What did the ISF say, and what fixed it?",
+ "The ISF split the noise by device: the transmission-gate nMOS (own and next stage) made 72 % of the flicker and 36 % "
+ "of the thermal noise, the tuning switch 33 % of the thermal. Drawing the TG nMOS at L = 1 µm (its flicker per µm "
+ "falls 7×), halving the tuning branch and then drawing the switch at L = 1 µm with the same W/L brought the corner to "
+ "0.68 MHz; narrowing the main nMOS made the edges more symmetric and gave 0.59 MHz."),
+("Why does narrowing the main nMOS lower the flicker up-conversion?",
+ "Flicker noise becomes close-in phase noise only through the average (dc) part of the ISF, h_dc. h_dc is large when the "
+ "rising and falling edges differ, because a slow, low-frequency current then moves one edge more than the other. The "
+ "5 V pMOS is much weaker than the nMOS per µm, so a narrower nMOS makes the edges more alike: h_dc/h_rms fell from 0.64 "
+ "(N 8 µm) to 0.58 (N 4 µm). The cost is thermal noise and speed, so the final cell takes 6 µm and scales everything ×1.25."),
+("The thick-oxide ring meets the step-74 FoM at less power than the budget allowed. Why?",
+ "Thermal phase noise per milliwatt depends on γ and on the swing. The 5 V devices have γ ≈ 1.1 instead of 1.9, and the "
+ "ring swings over 1.9 V instead of 1.4 V. At 0.994 mA (3.69 mW from VDDA through the CCO, against 4.86 mW budgeted) "
+ "the thermal noise is −105.2 dBc/Hz at 1 MHz, 0.8 dB better than the −104.4 needed."),
+("Why was the V_cont window moved from 1.0–2.3 V to 1.3–2.3 V?",
+ "The fine tuning works by turning on switch S, which hangs a MOS cap on the node. S conducts only while the node is below "
+ "vtune − V_T, and the thick-oxide V_T with body effect is about 1.1–1.2 V. Below vtune ≈ 1.3 V the switch barely "
+ "conducts, f hardly moves (−65 MHz/V at tt, −18 at ss) and the loop gain would collapse. Over 1.3–2.3 V K_VCO is "
+ "−173 MHz/V at tt (−110 ss, −250 ff), steady enough for the icp_trim to handle."),
+("The first start-up run said the ring did not oscillate. What was wrong?",
+ "The read-out, not the ring. At power-up all nodes start at 0 V and v(vop) − v(vom) chatters around 0 V at the "
+ "simulator's numerical noise level; the measure counted those chatter crossings as cycles and reported 66 GHz with "
+ "nanovolt swing. Reading instead when |vd| first passes 1 V, and f after 40 ns, shows start-up in 7–18 ns at every "
+ "corner, with and without 2 % mismatch, in the correct (differential) mode."),
+("Why did the buffer's first inverter go from L = 1 µm back to L = 0.5 µm?",
+ "At L = 1 µm the self-biased inverter drew little current but was too slow: at ss / 110 °C / 880 MHz its output "
+ "swung only 1.1 V. At L = 0.5 µm with 1.5 / 0.6 µm it swings 2.86 V of 2.97 V there, for 89 µA at tt. Two active "
+ "buffers then take 0.59 mW, inside the 0.99 mW budget; the four dummies have no supply."),
+("Why are there buffers on all six nodes when only clkp and clkm are used?",
+ "Every node must see the same load, or the six stage delays differ, the waveform loses its symmetry and h_dc rises — "
+ "more flicker up-conversion — and the duty cycle at clkp/clkm drifts. The four dummies are the same MIM + gate input "
+ "with no supply connection, so they cost area but no power."),
+]
