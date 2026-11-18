@@ -172,3 +172,46 @@ QA72 = [
  "Its noise allocation (in its own units), its supply current on a named supply, and its area. Plus its layout rules from "
  "the budget: which nodes are noise-critical, which must be symmetric and which supply domain it lives in."),
 ]
+
+# Step 72 redo for the device-rule migration: 800 MHz, 5 V analog devices, no LDO (docs/design/step72_hv_budget.md)
+QA72HV = [
+("Why is a ring oscillator's timing jitter independent of its frequency at fixed power and FoM, while its phase noise in "
+ "dBc/Hz is not?",
+ "In the 1/f² region L(Δf) ≈ (2kT/P)·η·(V_DD/V_char)·(f₀/Δf)², so at fixed P and FoM L ∝ f₀². Jitter is the integral of "
+ "the phase PSD divided by (2πf₀)², which removes the f₀² again: σ_t² ∝ 1/P. Halving the carrier (1.6 → 0.8 GHz) lowers "
+ "L(1 MHz) by 6.02 dB and leaves the seconds unchanged — which is why the 800 MHz budget gives 2.12 / 1.37 ps, the same as "
+ "the 1.6 GHz budget (2.11 / 1.36 ps), at the same ring power."),
+("At N = 16 the reference noise is multiplied by N² = 256 instead of 1024. Does the reference contribute less jitter?",
+ "No. N² converts a reference *time* error into output *phase*: φ_out = 2πf_out·Δt. Halving f_out halves the phase for the "
+ "same Δt, so the dBc/Hz drop by 6 dB, but dividing by (2πf_out)² to get seconds undoes it. A timing error at the "
+ "reference stays the same timing error at the output (0.20 ps off / 0.31 ps on here, as before)."),
+("Thick-oxide (5 V) devices are about 5× slower. How can they give the same or better ring phase noise per milliwatt?",
+ "Phase noise per milliwatt is set by the noise current per unit g_m (γ) and by the swing relative to the noise (V_char), "
+ "not by f_T. hv_noise.py finds γ = 1.10 for the 5 V nMOS and 0.53 for the 5 V pMOS against 1.87 and 1.22 for the 1.8 V "
+ "devices: 2.3–3.6 dB less thermal noise per g_m, because the long channel has no short-channel excess noise. Speed only "
+ "limits how high the ring can go (1.1 GHz at ss 110 °C), which is why the carrier moved to 800 MHz."),
+("What does γ mean, and why is it larger in short-channel devices?",
+ "γ is the ratio of the drain thermal-noise current to 4kT·g_m: S_id = 4kTγg_m. A long-channel device in saturation has "
+ "γ ≈ 2/3. In short channels the high lateral field heats the carriers and velocity saturation lowers g_m for the same "
+ "channel noise, so γ rises to 1.5–2.5. The 0.15 µm 1.8 V nMOS shows 1.87; the 0.5 µm 5 V nMOS, with a thick oxide and a "
+ "weaker field, shows 1.10."),
+("Why does VDDA noise through the NCB add directly to the output, while VDDA noise into the ring is cancelled by the FFNC?",
+ "The NCB is the last block: a supply change shifts its delay by K_s·Δv, an output timing error that nothing after it can "
+ "see — S_φ = (2πf₀K_s)²S_v. A supply change in the ring changes its *frequency* (K_vdd·Δv), so it integrates to phase like "
+ "any VCO noise; the loop high-passes it and the SSPD measures the resulting phase error, which the FFNC then removes."),
+("How would you measure K_vdd and K_s in simulation, and why must K_vdd stay small although the loop high-passes it?",
+ "K_vdd: run the free-running ring at two VDDA values (or a small sine on VDDA) and take Δf/ΔV (tb_vco_kvdd). K_s: drive the "
+ "NCB with a fixed input and measure the output-edge delay at two VDDA values (Δt/ΔV). K_vdd matters because the noise it "
+ "brings in is VCO-like and grows as 1/f²: at 20 MHz/V and 300 nV/√Hz it adds 1.17 ps with FFNC off — as much as "
+ "the CCO. A cascoded CCO with L ≥ 1 µm keeps it at 5 MHz/V (0.10 ps)."),
+("Going from L = 0.5 µm to 1 µm cuts the 5 V nMOS 1/f corner by 20×, though the gate area grows only about 6×. Why?",
+ "At constant g_m/I_D and current, the longer device is wider and its gate area W·L grows ~6×, which lowers the flicker "
+ "PSD ~6×. But the corner frequency is flicker divided by thermal, and thermal per g_m stays about the same, so area alone "
+ "gives ~6×. The rest comes from the model: SKY130's flicker parameters depend on the length bin (short devices have more "
+ "edge and halo-implant traps per area). Lesson: for current sources, take the length the model rewards and measure it — "
+ "hv_noise.py is that measurement."),
+("Why does the SSPD gain A per VCO radian double at half the carrier, and what does that do to its kT/C noise?",
+ "A = (edge slope)/ω₀: the sampler converts a timing error into a voltage through the slope, and one radian at 800 MHz is "
+ "twice as long in time as at 1.6 GHz. With the same slope, A doubles. The kT/C term L = kT/(2C_sA²f_REF) falls by 6 dB in "
+ "rad² — the same timing error in seconds — and stays negligible (0.04 ps)."),
+]

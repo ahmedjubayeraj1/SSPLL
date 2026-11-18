@@ -623,3 +623,47 @@ PROBLEMS += [
   "800 MHz with ring B (25 % margin at the worst corner); reduced-swing Maneatis ring tried and rejected (slower, 2-5x power)",
   "decided"),
 ]
+
+# ------------------------------------------------------------------ step 72 redo: 800 MHz, 5 V analog devices (18 Nov 2026)
+STEPS.append(("72-HV", "Budget redo for 800 MHz, N = 16, 5 V analog devices, no LDO", "done",
+              "docs/design/step72_hv_budget.md, design/budget/step72_hv_budget.py, design/feas/hv_noise.py",
+              "2.12 / 1.37 ps typ, 3.44 / 2.20 ps pess (FFNC off / on); L(300k) -116.2 / -125.8 typ; 9.13 mW, "
+              "FoM -227.7 dB; 0.060 mm2; new targets K_vdd <= 5 MHz/V, K_s <= 104 ps/V, VDDA <= 100 nV/rtHz; "
+              "proposal targets 1.6 / 2.6 ps typ, 3.2 / 5.0 ps max"))
+METHODS += [
+ ("M20", "Device noise at fixed g_m/I_D (ngspice .noise on one transistor)", "72-HV",
+  "thermal-noise factor gamma = S_id/(4kT g_m), the 1/f corner frequency and the gate-referred flicker voltage of "
+  "each device type and length, at the same operating point",
+  "a fair comparison of device families must hold g_m/I_D and the current fixed - then the width follows from the "
+  "current density, and every difference left is the device's own noise",
+  "one dc sweep of V_GS on a 10 um device -> g_m/I_D = d ln I_D / dV_GS; pick V_GS where it equals 10 (searching past "
+  "the leakage region); scale W to 100 uA (split into fingers <= 40 um); .noise from 100 Hz to 1 GHz with the drain "
+  "current read through a CCVS; gamma from the 1 GHz value, corner where the PSD is twice the thermal floor",
+  "python3 design/feas/hv_noise.py -> design/feas/hv_noise.json",
+  "tt, 27 C, one V_DS; SKY130 flicker parameters are binned by length, so the corner must be measured per L used"),
+]
+PROBLEMS += [
+ ("72-HV", "simulation setup", "device-noise sweep took > 10 min and was killed", "timeout after 600 s",
+  "one ngspice launch (with the full PDK load) per V_GS point: 75 x 8 runs",
+  "one dc sweep per device instead of one .op per point: 2 runs per device, 1 min in total", "fixed"),
+ ("72-HV", "simulation setup", "wrong operating point for the 5 V pMOS at L = 1 um (g_m/I_D = 2 instead of 10)",
+  "g_m 0.21 mS at 100 uA; then an empty noise output",
+  "the search took the first V_GS with g_m/I_D < 10, which for a high-V_T device is inside the leakage region at "
+  "V_GS = 0.3 V; after fixing that, W = 115 um is beyond the model bins",
+  "search only above the g_m/I_D peak; sweep V_GS to 3.0 V for 5 V devices; split W into m fingers <= 40 um", "fixed"),
+ ("72-HV", "supply", "no LDO: VDDA noise reaches the ring and the NCB", "budget term up to 1.17 ps (pess, FFNC off)",
+  "the ring is current-fed, but the CCO output impedance is finite (K_vdd); the NCB delay depends on VDDA (K_s)",
+  "targets K_vdd <= 5 MHz/V (cascoded CCO, L >= 1 um) and K_s <= 104 ps/V; low-noise VDDA regulator in the test plan",
+  "open - verified in steps 74/75/80"),
+]
+RESULTS += [
+ ("Jitter FFNC on, typ (budget, 800 MHz)", 1.37, 1.6, "ps", "max", "72-HV", "5 V devices, no LDO"),
+ ("Jitter FFNC off, typ (budget, 800 MHz)", 2.12, 2.6, "ps", "max", "72-HV", ""),
+ ("Jitter FFNC on, pess (budget, 800 MHz)", 2.20, 3.2, "ps", "max", "72-HV", ""),
+ ("Jitter FFNC off, pess (budget, 800 MHz)", 3.44, 5.0, "ps", "max", "72-HV", ""),
+ ("L(300 kHz) FFNC on, typ (800 MHz)", -125.8, -124, "dBc/Hz", "max", "72-HV", ""),
+ ("L(300 kHz) FFNC off, typ (800 MHz)", -116.2, -114, "dBc/Hz", "max", "72-HV", ""),
+ ("Power FFNC on, typ (800 MHz)", 9.13, 9.15, "mW", "max", "72-HV", "spec typ 9.1 is this value rounded"),
+ ("Power FFNC on, worst (800 MHz)", 13.53, 15, "mW", "max", "72-HV", ""),
+ ("Area (800 MHz, 5 V)", 0.060, 0.10, "mm2", "max", "72-HV", ""),
+]

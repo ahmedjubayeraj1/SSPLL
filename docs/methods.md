@@ -229,3 +229,15 @@ Generated from `design/log/log_data.py` (also in `design/SSPLL_design_log.xlsx`,
 **How to run it.** `design/sspd/sspd.py kick(), step78_extra.py; tb/sspd/tb_sspd_kick.spice + tb/sspd_kick.py`
 
 **Limits.** VCO output modelled by an ideal source behind a driver (the ring and acbuf would attenuate it further); one operating point
+
+## M20. Device noise at fixed g_m/I_D (ngspice .noise on one transistor) (step 72-HV)
+
+**What it gives.** thermal-noise factor gamma = S_id/(4kT g_m), the 1/f corner frequency and the gate-referred flicker voltage of each device type and length, at the same operating point
+
+**Why this method.** a fair comparison of device families must hold g_m/I_D and the current fixed - then the width follows from the current density, and every difference left is the device's own noise
+
+**How it works.** one dc sweep of V_GS on a 10 um device -> g_m/I_D = d ln I_D / dV_GS; pick V_GS where it equals 10 (searching past the leakage region); scale W to 100 uA (split into fingers <= 40 um); .noise from 100 Hz to 1 GHz with the drain current read through a CCVS; gamma from the 1 GHz value, corner where the PSD is twice the thermal floor
+
+**How to run it.** `python3 design/feas/hv_noise.py -> design/feas/hv_noise.json`
+
+**Limits.** tt, 27 C, one V_DS; SKY130 flicker parameters are binned by length, so the corner must be measured per L used

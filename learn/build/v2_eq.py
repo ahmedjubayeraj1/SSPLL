@@ -21,6 +21,50 @@ def E(rows, words, why="", num="", watch=""):
 
 
 EXPLAIN = [
+# =============================================================================================== step 72 redo (800 MHz, 5 V)
+("\\text{FoM}_{ring}", E(
+    [("$\\text{FoM}_{ring}$", "oscillator figure of merit: phase noise normalised to power and carrier/offset ratio (lower is better)", "dB", "−155.6 dB (step-74 ring with the CCO supply power)"),
+     ("$\\mathcal{L}(\\Delta f)$", "single-sideband phase noise at offset $\\Delta f$", "dBc/Hz", "−104.4 at 1 MHz, 800 MHz carrier"),
+     ("$P$", "power the oscillator takes (here the CCO supply power that feeds the ring)", "mW", "4.86 mW"),
+     ("$f_0$", "carrier (oscillation) frequency", "Hz", "800 MHz"),
+     ("$\\Delta f$", "offset from the carrier", "Hz", "1 MHz")],
+    "The figure of merit says how quiet an oscillator is once you forgive it for running fast and for using little power.",
+    "Leeson/Hajimiri: $\\mathcal{L} \\propto (kT/P)(f_0/\\Delta f)^2$. Taking 10·log of both sides and moving the power and "
+    "frequency terms to the left leaves a number that depends only on how well the circuit is designed (η, V_char), not on "
+    "P or f₀ — so oscillators at different frequencies and powers can be compared.",
+    "Keep FoM = −155.6 dB and P = 4.86 mW and move the carrier from 1.6 GHz to 0.8 GHz: "
+    "$\\mathcal{L}(1\\,\\text{MHz}) = -155.6 - 10\\log 4.86 + 20\\log 800 = -155.6 - 6.9 + 58.1 = -104.4$ dBc/Hz, "
+    "6.0 dB lower than −98.35 at 1.6 GHz.",
+    "A better (more negative) FoM is a better oscillator. The phase noise itself still rises with $f_0^2$ — "
+    "FoM hides that on purpose.")),
+("\\sigma_{t,ring}^2", E(
+    [("$\\sigma_{t,ring}$", "rms timing jitter that the ring's phase noise causes", "s", "1.87 ps (FFNC off, before the loop: high-passed)"),
+     ("$\\mathcal{L}(\\Delta f)$", "phase noise; $2\\cdot10^{\\mathcal{L}/10}$ is the two-sided phase PSD $S_\\varphi$", "dBc/Hz → rad²/Hz", "—"),
+     ("$f_0$", "carrier", "Hz", "800 MHz"),
+     ("$P$", "oscillator power", "W", "4.86 mW")],
+    "Add up the phase noise over all offsets to get the phase variance in rad², then turn radians into seconds by dividing by "
+    "$2\\pi f_0$ (one period is $2\\pi$ rad).",
+    "Phase and time are linked by $\\varphi = 2\\pi f_0 t$. Since $\\mathcal{L} \\propto f_0^2/P$ at fixed FoM, the $f_0^2$ "
+    "in the numerator and the $(2\\pi f_0)^2$ in the denominator cancel: the jitter depends only on power and design quality.",
+    "1.6 GHz → 0.8 GHz at the same power: the numerator falls 4× (−6 dB), the denominator falls 4×, σ unchanged. The "
+    "budget confirms it: 2.11 ps at 1.6 GHz, 2.12 ps at 800 MHz (FFNC off, typ).",
+    "This holds for the ring's own noise. Reference-side noise is also time-like and unchanged; only the loop shaping "
+    "(the same 2.5 MHz bandwidth) decides what reaches the output.")),
+("S_{\\varphi,NCB}", E(
+    [("$S_{\\varphi,NCB}$", "output phase PSD caused by VDDA noise moving the NCB delay", "rad²/Hz", "—"),
+     ("$S_{\\varphi,ring}$", "output phase PSD caused by VDDA noise pushing the ring frequency", "rad²/Hz", "—"),
+     ("$K_s$", "NCB delay sensitivity to its supply", "s/V", "≤ 104 ps/V"),
+     ("$K_{vdd}$", "ring frequency pushing by VDDA through the CCO output impedance", "Hz/V", "≤ 5 MHz/V"),
+     ("$S_{v,DD}$", "VDDA noise voltage PSD at the die", "V²/Hz", "(100 nV/√Hz)², 10 kHz 1/f corner"),
+     ("$(1-G_c)(1-H)$", "VCO-noise shaping: loop high-pass, then FFNC cancellation", "—", "≪ 1 below f_REF/8")],
+    "A supply wiggle on the NCB moves the output edge directly; the same wiggle on the ring changes its frequency, which "
+    "integrates into phase (the 1/f²) and is then treated like any other VCO noise.",
+    "Delay error Δt = K_s·Δv becomes phase 2πf₀·Δt — nothing after the NCB can correct it. Frequency error Δf = K_vdd·Δv "
+    "integrates: φ = 2π∫Δf dt, which in the frequency domain divides by 2πf (so $K_{vdd}^2 S_v/f^2$ in Hz²→rad²).",
+    "NCB: $(2\\pi\\cdot0.8\\text{ GHz}\\cdot104\\text{ ps/V})^2(100\\text{ nV})^2 = 0.273\\cdot10^{-14} = 2.7\\cdot10^{-15}$ "
+    "rad²/Hz → −148.7 dBc/Hz flat, 66 fs. Ring at 5 MHz/V: $(5\\cdot10^6\\cdot10^{-7})^2/f^2 = 0.25/f^2$ → −129 dBc/Hz at "
+    "1 MHz before shaping, 0.10 ps with FFNC off.",
+    "The ring term is the dangerous one with a bad board supply: 20 MHz/V and 300 nV/√Hz give 1.17 ps (FFNC off).")),
 # =============================================================================================== phase 1
 ("f_{out} = N\\,f_{REF} = 32", E(
     [("$f_{out}$", "output frequency of the PLL (the VCO frequency)", "Hz", "1.6 GHz"),

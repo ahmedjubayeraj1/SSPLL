@@ -422,6 +422,35 @@ Placeholders: 6 fF on v1p / v1m (Gm input, step 79) and 4 fF on v2p / v2m (NCB a
 of the trip-point size (2.43 and 5.11 pA/√Hz), 312 edges at 1.6 GHz, 4th-order detrend, noiseless baseline. Result
 0.113 ps per side (baseline 0.0001 ps); the differential crossing has 0.113/√2 = 0.080 ps.
 
+#### Device noise at fixed g_m/I_D — 5 V vs 1.8 V devices (M20, step 72 redo)
+- **Purpose.** The step-72 budget for 800 MHz assumes that a ring built from 5 V devices can reach the step-74 FoM.
+  This bench checks that assumption at the device level: thermal-noise factor γ, 1/f corner and flicker voltage for
+  each device family and length used in the analog blocks.
+- **Setup.** `design/feas/hv_noise.py`, one transistor, with no testbench schematic:
+  - The gate is driven by `vg` (DC bias plus AC 1); the drain is held at V_DS by `vd`. That is 0.9 V for 1.8 V devices and 1.5 V for 5 V devices; a pMOS is referred to its own source supply.
+  - A CCVS `h1 o 0 vd 1` turns the drain current into the output voltage `v(o)`, so `.noise v(o) vg` gives the drain-current noise PSD directly (onoise) and the gate-referred voltage (inoise).
+- **How the operating point is set.**
+  - One `dc vg` sweep on a 10 µm device gives I_D(V_GS), and g_m/I_D = d ln I_D/dV_GS.
+  - The script takes the V_GS where g_m/I_D falls to 10, searching above the g_m/I_D peak so that the leakage region at low V_GS is skipped.
+  - It then scales W to 100 µA, in fingers of at most 40 µm, because the model bins end near 100 µm.
+  - Equal g_m/I_D and current mean equal g_m, so every remaining difference is the device's own noise.
+- **Read-out.**
+  - γ = onoise²(1 GHz)/(4kT·g_m), with g_m = √(onoise²/inoise²) at 1 GHz.
+  - The 1/f corner is the frequency where onoise² is twice its 1 GHz value.
+  - v_n(10 kHz) = inoise at 10 kHz.
+- **Result (tt, 27 °C).**
+  - 5 V nMOS, L = 0.5 µm: γ 1.10, corner 50 MHz.
+  - 5 V nMOS, L = 1 µm: γ 1.46, corner 2.5 MHz.
+  - 5 V pMOS, L = 0.5 µm: γ 0.53, corner 2.0 MHz.
+  - 5 V pMOS, L = 1 µm: γ 0.55, corner 0.2 MHz.
+  - 1.8 V nMOS, L = 0.15 µm: γ 1.87, corner 158 MHz.
+  - 1.8 V pMOS, L = 0.15 µm: γ 1.22, corner 1.0 MHz.
+- **Run.** `python3 design/feas/hv_noise.py` → `design/feas/hv_noise.json`, about 1 min.
+- **Pitfalls.**
+  - One `.op` per V_GS point means one PDK load per point: 600 launches took more than 10 min. Use one `dc` sweep per device.
+  - A high-V_T device can show g_m/I_D < 10 at V_GS = 0.3 V because of leakage. Search above the peak.
+  - Very wide devices fall outside the model bins and give an empty `.noise` output. Use `m` fingers.
+
 ---
 
 ## 5. Drawing a testbench in xschem (same recipe for every deck)

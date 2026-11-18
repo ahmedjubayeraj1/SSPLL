@@ -2,7 +2,7 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 from nb import Book
-from qa72 import QA72
+from qa72 import QA72, QA72HV
 from qa73 import QA73
 from qa74 import QA74
 from qa75 import QA75
@@ -16,7 +16,10 @@ b = Book("Phase 7 — Block design (steps 72–78)",
          "This notebook splits the proposal's targets "
          "(1.4 ps typ / 3.2 ps max with FFNC, −110/−120 dBc/Hz at 300 kHz, 9 mW, 0.08 mm²) into one allocation per block, "
          "shows which allocations are critical, and lets you move them with sliders. The same numbers are in "
-         "`docs/design/step72_budget.md`; the model is `design/budget/step72_budget.py`.")
+         "`docs/design/step72_budget.md`; the model is `design/budget/step72_budget.py`. **Device-rule migration (18 Nov 2026):** "
+         "all analog blocks now use 5 V devices and the output is 50 MHz × 16 = 800 MHz; step 72 has been redone for it "
+         "(section *Step 72 redo*, `docs/design/step72_hv_budget.md`). Steps 73–78 below are still the 1.6 GHz designs "
+         "and are being redone in 5 V devices.")
 
 B = r'''
 import sys; sys.path.insert(0, "../models"); sys.path.insert(0, "../design/budget")
@@ -187,6 +190,135 @@ The budget tells you which nodes are noise-critical, so the schematic can alread
 - **Everywhere:** few distinct unit devices; supply domains as bands (VDDA / LDO 1.8 V / VDDD); level shifters only at band edges.
 """)
 b.qa(QA72, 72)
+
+# ------------------------------------------------------------------------------------------------ step 72 redo (800 MHz, 5 V)
+BH = r"""
+import sys, json; sys.path.insert(0, "../models"); sys.path.insert(0, "../design/budget")
+import pllmodel as pm, step72_hv_budget as hv
+fh = pm.freq_axis(n=700)
+def total_hv(corner, on, **kw):
+    ff, S = hv.spectra(corner, on, f=fh, **kw)
+    j, L = hv.jitter(S, ff)
+    return j, L, S
+j300 = int(abs(fh - 3e5).argmin())
+"""
+b.md(r"""
+<a id='step-72-hv'></a>
+### Step 72 redo — 800 MHz with 5 V analog devices (18 Nov 2026)
+
+**What happens.** The challenge rules changed: every analog block must use the 5 V devices (`nfet/pfet_g5v0d10v5`) and
+only logic may use 1.8 V devices. A full-swing 3-stage ring in 5 V devices tops out at about 1.1 GHz at ss 110 °C, so the
+output moved to **50 MHz × 16 = 800 MHz** and the regulated 1.8 V rail (the LDO) was dropped. The budget is redone with the
+same model; the surprise is that the jitter does not change.
+
+**How it happens.** A ring's phase noise per milliwatt is described by its figure of merit:
+
+$$\text{FoM}_{ring} = \mathcal{L}(\Delta f) + 10\log\frac{P}{1\,\text{mW}} - 20\log\frac{f_0}{\Delta f}$$
+
+At fixed power and FoM, $\mathcal{L} \propto f_0^2$: 6.02 dB lower at half the carrier. Jitter divides the integrated phase
+noise by $(2\pi f_0)^2$, so the carrier cancels:
+
+$$\sigma_{t,ring}^2 = \frac{\int 2\cdot 10^{\mathcal{L}(\Delta f)/10}\, d\Delta f}{(2\pi f_0)^2} \;\propto\; \frac{1}{P}$$
+
+Without the LDO the NCB and the ring's current source see the raw VDDA. Two new terms replace the LDO term — one adds at
+the output (the NCB delay moves by $K_s$ per volt), one enters as VCO noise (the ring frequency moves by $K_{vdd}$ per volt
+through the CCO's finite output impedance):
+
+$$S_{\varphi,NCB}(f) = (2\pi f_0 K_s)^2\, S_{v,DD}(f), \qquad
+S_{\varphi,ring}(f) = \frac{K_{vdd}^2\, S_{v,DD}(f)}{f^2}\,\big|(1-G_c)(1-H)\big|^2$$
+
+**Why it happens this way.** Timing jitter is a time error; frequency only converts it to radians and back. Thick-oxide
+devices are slow (f_T 10.9 GHz vs 58 GHz) but *quieter* per unit $g_m$ — their long channels have little excess thermal
+noise (γ ≈ 1.1 instead of 1.9) — so a 5 V ring at the step-74 power can reach the step-74 FoM. The budget assumes it does
+(typ) and also covers missing it by 3 dB with a doubled 1/f³ corner (pess). Full write-up:
+`docs/design/step72_hv_budget.md`; model: `design/budget/step72_hv_budget.py`.
+""")
+b.code(BH + r"""
+rows = {(c, o): total_hv(c, o)[0] for c in ("typ", "pess") for o in (False, True)}
+print(f"{'block':44s} {'typ off':>8s} {'typ on':>8s} {'pess off':>9s} {'pess on':>8s}   (ps rms, 10 kHz-40 MHz, 800 MHz)")
+for k in rows[("typ", True)]:
+    v = [rows[(c, o)].get(k, 0)*1e12 for c in ("typ", "pess") for o in (False, True)]
+    print(f"{k:44s} {v[0]:8.3f} {v[1]:8.3f} {v[2]:9.3f} {v[3]:8.3f}")
+print(f"{'proposal target':44s} {'2.6 typ':>8s} {'1.6 typ':>8s} {'5.0 max':>9s} {'3.2 max':>8s}")
+""")
+b.md("**Figure 72.6 — where the jitter comes from at 800 MHz** (typ). Compare with Figure 72.1: the bars are almost the same "
+     "length in picoseconds, the LDO bar is gone and two VDDA bars have appeared.")
+b.code(BH + r"""
+j0, _, _ = total_hv("typ", False); j1, _, _ = total_hv("typ", True)
+names = sorted([k for k in j1 if k != "TOTAL"], key=lambda k: max(j1[k], j0.get(k, 0)))
+fig = go.Figure()
+fig.add_trace(go.Bar(y=names, x=[j0.get(k, 0)*1e12 for k in names], orientation="h", name=f"FFNC off ({j0['TOTAL']*1e12:.2f} ps)", marker_color="#2a78d6"))
+fig.add_trace(go.Bar(y=names, x=[j1[k]*1e12 for k in names], orientation="h", name=f"FFNC on ({j1['TOTAL']*1e12:.2f} ps)", marker_color="#eb6834"))
+fig.update_layout(barmode="group", height=500, xaxis_title="rms jitter contribution (ps)", title="Jitter budget per block, typ, 800 MHz")
+show(fig)
+""")
+b.md(r"""
+**Figure 72.7 — what if the thick-oxide ring misses the FoM?** Slide the penalty on the ring's thermal noise (0 dB = the
+step-74 FoM at the same power). The proposal's maximum (3.2 ps with FFNC on) still holds at 6 dB (2.40 ps); the typical
+1.6 ps holds up to a 2 dB penalty (1.62 ps), and the FFNC-off typical 2.6 ps likewise (2.56 ps).
+""")
+b.code(BH + r"""
+RING = "ring VCO core (5 V, 3-stage)"
+L0, fc3 = hv.ALLOC[RING]["typ"]
+def frame(pen):
+    tr = []; note = []
+    for on, col in ((False, "#2a78d6"), (True, "#eb6834")):
+        j, L, _ = total_hv("typ", on, over={RING: (L0 + pen, fc3)})
+        tr.append(dict(x=fh, y=L, name=f"FFNC {'on' if on else 'off'}", line=dict(color=col)))
+        note.append(f"{'on' if on else 'off'}: {j['TOTAL']*1e12:.2f} ps, L(300k) {L[j300]:.1f}")
+    tr.append(dict(x=[3e5, 3e5], y=[-114, -124], name="spec typ (off, on)", mode="markers",
+                   marker=dict(size=9, color="#59636e", symbol="circle")))
+    return tr, f"ring FoM penalty {pen:.0f} dB (L(1 MHz) = {L0 + pen:.1f} dBc/Hz) — " + " | ".join(note)
+def lay(fig):
+    fig.update_xaxes(type="log", title="offset (Hz)"); fig.update_yaxes(title="L(f) at 800 MHz (dBc/Hz)", range=[-145, -95])
+show(sweep([0, 1, 2, 3, 4, 5, 6], frame, "ring FoM penalty", fmt="{:.0f} dB", active=0, layout=lay))
+""")
+b.md(r"""
+**Figure 72.8 — why the CCO must be cascoded.** Without an LDO, VDDA noise reaches the ring through the CCO's output
+impedance. Here VDDA carries a poor 300 nV/√Hz; slide the ring's supply pushing $K_{vdd}$. At 5 MHz/V (a cascoded,
+long-channel CCO) it adds 0.29 ps with FFNC off; at 20 MHz/V (1.17 ps) it is larger than the CCO's own noise (0.90 ps), and at
+40 MHz/V (2.35 ps, a simple mirror) larger than the ring itself.
+""")
+b.code(BH + r"""
+SUP = "VDDA noise into the ring (CCO r_out)"
+def frame(k):
+    tr = []; note = []
+    for on, col in ((False, "#2a78d6"), (True, "#eb6834")):
+        j, L, S = total_hv("typ", on, over={SUP: (300e-9, k*1e6)})
+        tr.append(dict(x=fh, y=10*np.log10(np.maximum(S[SUP], 1e-30)/2), name=f"VDDA part, FFNC {'on' if on else 'off'}", line=dict(color=col)))
+        note.append(f"{'on' if on else 'off'} total {j['TOTAL']*1e12:.2f} ps (VDDA {j[SUP]*1e15:.0f} fs)")
+    return tr, f"K_vdd = {k:g} MHz/V at 300 nV/√Hz — " + " | ".join(note)
+def lay(fig):
+    fig.update_xaxes(type="log", title="offset (Hz)"); fig.update_yaxes(title="VDDA contribution (dBc/Hz)", range=[-170, -100])
+show(sweep([1, 2, 5, 10, 20, 40], frame, "K_vdd", fmt="{:g} MHz/V", active=2, layout=lay))
+""")
+b.md(r"""
+**The device data behind the allocations.** `design/feas/hv_noise.py` biases each device at $g_m/I_D = 10$, 100 µA and
+simulates its drain-current noise with ngspice `.noise`. Read γ (thermal noise per $g_m$, lower is better) and the 1/f
+corner (where flicker equals thermal).
+""")
+b.code(r"""
+import json
+d = json.load(open("../design/feas/hv_noise.json"))
+print(f"{'device':16s} {'L':>5s} {'W':>7s} {'gamma':>6s} {'1/f corner':>11s} {'vn(10k)':>12s}")
+for r in d:
+    print(f"{r['model']:16s} {r['l']:5.2f} {r['w']:7.1f} {r['gamma']:6.2f} {r['corner_hz']/1e6:8.2f} MHz {r['vn_10k']*1e9:7.1f} nV/√Hz")
+""")
+b.md(r"""
+**Power at 800 MHz.** Everything analog now runs from VDDA = 3.3 V (3.3 mW per mA); logic from VDDD = 1.8 V. The LDO is gone
+(−0.48 mW); level shifters (+0.33 mW) and the output divider (+0.12 mW) arrive. The total stays at about 9 mW.
+""")
+b.code(BH + r"""
+tot = {"on": 0, "off": 0, "on_w": 0, "off_w": 0}
+for name, sup, i, p, pw, ncb in hv.power_table():
+    print(f"{name:74s} {sup:5s} {i:6.3f} mA {p:6.2f} mW (worst {pw:5.2f})")
+    tot["on"] += p; tot["on_w"] += pw
+    if not ncb: tot["off"] += p; tot["off_w"] += pw
+j = total_hv("typ", True)[0]["TOTAL"]
+print(f"TOTAL FFNC on {tot['on']:.2f} mW (worst {tot['on_w']:.2f}); off {tot['off']:.2f} mW (worst {tot['off_w']:.2f})")
+print(f"FoM = {10*np.log10(j**2*tot['on']):.1f} dB; area {sum(a for _, a in hv.AREA)} um^2")
+""")
+b.qa(QA72HV, "72 — 800 MHz redo")
 
 # ------------------------------------------------------------------------------------------------ step 73
 L73 = r'''
