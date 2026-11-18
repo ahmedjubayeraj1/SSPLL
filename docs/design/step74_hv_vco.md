@@ -18,6 +18,7 @@ python3 step74hv_startup.py hl6        # power-up start-up, symmetric and with 2
 python3 step74hv_system.py             # K_VCO -> Gm unit, jitter budget with the measured ring, power, FoM
 python3 step74hv_plots.py              # docs/img/step74hv_*.png
 python3 schematics_hv.py               # xschem/vco_hv/*.sch + *.sym, drawing checks (method M5)
+python3 -c "import vco_hv as v, step74hv_point as s; open('../../xschem/netlist/ref_vco_hv.spice','w').write(v.lvs_reference(s.VARIANTS['hl6']))"
 cd ../../xschem && ./lvs.sh vco_hv/sspll_vco_hv.sch netlist/ref_vco_hv.spice sspll_vco_hv   # method M4
 ```
 
