@@ -258,7 +258,8 @@ area — inside the 60 fF the clock generator was verified with. On ckh / ckhb: 
 - The step-72 allocation assumed the 1.8 V figure scaled by current, not by C·V²·f.
 - Running total (typ, FFNC on): 7.55 after step 74 HV (ring 3.69 instead of 4.86 mW, two active buffers 0.59 instead
   of 0.99) − 0.18 (CCO, step 75) + 0.03 (receiver) + 0.31 (clock generator) + 0.54 (SSPD) = **8.25 mW**. Proposal: typ
-  9.1, max 15 mW; the final line (with a post-layout margin) is set after step 79.
+  9.1, max 15 mW. After step 79 (Gm +0.13 mW) the pre-layout total is 8.38 mW; with a 15 % layout margin the
+  proposal now states 9.6 mW typ, 14 mW max (`docs/design/proposal_final_spec.md`).
 
 ## H. Requirements handed on
 

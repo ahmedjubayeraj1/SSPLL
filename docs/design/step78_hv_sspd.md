@@ -20,7 +20,7 @@ cd ../../xschem && ./lvs.sh sspd_hv/sspll_sspd_hv.sch netlist/ref_sspd_hv.spice 
 
 Each side (p from `clkp`, m from `clkm`, the ring's 3.3 V buffered outputs) has a two-inverter **isolation buffer**,
 a series resistor **R_s ≈ 3.4 kΩ** that rounds the square wave into a near-sine of defined slope, a 5 V **sampling TG**
-onto **C1** (16.7 fF MIM plus the Gm's 26 fF input = 42.7 fF), a **dummy sampler** on the opposite phase and a **hold TG**
+onto **C1** (16.2 fF MIM plus the Gm's 26.5 fF input = 42.7 fF), a **dummy sampler** on the opposite phase and a **hold TG**
 onto **C2 = 34.6 fF**. Every device
 is a g5v0d10v5 on VDDA. The detector gain is **A = 0.811 V/rad** per side at tt (target 0.8),
 0.536–1.145 over 18 conditions (MOS × R/C corners, −40…110 °C, VDDA ±10 %, 45/55 MHz). The hold has
@@ -74,10 +74,11 @@ $$\mathcal{L}_{kT/C} = \frac{kT}{2\,C_s\,A^2 f_{ref}} = -148.6\ \text{dBc/Hz}\qu
 - **Defined slope, wide linear range.** A raw 3.3 V square would give a slope set by the inverter edge and a linear range
   of picoseconds. The RC near-sine sets A by R·C and is linear over about ±0.6 rad.
 - **Gm reads C1, not C2.** No charge-sharing pole z = α inside the loop (it would cost about 16° at f_c = f_ref/20).
-- **The sampled node is 45.7 fF, of which the MIM is only 16.7 fF.** Step 79 measured the Gm's input capacitance:
-  26 fF (25–28 over corners and codes; 25–33 fF over ±0.8 V of input), not the 8 fF first assumed. C1 was cut from
-  4 × 4 to 2.73 × 2.73 µm so that the node, and with it A, α, kT/C and power, stayed where they were; the dummy CD
-  (= C1 + C_Gm) did not change. Step 72 requires C_s ≥ 35 fF: 45.7 fF. Shrinking the node further would save power,
+- **The sampled node is 45.7 fF, of which the MIM is only 16.2 fF.** Step 79 measured the Gm's input capacitance:
+  26.5 fF at tt (24–29 fF over corners and codes, and up to +25 % at ±0.8 V of input), not the 8 fF first assumed. C1
+  was cut from 4 × 4 to 2.69 × 2.69 µm so that the node, and with it A, α, kT/C and power, stayed where they were; the
+  dummy CD (= C1 + C_Gm) did not change. The benches of this step ran with 2.73 µm and a 26.0 fF load (the first Gm):
+  the same 42.7 fF. Step 72 requires C_s ≥ 35 fF: 45.7 fF. Shrinking the node further would save power,
   but the Gm's non-linear gate capacitance would become a
   larger part of the sampled node. kT/C is only 40 fs in the system, so noise is not what limits C1 —
   the requirement and the sampled node's linearity are.
@@ -93,7 +94,7 @@ $$\mathcal{L}_{kT/C} = \frac{kT}{2\,C_s\,A^2 f_{ref}} = -148.6\ \text{dBc/Hz}\qu
 | Shaping | square, R_s + C | **R_s + C** | A set by R·C; linear range ±0.6 rad |
 | R_s | xhigh_po 0.35 µm × 0.8 / 0.6 / 0.5 µm | **0.6 µm** | A = 0.812 V/rad (table below) |
 | Sampling switch | nMOS, TG 3/6, TG 4/8 µm | **TG 3/6 µm** | the wider switch lowers A (more junction C) and costs 4 % more power |
-| C1, C2 | 35 / 17 fF MIM | **C1 16.7 fF (+ 26 fF Gm), C2 34.6 fF** | node kept at 45.7 fF (step 72: ≥ 35 fF) after the Gm input was measured |
+| C1, C2 | 35 / 16 fF MIM | **C1 16.2 fF (+ 26.5 fF Gm), C2 34.6 fF** | node kept at 45.7 fF (step 72: ≥ 35 fF) after the Gm input was measured |
 | What the Gm reads | C2, C1 | **C1** | no z = α pole in the loop |
 | Dummy | none, copy | **copy, CD = C1 + Gm input** | f_ref supply current −31 dB |
 
@@ -116,7 +117,7 @@ $$\mathcal{L}_{kT/C} = \frac{kT}{2\,C_s\,A^2 f_{ref}} = -148.6\ \text{dBc/Hz}\qu
 - v1p − v1m is read in the middle of the Gm pulse, v2p − v2m 0.5 ns after the hold; A = half the slope of a line fit
   within ±0.35 rad of the zero crossing; α and the hold DC gain from a least-squares fit of
   v2[k] = a·v1[k] + b·v2[k−1].
-- Loads: 26 fF on each v1 (the Gm input as measured in step 79, at lock), 4 fF on each v2 (the NCB input).
+- Loads: 26 fF on each v1 (the Gm input as first measured in step 79, at lock; the final Gm has 26.5 fF and C1 is 0.5 fF larger to match), 4 fF on each v2 (the NCB input).
 
 ![corners](../img/step78hv_corners.png)
 
@@ -224,7 +225,7 @@ Proposal: typ 2.6 / 1.6 ps and −114 / −124 dBc/Hz; max 5.0 / 3.2 ps and −1
 | XRS | res_xhigh_po_0p35 | 0.35 | 0.6 µm | R_s ≈ 3.4 kΩ (0.6 µm / 0.35 µm × 2 kΩ/□) |
 | xs1, xsd: XN / XP | nfet_g5v0d10v5 / pfet_g5v0d10v5 | 3.0 / 6.0 × 1 | 0.5 µm | sampling and dummy TG |
 | xs2: XN / XP | nfet_g5v0d10v5 / pfet_g5v0d10v5 | 1.0 / 2.0 × 1 | 0.5 µm | hold TG |
-| XC1 | cap_mim_m3_1 | 2.73 × 2.73 µm | — | 16.7 fF, bottom plate on VSS; + 26 fF Gm input = the sampled node |
+| XC1 | cap_mim_m3_1 | 2.69 × 2.69 µm | — | 16.2 fF, bottom plate on VSS; + 26.5 fF Gm input = the sampled node |
 | XC2 | cap_mim_m3_1 | 4.0 × 4.0 µm | — | 34.6 fF |
 | XCD | cap_mim_m3_1 | 4.4 × 4.4 µm | — | ≈ 41.6 fF = C1 + the Gm input |
 
@@ -239,11 +240,12 @@ area — inside the 60 fF the clock generator was verified with. On ckh / ckhb: 
 - The step-72 allocation assumed the 1.8 V figure scaled by current, not by C·V²·f.
 - Running total (typ, FFNC on): 7.55 after step 74 HV (ring 3.69 instead of 4.86 mW, two active buffers 0.59 instead
   of 0.99) − 0.18 (CCO, step 75) + 0.03 (receiver) + 0.31 (clock generator) + 0.54 (SSPD) = **8.25 mW**. Proposal: typ
-  9.1, max 15 mW; the final line (with a post-layout margin) is set after step 79.
+  9.1, max 15 mW. After step 79 (Gm +0.13 mW) the pre-layout total is 8.38 mW; with a 15 % layout margin the
+  proposal now states 9.6 mW typ, 14 mW max (`docs/design/proposal_final_spec.md`).
 
 ## H. Requirements handed on
 
-1. **Step 79 (pulsed Gm):** reads v1p − v1m during ckg; input capacitance 26 fF per side (measured; C1 and CD sized for it); input
+1. **Step 79 (pulsed Gm):** reads v1p − v1m during ckg; input capacitance 26.5 fF per side (measured; C1 and CD sized for it); input
    common mode 1.43–1.90 V; linear range ≥ ±0.1 V differential (±0.06 rad at A_tt; the locked phase error is about 6.5 mrad rms); β·K_VCO with A = 0.811 V/rad
    and the ×0.81–1.35 spread above.
 2. **NCB (diff-to-SE):** reads v2p − v2m, ≤ 4 fF per side; first-order memory α = 0.451.
@@ -264,7 +266,7 @@ The answers are in `learn/phase7_design.ipynb` (v2), step 78.
 3. Why does A now change with VDDA, and why is that acceptable without an LDO?
 4. Why is the kick-back 30× larger than in the 1.8 V design, and does it matter?
 5. Why does the SSPD use twice its power allocation?
-6. Why is the MIM capacitor C1 only 16.7 fF?
+6. Why is the MIM capacitor C1 only 16.2 fF?
 7. Why is a DC supply step enough for the isolation buffers but not for the receiver?
 8. How was R_s chosen?
 9. Why does the dummy sampler matter more without an LDO?
