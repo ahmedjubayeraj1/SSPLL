@@ -804,10 +804,12 @@ PROBLEMS += [
   "slow numerical wander (10 ps time grid vs 0.5 ns edges); white noise cannot cause it at that slope",
   "white per-edge jitter = period jitter / sqrt 2 in every case (equal for the sines)", "fixed"),
  ("76-HV", "specification", "1 V pp sine (proposal typ) gives L(300 kHz) FFNC on -123.3 dBc/Hz vs -124 typ", "system model",
-  "S1 white jitter 0.556 ps with the shallow sine slope; +24 dB in band", "recommend a 3.3 V CMOS reference as the "
-  "typical condition (-125.4 dBc/Hz) or a -123 typ; user to decide", "open"),
+  "S1 white jitter 0.556 ps with the shallow sine slope; +24 dB in band", "proposal (19 Nov, user approved): typical "
+  "reference = 3.3 V CMOS square (-125.4 dBc/Hz); 1 V pp sine stays inside every maximum", "fixed"),
  ("76-HV", "supply", "VDDD noise reaches the refclk edge at 157 ps/V (no VDDL any more)", "M21",
-  "level shifter and NOR on VDDD", "requirement VDDD <= 160 nV/rtHz at the die; final value after step 77", "open"),
+  "level shifter and NOR on VDDD", "step 77 HV: receiver + clock generator gave 376 ps/V, so the sampling "
+  "edge now comes from the receiver's 3.3 V node (refhv) and never passes a VDDD gate; no VDDD noise requirement "
+  "(the harness VDDD is shared with other projects, so none could be guaranteed)", "fixed"),
 ]
 RESULTS += [
  ("REF receiver floor at 50 MHz, 3.3 V square, typ (5 V)", -164.7, -155, "dBc/Hz", "max", "76-HV", "chain target -155"),

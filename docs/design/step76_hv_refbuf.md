@@ -22,6 +22,12 @@ cd ../../xschem && ./lvs.sh refbuf_hv/sspll_refbuf_hv.sch netlist/ref_refbuf_hv.
 
 The system numbers come from `design/budget/hv_system.py`. It is new in this step: the step-72 HV model with every block measured so far (step-73 filter, step-74 ring, step-75 CCO and K_vdd(f)) in place of its allocation. From now on every step reports the same cumulative system figure.
 
+> **Revised in step 77 (19 Nov 2026): new output `refhv`.** S2's 0–3.3 V output (VDDA domain) is now also a pin of the cell. The clock generator takes the SSPD sampling edge from it instead of from refclk.
+> - **Why:** through refclk the sampling edge crossed two VDDD gates here and three more in the clock generator, and moved by **376 ps per volt of VDDD** (`design/clkgen/data/step77hv_supply_via_vddd.json`). Through refhv it never touches VDDD.
+> - **What did not change:** refclk is still made the same way for the clock generator's 1.8 V core (Gm and hold pulses).
+> - S2 now also drives the 5 V sampling driver's input (≈ 10 fF); the step-77 timing benches include this load.
+> - Ports: `REF_IN refclk refhv ib pll_en VDDA VDDD VSS`. The schematic and LVS were redone and give *Circuits match uniquely*.
+
 ## Result in one paragraph
 
 The receiver keeps its 13 Nov analog core. The only circuit change is that the level shifter (a 5 V inverter whose gate takes S2's 0–3.3 V swing) and the output NOR now run on VDDD.
@@ -47,7 +53,7 @@ The receiver keeps its 13 Nov analog core. The only circuit change is that the l
 | 0.4 V sine, typ | 2.06 ps | 1.60 ps | −115.7 / −120.0 |
 | 3.3 V square, worst (ss/110 °C, VDDA 2.97 V, 300 nV/√Hz) | 3.70 ps | 2.50 ps | −111.7 / −118.4 |
 
-Every proposal maximum is met over the whole input range. **One typical value is missed:** with the proposal's typical reference (1.0 V pp sine), L(300 kHz) FFNC on is −123.3 dBc/Hz against −124 typ (0.7 dB). See "Does the proposal need an update?".
+Every proposal maximum is met over the whole input range. With a 1.0 V pp sine (the proposal's first typical reference) L(300 kHz) FFNC on was −123.3 dBc/Hz against −124 typ; the typical condition is now a 3.3 V CMOS square, which gives −125.4 (see "Does the proposal need an update?").
 
 ## The design sheet
 
@@ -65,7 +71,7 @@ Every proposal maximum is met over the whole input range. **One typical value is
 | Start-up (periods within 2 %) | 3.8 / 4.3 / 4.9 µs (ss / tt / ff) | ≈ 4 µs | < FLL wait |
 | Disabled | refclk ≤ 2 µV; I(VDDA) 5.9 µA (pad divider + bias pull), I(VDDD) < 2 nA | same | quiet |
 | VDDA → edge (square / 1 V sine) | **31–60 / 254–530 ps/V** | 119 (3.3 V sine) / 254 ps/V, DC only | — |
-| VDDD → edge | **157 ps/V**, DC–20 MHz | VDDL 150 ps/V (DC) | VDDD noise ≤ 160 nV/√Hz |
+| VDDD → refclk edge | **157 ps/V**, DC–20 MHz | VDDL 150 ps/V (DC) | none since step 77: the sampling edge comes from refhv |
 | S1 per-edge white jitter (square / 1 V / 0.4 V) | **0.034 / 0.556 / 1.162 ps** | 0.23 (3.3 V sine) / 0.61 / 1.15 | |
 | Output chain jitter (M17, square / 1 V sine) | 0.097 / 0.173 ps | not estimated | |
 | Receiver floor, typ (square / 1 V / 0.4 V) | **−164.7 / −150.9 / −145.4 dBc/Hz** | −159.9 (3.3 V sine) / −151.4 / −145.8 | chain ≤ −155 |
@@ -109,8 +115,8 @@ $$\mathcal{L}_{sup}(f) = \frac{(2\pi f_{ref})^2\,K_s(f)^2\,S_v(f)}{2}\quad\text{
 | Keep the analog core of 13 Nov | **yes** | Already 5 V devices on VDDA; noise and power were sized then (header 60 µA, moderate inversion). |
 | Where to power the 1.8 V output side without VDDL | **VDDD** | The clock generator that receives refclk is on VDDD anyway; an on-chip regulator was dropped with the LDO. |
 | Level shifter 3.3 → 1.8 V | **5 V inverter on VDDD** (2 / 1 µm, L 0.5 µm) | A 1.8 V gate cannot take 3.3 V; a down-shift needs no latch. Slowest at ss/−40 °C, 1.71 V: 491 ps rise, still a clean edge. |
-| VDDD quality | **≤ 160 nV/√Hz at the die** (requirement handed on) | Keeps the VDDD term 10 dB under the −155 dBc/Hz chain allocation (K = 157 ps/V). |
-| Typical reference for the noise specs | **3.3 V CMOS square recommended** | 1 V sine misses the typ L(300 kHz) FFNC-on by 0.7 dB; decision left to the proposal update. |
+| VDDD quality | first: ≤ 160 nV/√Hz at the die; **final: no requirement** | The harness VDDD is shared with other projects, so a limit could not be guaranteed; step 77 takes the sampling edge from refhv (VDDA) instead. |
+| Typical reference for the noise specs | **3.3 V CMOS square** (proposal updated 19 Nov) | 1 V sine misses the typ L(300 kHz) FFNC-on by 0.7 dB. |
 | More S1 current for the sine case | **no** | Doubling the header (+0.2 mW) buys 3 dB of S1 white noise; at 1 V pp the system L(300 kHz) would still sit near −124 dBc/Hz, and a full-swing XO costs nothing on chip. |
 
 ## B. Large signal (method M16) and start-up
@@ -209,7 +215,7 @@ So VDDD must be as quiet as VDDA. **161 nV/√Hz** keeps the VDDD term at −165
 | 1 | `xschem/refbuf_hv/sspll_refbuf_hv_rb.sch` | R_B: 10 xhigh-poly segments, 5 MΩ, bodies VSS |
 | 1 | `xschem/refbuf_hv/sspll_refbuf_hv_s1.sch` | S1 with bias diode, header ×24, C_H, enable devices |
 | 1 | `xschem/cco_hv/sspll_ls_1v8_3v3.sch` | enable level shifter (step 75 HV) |
-| 2 | `xschem/refbuf_hv/sspll_refbuf_hv.sch` | pad divider, C_AC, R_B, S1, S2 (VDDA), level-shift inverter + NOR + pll_en inverter (VDDD); pins REF_IN, refclk, ib, pll_en, VDDA, VDDD, VSS |
+| 2 | `xschem/refbuf_hv/sspll_refbuf_hv.sch` | pad divider, C_AC, R_B, S1, S2 (VDDA), level-shift inverter + NOR + pll_en inverter (VDDD); pins REF_IN, refclk, refhv (S2 output, added in step 77), ib, pll_en, VDDA, VDDD, VSS |
 
 ![receiver](../img/step76hv_sch_sspll_refbuf_hv.png)
 ![S1](../img/step76hv_sch_sspll_refbuf_hv_s1.png)
@@ -254,20 +260,24 @@ Area ≈ 4 000 µm², as before (3 MIM tiles over R_B and S1).
 
 | To | Requirement |
 |---|---|
-| Step 77 clock generator | refclk rising edge, 46–343 ps delay with a square input, 208–491 ps rise; its own VDDD sensitivity must be measured with M21 and added to the 157 ps/V of this step. |
-| Board / test plan | **VDDD at the die ≤ 160 nV/√Hz** (same class of low-noise regulator as VDDA); a CMOS 3.3 V crystal oscillator for the typical noise numbers. |
+| Step 77 clock generator | refclk rising edge, 46–343 ps delay with a square input, 208–491 ps rise; its own VDDD sensitivity must be measured with M21 and added to the 157 ps/V of this step. (Done in step 77: the sum was 376 ps/V, so the sampling edge now comes from refhv.) |
+| Board / test plan | A 3.3 V CMOS crystal oscillator for the typical noise numbers. (A VDDD noise limit was first handed on here; step 77 removed the need for it.) |
 | Step 86 bias | 2.5 µA sink into ib; switched off with pll_en (5.9 µA disabled current otherwise). |
 | Layout | VDDD of the receiver's output side routed separately from the divider's VDDD up to the pad (star), with local decoupling; REF_IN short and shielded; vin guarded. |
 | `hv_system.py` | Steps 77–80 call it with their measured block. |
 
 ## Does the proposal need an update?
 
-Yes, two small points. Both are for the user to decide.
+Yes. Two points came out of this step, and both were settled on 19 Nov after a check against the Chipalooza #4 rules.
 
-1. **Typical reference amplitude.** The proposal's conditions table gives 1.0 V pp as the typical reference. With 1.0 V pp the typical FFNC-on L(300 kHz) is −123.3 dBc/Hz against −124 typ, 0.7 dB short. Jitter (1.40 vs 1.6 ps) and every maximum are still met.
-   - **Recommended:** make the typical condition a 3.3 V pp CMOS square (most crystal oscillators are CMOS-output), which gives −125.4 dBc/Hz and 1.32 ps. Keep 0.4 V pp as the minimum and 1.0 V pp as a listed condition.
-   - **Alternative:** relax the typ L(300 kHz) FFNC on to −123 dBc/Hz.
-2. **VDDD noise.** The test-equipment line requires a low-noise VDDA regulator (≤ 100 nV/√Hz). VDDD needs the same (≤ 160 nV/√Hz), because the refclk edge depends on it at 157 ps/V. Step 77 will add the clock generator's own VDDD sensitivity, so the final number is set there.
+1. **Typical reference amplitude → 3.3 V CMOS square (done).** With 1.0 V pp as the typical reference, the FFNC-on L(300 kHz) was −123.3 dBc/Hz against −124 typ.
+   - The proposal's conditions table now gives 0.4 / **3.3** / 3.3 V pp (min / typ / max) and states the typical waveform: a 0 V to 3.3 V CMOS square from the crystal oscillator, which gives −125.4 dBc/Hz and 1.32 ps.
+   - Every maximum still holds down to 0.4 V pp.
+   - The test-equipment line asks for crystal oscillators with 3.3 V CMOS outputs.
+   - Rules: the proposal is not submitted yet (due 23 Nov), so Rule 9's approval for spec changes does not apply. A 0–3.3 V signal on the 3.3 V periphery reference pad is within Rule 10.
+2. **VDDD noise → removed by design, not by a requirement.** A VDDD noise limit at the die could not be guaranteed: the harness 1.8 V digital supply (Rule 7.1) is shared with the other projects' logic.
+   - So in step 77 the SSPD sampling edge was moved off VDDD altogether. It now comes from this receiver's 3.3 V node (refhv) through a 5 V driver.
+   - The proposal's architecture text now says so; no VDDD noise requirement was added.
 
 ## Interview questions (step 76 redo)
 

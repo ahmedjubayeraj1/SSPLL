@@ -16,7 +16,7 @@ LS_PINS = dict(left=[("in", "in")], right=[("out", "out"), ("outb", "out")], top
 RB_PINS = dict(left=[("a", "inout")], right=[("b", "inout")], top=[], bottom=[("VSS", "inout")])
 S1_PINS = dict(left=[("vin", "in"), ("ib", "inout"), ("en", "in"), ("enb", "in")], right=[("s1", "out")],
                top=[("VDDA", "inout")], bottom=[("VSS", "inout")])
-TOP_PINS = dict(left=[("REF_IN", "inout"), ("ib", "inout"), ("pll_en", "in")], right=[("refclk", "out")],
+TOP_PINS = dict(left=[("REF_IN", "inout"), ("ib", "inout"), ("pll_en", "in")], right=[("refclk", "out"), ("refhv", "out")],
                 top=[("VDDA", "inout"), ("VDDD", "inout")], bottom=[("VSS", "inout")])
 
 
@@ -132,7 +132,9 @@ def top(p, q, LS_XY, RB_XY, S1_XY):
     s.wire(P2["G"], (XS - 50, P2["G"][1]), (XS - 50, 30), (XS - 50, N2["G"][1]), N2["G"])
     XL = 1400
     PL = M(s, "XPL", G5P, XL, -60, p["PL"], "VDDD"); NL = M(s, "XNL", G5N, XL, 120, p["NL"], "VSS")
-    s.wire((P2["D"][0], 30), (XL - 50, 30))
+    s.wire((P2["D"][0], 30), (XL - 120, 30)); s.wire((XL - 120, 30), (XL - 50, 30))
+    # refhv: S2's output brought out for the clock generator's sampling edge (step 77 HV)
+    s.wire((XL - 120, 30), (XL - 120, 270), (2500, 270)); s.pin("refhv", "out", 2500, 270, flip=1)
     s.wire(PL["G"], (XL - 50, PL["G"][1]), (XL - 50, 30), (XL - 50, NL["G"][1]), NL["G"])
     s.wire(NL["S"], (NL["S"][0], VS)); s.wire(PL["D"], (PL["D"][0], 30), NL["D"])
     s.wire(PL["S"], (PL["S"][0], VL)); s.wire((PL["S"][0], VL), (2500, VL)); s.pin("VDDD", "inout", 2500, VL, flip=1)
@@ -170,7 +172,7 @@ if __name__ == "__main__":
     LS_XY = symbol("/tmp/ls_tmp.sym", "sspll_ls_1v8_3v3", **LS_PINS)        # pin positions of the step-75 symbol
     RB_XY = symbol(os.path.join(OUT, "sspll_refbuf_hv_rb.sym"), "sspll_refbuf_hv_rb", **RB_PINS)
     S1_XY = symbol(os.path.join(OUT, "sspll_refbuf_hv_s1.sym"), "sspll_refbuf_hv_s1", **S1_PINS)
-    symbol(os.path.join(OUT, "sspll_refbuf.sym"), "sspll_refbuf_hv", **TOP_PINS)
+    symbol(os.path.join(OUT, "sspll_refbuf_hv.sym"), "sspll_refbuf_hv", **TOP_PINS)
     for name, sch in (("sspll_refbuf_hv_rb", rb(R.PDK)), ("sspll_refbuf_hv_s1", s1(R.D, R.PDK)),
                       ("sspll_refbuf_hv", top(R.D, R.PDK, LS_XY, RB_XY, S1_XY))):
         errs = sch.save(os.path.join(OUT, name + ".sch"))

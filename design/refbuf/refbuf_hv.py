@@ -1,9 +1,9 @@
 """refbuf_hv.py - roadmap step 76 redone for the device-rule migration: REF_IN receiver in 5 V devices on VDDA, with a
 3.3 -> 1.8 V level shifter into the 1.8 V clock generator on VDDD. There is no LDO and no VDDL any more.
 
- REF_IN ──┬── C_AC (MIM) ── vin ──┬── S1: current-reuse inverter (5 V, header-fed from VDDA) ── s1 ── S2 (5 V, VDDA) ── s2
+ REF_IN ──┬── C_AC (MIM) ── vin ──┬── S1: current-reuse inverter (5 V, header-fed from VDDA) ── s1 ── S2 (5 V, VDDA) ── refhv (s2)
   R_PU/R_PD (pad at VDDA/2)       └── R_B (xhigh-poly, 5 MOhm) ──┘  self-bias: vin DC = s1 DC = trip point
- s2 (0..3.3 V) ── LS: 5 V inverter on VDDD (gate takes 3.3 V, output 0..1.8 V) ── s3 ── NOR(s3, enl) on VDDD ── refclk
+ refhv (0..3.3 V, also an output: the clock generator's sampling edge, step 77 HV) ── LS: 5 V inverter on VDDD (gate takes 3.3 V, output 0..1.8 V) ── s3 ── NOR(s3, enl) on VDDD ── refclk
 
 What changed from the 1.6 GHz design (refbuf.py, kept for the record):
   * the level-shifter inverter and the 1.8 V output NOR were on VDDL (the LDO output); they are now on VDDD, the
@@ -23,7 +23,7 @@ D, PDK = R.D, R.PDK
 
 
 def full(p=D, q=PDK):
-    """Drawn receiver. Top ports: REF_IN refclk ib pll_en VDDA VDDD VSS."""
+    """Drawn receiver. Top ports: REF_IN refclk refhv ib pll_en VDDA VDDD VSS."""
     rm, n, L = q["RB_SEG"]
     c = C.LS + ".subckt sspll_refbuf_hv_rb a b VSS\n* R_B: %d segments of %s, L = %g um each\n" % (n, rm, L)
     nodes = ["a"] + [f"n{i}" for i in range(1, n)] + ["b"]
@@ -38,17 +38,19 @@ def full(p=D, q=PDK):
     c += _m("p1", "s1", "vin", "vh", "vh", p["P1"]) + _m("n1", "s1", "vin", "VSS", "VSS", p["N1"])
     c += _m("pen", "ib", "en", "VDDA", "VDDA", q["PEN"]) + _m("ns1", "s1", "enb", "VSS", "VSS", q["NS1"])
     c += ".ends\n"
-    c += ".subckt sspll_refbuf_hv REF_IN refclk ib pll_en VDDA VDDD VSS\n"
+    # refhv (added in step 77 HV): S2's 0..3.3 V output, the reference edge in the VDDA domain. The clock generator
+    # takes the SSPD sampling edge from it, so that edge never passes a VDDD gate (VDDD noise moved it 376 ps/V)
+    c += ".subckt sspll_refbuf_hv REF_IN refclk refhv ib pll_en VDDA VDDD VSS\n"
     rm2, _, L2 = q["RPAD"]
     c += f"xrpu VDDA REF_IN VSS sky130_fd_pr__{rm2} l={L2} mult=1 m=1\nxrpd REF_IN VSS VSS sky130_fd_pr__{rm2} l={L2} mult=1 m=1\n"
     cm, nt, s = q["CAC"]
     c += f"xcac vin REF_IN sky130_fd_pr__{cm} w={s} l={s} m={nt}\n"
     c += "xrb vin s1 VSS sspll_refbuf_hv_rb\nxs1 vin s1 ib en enb VDDA VSS sspll_refbuf_hv_s1\n"
     c += "xls pll_en en enb VDDD VDDA VSS sspll_ls_1v8_3v3\n"
-    c += _m("p2", "s2", "s1", "VDDA", "VDDA", p["P2"]) + _m("n2", "s2", "s1", "VSS", "VSS", p["N2"])
+    c += _m("p2", "refhv", "s1", "VDDA", "VDDA", p["P2"]) + _m("n2", "refhv", "s1", "VSS", "VSS", p["N2"])
     # 3.3 -> 1.8 V level shift: a 5 V inverter on VDDD. Its gate oxide takes the full 3.3 V swing of s2; its output
     # swings 0..VDDD. (A 1.8 V device cannot take 3.3 V on its gate.)
-    c += _m("pl", "s3", "s2", "VDDD", "VDDD", p["PL"]) + _m("nl", "s3", "s2", "VSS", "VSS", p["NL"])
+    c += _m("pl", "s3", "refhv", "VDDD", "VDDD", p["PL"]) + _m("nl", "s3", "refhv", "VSS", "VSS", p["NL"])
     c += _m("pei", "enl", "pll_en", "VDDD", "VDDD", q["PEI"]) + _m("nei", "enl", "pll_en", "VSS", "VSS", q["NEI"])
     # output NOR(s3, enl): refclk = not s3 when enabled, 0 when disabled
     c += _m("pb", "xb", "s3", "VDDD", "VDDD", q["PB2"]) + _m("pb2", "refclk", "enl", "xb", "VDDD", q["PB2"])
@@ -59,7 +61,7 @@ def full(p=D, q=PDK):
 def head(corner="tt", temp=27, vdda="3.3", vddd="1.8", en="1.8", ib=2.5e-6, p=D, cl=50e-15):
     """Netlist head: supplies may be numbers or source expressions (e.g. 'sin(3.3 0.01 1e6)')."""
     return (f"* refbuf HV\n.lib {LIB} {corner}\n.temp {temp}\n{full(p)}vdda VDDA 0 {vdda}\nvddd VDDD 0 {vddd}\n"
-            f"iib ib 0 {ib}\nven pll_en 0 {en}\nx1 pad0 refclk ib pll_en VDDA VDDD 0 sspll_refbuf_hv\ncl refclk 0 {cl}\n")
+            f"iib ib 0 {ib}\nven pll_en 0 {en}\nx1 pad0 refclk refhv ib pll_en VDDA VDDD 0 sspll_refbuf_hv\ncl refclk 0 {cl}\n")
 
 
 def src(vdda, vpp, f, wave):
