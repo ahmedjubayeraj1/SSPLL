@@ -1,0 +1,5 @@
+ tt      27 C 3.3 V V_cont 1.8: beta_eff 0.718 uA/rad, q(lock) +1.31 fC -> phase offset -91.0 mrad, |vdump - vctl| before the pulse <= 11.2 mV
+ tt      27 C 3.3 V V_cont 1.3: beta_eff 0.734 uA/rad, q(lock) +1.48 fC -> phase offset -100.8 mrad, |vdump - vctl| before the pulse <= 14.9 mV
+ tt      27 C 3.3 V V_cont 2.3: beta_eff 0.652 uA/rad, q(lock) +1.01 fC -> phase offset -77.2 mrad, |vdump - vctl| before the pulse <= 17.0 mV
+ ss_hh  110 C 2.97 V V_cont 1.8: beta_eff 0.636 uA/rad, q(lock) +1.64 fC -> phase offset -128.7 mrad, |vdump - vctl| before the pulse <= 22.3 mV
+ ff_ll  -40 C 3.63 V V_cont 1.8: beta_eff 0.589 uA/rad, q(lock) +1.30 fC -> phase offset -110.3 mrad, |vdump - vctl| before the pulse <= 17.7 mV

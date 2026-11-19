@@ -67,6 +67,31 @@ def edges(p, nm):
     return s
 
 
+def dly(p):
+    """Gap-1 RC delay: inverter -> R -> C -> three inverters (non-inverting; the last two restore a sharp edge)."""
+    rm, _, _, L = p["RDL"]; cm, cw, _, cl = p["CDL"]
+    s = Sch("sspll_ckg_dly")
+    s.text(f"sspll_ckg_dly: gap-1 delay, both edges about ln2 RC + 4 gates (R: L = {L} um, C: {cw} x {cl} um). It gives the "
+           "pulsed Gm about 2.4 ns after the sample to recover from the SSPD's 800 MHz tracking swing", 40, -560, 0.3)
+    s.pin("in", "in", 60, 0)
+    i1, o1 = inverter(s, "X1", 300, 0, p["INVS"])
+    Rr = s.dev(RES, "XR", 460, 0, f"L={L} mult=1 model={rm} spiceprefix=X", rot=3)
+    Cc = s.dev(MIM, "XC", 600, 90, f"W={cw} L={cl} MF=1 model={cm} spiceprefix=X")
+    i2, o2 = inverter(s, "X2", 800, 0, p["INVS"]); i3, o3 = inverter(s, "X3", 1060, 0, p["INVS"])
+    i4, o4 = inverter(s, "X4", 1320, 0, p["INVS"])
+    s.wire((60, 0), i1)
+    s.wire(o1, Rr["P"] if Rr["P"][0] < Rr["M"][0] else Rr["M"])
+    rc_end = Rr["M"] if Rr["P"][0] < Rr["M"][0] else Rr["P"]
+    s.wire(rc_end, (Cc["c0"][0], rc_end[1]), i2)
+    s.wire((Cc["c0"][0], rc_end[1]), Cc["c0"])
+    s.wire(Cc["c1"], (Cc["c1"][0], Cc["c1"][1] + 30)); s.label("VSS", Cc["c1"][0], Cc["c1"][1] + 30)
+    s.wire(Rr["B"], (Rr["B"][0], Rr["B"][1] - 30)); s.label("VSS", Rr["B"][0], Rr["B"][1] - 30)
+    s.wire(o2, i3); s.wire(o3, i4)
+    s.wire(o4, (1700, 0)); s.pin("out", "out", 1700, 0, flip=1)
+    supplies(s, "VDD", -400, 400)
+    return s
+
+
 def drv5(p, nm, L, TG):
     s = Sch(f"sspll_ckg_{nm}")
     s.text(f"sspll_ckg_{nm}: o follows in through an always-on TG and 2 inverters, ob is inverted through 3; "
@@ -145,7 +170,7 @@ def ortho(s):
     return s
 
 
-def top(p, LS, EXY, LXY, DXY, PXY):
+def top(p, LS, EXY, LXY, DXY, PXY, DLXY):
     s = ortho(Sch("sspll_clkgen_hv"))
     s.text("sspll_clkgen_hv: sampling pair from refhv (receiver, 3.3 V) through a 5 V driver; 1.8 V core on VDDD (refclk buffer, "
            "gap inverters, RC edge pairs, hold latch); each pulse crosses to VDDA as two rising steps and is formed at the 5 V output gates", 40, -560, 0.3)
@@ -162,10 +187,13 @@ def top(p, LS, EXY, LXY, DXY, PXY):
     DS = s.sub("sspll_ckg_drv5.sym", DXY, "xds", 1400, -200)
     s.wire((60, -200), (1000, -200), DS["in"])
     # Gm row
-    j2, q2 = inverter(s, "XI2", 260, 640, p["INVS"], "VDDD"); j3, q3 = inverter(s, "XI3", 520, 640, p["INVS"], "VDDD")
-    s.wire((680, 0), (680, 360), (160, 360), (160, 640), j2); s.wire(q2, j3)
+    DL = s.sub("sspll_ckg_dly.sym", DLXY, "xdl", 400, 640)
+    s.wire((680, 0), (680, 360), (160, 360), (160, DL["in"][1]), DL["in"])
+    s.wire(DL["VDD"], (DL["VDD"][0], DL["VDD"][1] - 30)); s.label("VDDD", DL["VDD"][0], DL["VDD"][1] - 30)
+    s.wire(DL["VSS"], (DL["VSS"][0], DL["VSS"][1] + 30)); s.label("VSS", DL["VSS"][0], DL["VSS"][1] + 30)
     EG = s.sub("sspll_ckg_edges_g.sym", EXY, "xeg", 900, 640)
-    s.wire(q3, (720, 640), EG["in"])
+    q3 = DL["out"]
+    s.wire(q3, (720, q3[1]), (720, 640), EG["in"])
     LG1 = s.sub("../cco_hv/sspll_ls_1v8_3v3.sym", LS, "xlsg1", 1400, 500)
     LG2 = s.sub("../cco_hv/sspll_ls_1v8_3v3.sym", LS, "xlsg2", 1400, 820)
     s.wire((720, 640), (720, 500), (1200, 500), (1200, LG1["in"][1]), LG1["in"])
@@ -231,10 +259,12 @@ if __name__ == "__main__":
     symbol(os.path.join(OUT, "sspll_clkgen_hv.sym"), "sspll_clkgen_hv", left=[("refclk", "in"), ("refhv", "in")],
            right=[("cks", "out"), ("cksb", "out"), ("ckg", "out"), ("ckgb", "out"), ("ckh", "out"), ("ckhb", "out")],
            top=[("VDDD", "inout"), ("VDDA", "inout")], bottom=[("VSS", "inout")])
-    cells = (("sspll_ckg_edges_g", edges(p, "g")), ("sspll_ckg_edges_h", edges(p, "h")),
+    DLXY = symbol(os.path.join(OUT, "sspll_ckg_dly.sym"), "sspll_ckg_dly", left=[("in", "in")], right=[("out", "out")],
+                  top=[("VDD", "inout")], bottom=[("VSS", "inout")])
+    cells = (("sspll_ckg_dly", dly(p)), ("sspll_ckg_edges_g", edges(p, "g")), ("sspll_ckg_edges_h", edges(p, "h")),
              ("sspll_ckg_hlatch", S18.hlatch(p)), ("sspll_ckg_drv5", drv5(p, "drv5", "INV5L", "TG5")),
              ("sspll_ckg_drv5t", drv5(p, "drv5t", "INV5T", "TG5T")), ("sspll_ckg_pout5", pout5(p, DXY)),
-             ("sspll_clkgen_hv", top(p, LS, EXY, LXY, DXY, PXY)))
+             ("sspll_clkgen_hv", top(p, LS, EXY, LXY, DXY, PXY, DLXY)))
     for name, sch in cells:
         errs = sch.save(os.path.join(OUT, name + ".sch"))
         print(name, ":", "\n  ".join(errs) or "drawing check clean")

@@ -253,3 +253,15 @@ Generated from `design/log/log_data.py` (also in `design/SSPLL_design_log.xlsx`,
 **How to run it.** `python3 design/refbuf/step76hv_supply.py --diff -> design/refbuf/data/step76hv_supply.json`
 
 **Limits.** small-signal (10 mV), tt only; 2-3 ripple periods per point (+-5 %); edges sample the ripple at f_ref, so f_m must stay below f_ref/2
+
+## M22. Whole-detector beat run: SSPD + pulsed Gm + clock generator, charge per period vs phase (step 79)
+
+**What it gives.** effective detector gain beta_eff (A/rad) at the lock point, the lock point itself and the charge-phase characteristic
+
+**Why this method.** a pulsed block tested with DC inputs hides any internal node that needs time to settle: with the real SSPD, v1 tracks the 800 MHz ring for half of every period, and the Gm must recover before it is read
+
+**How it works.** ring at (16 + 1/32) f_ref (beat), real clock generator, real Gm on v1, vctl an ideal source; per period the integral of i(vvc) and the ring phase at the sample; cubic fit of charge vs phase within +-0.6 rad of the v1 zero crossing; slope at the charge's zero / T = beta_eff, the zero = lock point
+
+**How to run it.** `python3 design/sscp/step79hv_det.py -> design/sscp/data/step79hv_det.json`
+
+**Limits.** 32 points per ring cycle: the local slope comes from a fit; one run per corner (about 25 min)

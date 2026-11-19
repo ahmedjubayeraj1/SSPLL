@@ -23,7 +23,7 @@ net = (f"* w\n.lib {K.LIB} tt\n.temp 27\n{K.cells()}vddd VDDD 0 1.8\nvdda VDDA 0
        "x1 refclk refhv cks cksb ckg ckgb ckh ckhb VDDD VDDA 0 sspll_clkgen_hv\n" +
        "".join(f"c{k} {k} 0 {v}\n" for k, v in K.LOADS.items()) +
        ".control\ntran 2p 50n\nwrdata w.txt v(refclk) v(cks) v(cksb) v(ckg) v(ckgb) v(ckh) v(ckhb)\n.endc\n.end\n")
-_, d = K.run(net, ["w.txt"]); z = d["w.txt"]; t = z[:, 0]; w = (t > 44.6e-9) & (t < 49e-9)
+_, d = K.run(net, ["w.txt"]); z = d["w.txt"]; t = z[:, 0]; w = (t > 44.6e-9) & (t < 51.5e-9)
 fig, ax = plt.subplots(4, 1, figsize=(11, 6.2), sharex=True)
 for a, (i, nm, col) in zip(ax, ((1, "refclk (1.8 V, VDDD; refhv 0.2 ns earlier)", INK), (2, "cks / cksb", P[0]), (4, "ckg / ckgb (Gm pulse)", P[1]),
                                (6, "ckh / ckhb (hold)", P[2]))):

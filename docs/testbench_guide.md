@@ -572,11 +572,11 @@ of the trip-point size (2.43 and 5.11 pA/√Hz), 312 edges at 1.6 GHz, 4th-order
     - This chain then goes into the system model (`hv_system.py`) as the reference.
 - **Results (tt, 27 °C).**
   - Timing:
-    - t_s 425 ps, skew_s −11 ps, gap1 611 ps;
+    - t_s 425 ps, skew_s −11 ps, gap1 2.36 ns (the RC delay added after step 79);
     - τ 528 ps (322–951 ps over corners);
     - gap2 177 ps (min 108 ps, fs);
-    - W_H 2.68 ns (min 1.84 ns);
-    - t_p 875 ps.
+    - W_H 1.84 ns (1.20–3.31 ns; the hold ends ≤ 8.2 ns after the sample);
+    - t_p 2.62 ns (≤ 4.15 ns).
   - Power 0.72 mW.
   - τ·K_VCO: 0.89 (ff_ll) to 1.14 (ss_hh).
   - Sampling-edge jitter 78 fs → −169.2 dBc/Hz.
@@ -611,7 +611,7 @@ of the trip-point size (2.43 and 5.11 pA/√Hz), 312 edges at 1.6 GHz, 4th-order
     - refhv: 0–VDDA, the receiver's S2 node;
     - refclk: 0–VDDD, 0.2 ns later, as the receiver makes it.
   - The "ring": two ideal complementary 0/VDDA squares (60 ps edges), each behind a 5 V inverter sized like the ring's buffer output stage (1.2/3 µm). So clkp/clkm have a realistic source impedance, which matters for the kick-back.
-  - Loads: 8 fF on each v1 (the Gm input) and 4 fF on each v2 (the NCB input).
+  - Loads: 26 fF on each v1 (the first Gm's measured input; the final Gm has 26.5 fF with C1 0.5 fF larger, the same node) and 4 fF on each v2 (the NCB input).
 - **Benches (`step78hv_sim.py`).**
   - **A — sampled characteristic (M18, `characteristic`).**
     - **Beat.** The ring runs at f = (16 + 1/32)·f_ref, so the sampling instant slides 2π/32 of a ring cycle per period. One 34-period run sweeps the whole characteristic: no phase sweep with 32 separate runs.
@@ -643,10 +643,10 @@ of the trip-point size (2.43 and 5.11 pA/√Hz), 312 edges at 1.6 GHz, 4th-order
   - **D — buffer supply sensitivity (M21 DC form, `buf_supply`).** Delay of the flat buffer path at VDDA and VDDA + 10 mV. The DC form is enough here: plain inverters have no bias loop or coupling capacitor, so their sensitivity is flat in frequency.
   - **Noise budget (`step78hv_noise.py`).** The step-77 REF chain with the SSPD-buffer placeholder replaced by C and D. Then the system model, with the measured A and C_s (kT/C).
 - **Results (tt, 27 °C, 3.3 V).**
-  - A 0.812 V/rad (0.515–1.225 over the 18 conditions); α 0.452; hold DC gain 1.004.
+  - A 0.811 V/rad (0.536–1.145 over the 18 conditions); α 0.451; hold DC gain 1.004.
   - CM 1.66 V; power 1.03 mW.
   - Kick-back 69 fs (spur −99 dBc); f_ref supply current 0.80 µA with the dummy vs 27.9 µA without.
-  - Buffer jitter 86 fs per side (−171.4 dBc/Hz); buffer VDDA 22 ps/V.
+  - Buffer jitter 83 fs per side (−171.6 dBc/Hz); buffer VDDA 22 ps/V.
 - **Pitfalls.**
   - Use the combined MOS + R/C corners. A is set by R_s·C1, and plain ss/ff keep R and C typical.
   - A is proportional to VDDA. Always pair the slow corner with VDDA 2.97 V, or the minimum A is missed.
@@ -663,6 +663,63 @@ of the trip-point size (2.43 and 5.11 pA/√Hz), 312 edges at 1.6 GHz, 4th-order
   - Characteristic: read v1p − v1m at the Gm-pulse times with the calculator's `value(sig time)` on a time list, or run pss with the beat frequency as the fundamental.
   - Kick-back: two transients and `cross()` on clkp.
   - Buffer jitter: transient noise or pss + pnoise.
+
+#### 5 V pulsed-Gm charge pump benches (M10, M11, M16, M18, step 79) — `design/sscp/sscp_hv.py`
+- **Purpose.** Prove six things:
+  - with its real detector in front, the Gm gives the loop gain step 73 HV designed for (β = 2A·G·τ/T = 0.79 µA/rad), and the lock point sits inside the Gm's linear range;
+  - G holds over corners, V_cont and the trim codes;
+  - steering the output between the filter and the dump node leaves little charge per period;
+  - the dump node is held at V_cont over the whole window;
+  - the pump's noise and its VDDA rejection fit the budget;
+  - the trim decoder sets the right number of slices.
+- **The most important lesson of this step: test a block with its real neighbour.**
+  - The first Gm passed every bench with DC sources on v1.
+  - Only the whole-detector bench (bench B below) showed what the SSPD's real waveform does to it: v1 tracks the 800 MHz ring for half of every period.
+  - That bench found three faults: the mirror was too slow, the dump node rippled, and the Gm needs recovery time.
+- **Common setup (`head()`).**
+  - DUT `sspll_sscp_hv`: five slices, the replica bias, two steering TGs, the dump buffer and 2 pF.
+  - v1p/v1m are ideal sources around 0.503·VDDA (the SSPD's sampled common mode).
+  - vctl is an ideal source at V_cont. The current into it, `i(vvc)`, is the current into the loop filter. A source is used because the filter holds V_cont nearly constant over one period, and the source measures every femtocoulomb.
+  - ib: 2 µA from an ideal current source (the bias generator's unit).
+  - e1–e5 and eb1–eb5: ideal sources at the code's pattern (00 → 3 slices, 01 → 4, 10 → 2, 11 → 5).
+- **Benches.**
+  - **B — whole detector (M18 extended, `step79hv_det.py`).**
+    - Setup: the step-78 beat bench (ring at (16 + 1/32)·f_ref behind a 5 V buffer stage, the real clock generator) with the real Gm on v1 instead of the placeholder capacitor.
+    - Readings:
+      - every period, the charge into vctl (integral of `i(vvc)` from 1 ns before the sample over one period);
+      - the ring phase at the sample;
+      - vdump − vctl just before the pulse.
+    - β_eff = (slope of charge vs phase at the charge's zero) / T, from a cubic fit within ±0.6 rad. The zero itself is the lock point.
+    - Conditions: tt at V_cont 1.3 / 1.8 / 2.3 V, ss_hh 110 °C at 2.97 V, ff_ll −40 °C at 3.63 V.
+  - **Recovery sweep (`step79hv_delay.py`).** The locked detector with ckg/ckgb from ideal sources at 0.7 / 2 / 3 / 4.5 ns after the sample. Two lock phases give the gain per volt; the charge at lock gives the static error. This set step 77's gap-1 delay.
+  - **A — DC transfer (M10, `dc_transfer`).**
+    - ckg held high, so x is connected to vctl.
+    - `dc` sweep of v1p − v1m over ±0.8 V.
+    - G = the slope at 0 V; offset = −I(0)/G; linear range = where the slope stays within 10 % of G.
+    - Conditions: 11 corners at V_cont 1.8 V; V_cont 1.3 / 2.3 V at tt, ss 110 °C and ff −40 °C; codes 01/10/11 at tt.
+  - **D — dump buffer (`buffer_check`).** `op` gives vdump − vctl; `ac` with 1 V on vctl gives |vdump/vctl| (peaking, f_3dB). 5 corners × V_cont 1.3 / 1.8 / 2.3 V.
+  - **Pulsed with DC inputs (M16, `pulsed`).** The real clock generator makes ckg/ckgb from ideal refhv/refclk edges; v1 is DC. Integrate `i(vvc)` over 4 periods. This isolates the steering: switch injection and dump error, without the Gm's recovery.
+  - **C — noise (M11, `noise`).**
+    - `.noise` of the current into vctl: vvc is split by an ammeter `vmeas`, and a CCVS `h1` turns that current into a voltage.
+    - In the system the current noise is gated with duty d = τ/T, so it becomes S_φ = S_i/(4A²G²d) (`step79hv_noise.py`).
+    - To find the devices responsible: `noise ... 1` (one summary point per decade) and `setplot noise2; print all` give each device's integrated contribution (`step79hv_noisesize.py` uses this breakdown).
+  - **E — VDDA rejection (M11, `psr`).** `ac` with 1 V on VDDA and zero input gives |i(vvc)| per volt; it acts only during the pulse, so S_φ = |Y|²S_v/(2AG)². The same run's `op` gives I(VDDA).
+  - **Input capacitance (`step79hv_cin.py`).** `ac` with 1 V on v1p gives C_in = Im(I)/(2πf) at 50–200 MHz, for every code, ckg on/off, three corners. The SSPD's C1 is sized with it.
+- **Results (tt, 27 °C, final design).** G 18.51 µS (17.5–19.6 over corners and V_cont); offset ≤ 12 mV; linear ±0.38 V at tt (≥ ±0.23 V); codes ×0.67 / 1 / 1.33 / 1.66. Whole detector: β_eff 0.81 µA/rad at tt (0.79 with the final C1), lock point −74 to −129 mrad, β_eff 0.69–0.81 over the corners. Dump buffer ≤ 11.7 mV, f_3dB ≥ 5 MHz with 2 pF. Pulsed with DC inputs: 9.0 fC/V (G·τ = 9.5), +0.58 / +0.24 / −0.11 fC at V_cont 1.3 / 1.8 / 2.3 V. Noise 3.9 / 1.48 pA/√Hz at 10 kHz / 1 MHz → 224 fs in the system. VDDA → 1.08 µA/V at 1 MHz (6 fs). C_in 26.5 fF. I(VDDA) 90 µA.
+- **Pitfalls.**
+  - A DC-input bench cannot reveal a slow internal node: the node is always settled. Test with the real waveform (bench B) before believing a pulsed circuit.
+  - Sign: `dc_transfer` records −i(vvc), the current the source pushes *out* into the circuit. With v1p > v1m the Gm pushes current into vctl, so that slope is negative (G is reported as its magnitude). The loop polarity follows from this sign.
+  - In bench A ckg is a static 3.3 V, so the dump path plays no part; bench D covers it separately.
+  - `lvs.sh` used to read only netgen's topology line. A multiplier drawn ×1 against ×12 in the netlist still read "match"; the script now also prints netgen's property errors.
+- **xschem.**
+  - `xschem/sscp_hv/sspll_sscp_hv_top.sym` (with the decoder) or `sspll_sscp_hv.sym` (enables as pins).
+  - `vsource` for v1p/v1m, vctl and VDDA; `isource` for ib.
+  - For C: an ammeter `vsource 0` in series with vctl and a `ccvs`.
+  - Bench B: the step-78 bench schematic with this symbol on v1.
+- **Cadence.**
+  - The same with `vdc`/`idc`; Spectre `noise` takes `i(vvc)` as the output directly, and its noise summary sorts the contributors.
+  - E: `ac` with `acm=1` on VDDA.
+  - B: a transient and the calculator's `integ(i(vvc) t1 t2)` per period.
 
 #### moscap_hv_cv — C-V of the 5 V loop-filter capacitor (M6, step 73 redo)
 - **Purpose.** Step 73 needs the capacitance per area of the thick-oxide MOS capacitor that now forms C1, and the

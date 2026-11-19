@@ -13,9 +13,9 @@ sheet = r"""| Quantity | Formula | Value (tt) | Why this value |
 | Driver taper | C_in(k+1)/C_in(k) | ≈ 3 | INV5S 1/2.5 → INV5M 2.5/6.25 → INV5L 8/20 µm into 60 fF |
 | Edge-pair delay | t_stop − t_start ≈ ln2·R·C_G + 2 gates | ≈ 0.45 ns | sets τ together with the output-gate difference |
 | Gm pulse | τ = (t_stop − t_start) + (d_o − d_ob) | 528 ps | full 0–3.3 V swing at the fastest corner (≥ 322 ps) |
-| Loop delay | t_p = gap1 + τ/2 | 875 ps | ≤ 5 ns; costs ΔPM = 360°·f_c·Δt_p = 0.34° |
+| Loop delay | t_p = gap1 + τ/2 | 2.62 ns | ≤ 5 ns; costs ΔPM ≈ 1.4° |
 | Gap 2 | 4 inverter delays + output-gate difference | 177 ps | ≥ 100 ps: Gm off before C1 → C2 sharing |
-| Hold pulse | W_H ≈ ln2·R·C_H + gates | 2.68 ns | ≥ 1.5 ns = 5 time constants of the C1–C2 transfer |
+| Hold pulse | W_H ≈ ln2·R·C_H + gates | 1.84 ns | ≥ 1.0 ns, and must end before tracking resumes |
 | Dynamic power | Σ C·VDDA²·f_ref per output + internal | 0.72 mW | 6 outputs × (40–60 fF load + ≈ 50 fF self) × 3.3² × 50 MHz ≈ 0.3 mW, the rest is internal 5 V gates and short-circuit current |"""
 
 def row(r):
@@ -38,9 +38,9 @@ timing += (f"\n\n**Spread over all {len(ok)} conditions (none failed):** τ {mn(
            "- t_s grows with a smaller reference amplitude (1.88 ns at 1 V sine, 2.43 ns at 0.4 V): that is the receiver's "
            "slope, not the clock generator. Only its *stability* matters, because the loop locks the VCO to whatever "
            "instant cks falls.\n"
-           "- gap1 is the time between cks/cksb settling and the Gm turning on; it is ≥ 328 ps, so the sample is always "
-           "frozen before it is read.\n"
-           "- t_p (sample → middle of the Gm pulse) is the loop's delay; the slowest corner gives 1.45 ns.")
+           "- gap1 is the time between cks/cksb settling and the Gm turning on; since step 79 it holds an RC delay of about "
+           "2 ns (section B2), so the Gm has recovered from the SSPD's tracking swing before it is read.\n"
+           "- t_p (sample → middle of the Gm pulse) is the loop's delay; the slowest corner gives 4.15 ns (≤ 5 ns).")
 J = sim["jitter"]; S = sim["S"]
 jitter = (f"| Stage (node) | Trip-point noise current |\n|---|---|\n" +
           "\n".join(f"| {k} | {v**0.5*1e12:.2f} pA/√Hz |" for k, v in S.items()) +
@@ -58,7 +58,7 @@ def dev(name, d):
         return f"| {name} | {d[0]} | {d[1]} × {d[3]} µm | — |"
     (n, wn, mn_, ln), (p, wp, mp, lp) = d
     return f"| {name} | n {wn} µm ×{mn_}, p {wp} µm ×{mp} | L {ln} µm | 5 V (g5v0d10v5) |"
-keys = ["INV5S", "INV5M", "INV5L", "INV5A", "INV5T", "TG5", "TG5T", "NOR5L", "NAND5L", "CG", "CH"]
+keys = ["INV5S", "INV5M", "INV5L", "INV5A", "INV5T", "TG5", "TG5T", "NOR5L", "NAND5L", "CG", "CH", "CDL"]
 sizing = ("| Device | Size | L | Type |\n|---|---|---|---|\n" + "\n".join(dev(k, K.D[k]) for k in keys) +
           "\n\nThe 1.8 V core (RC edge generators, gap inverters, hold latch) keeps the 13 Nov sizes of `clkgen.py`; the four "
           "level shifters are the step-75 HV cell `sspll_ls_1v8_3v3`. All widths ≥ 0.42 µm, all 5 V lengths = 0.5 µm "

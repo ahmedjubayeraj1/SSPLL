@@ -46,7 +46,12 @@ D.update(
     NAND5L=((N5, 2.0, 2, 0.5), (P5, 5.0, 1, 0.5)),      # pulse output NAND: series nMOS 4 um each, pMOS 5 um
     CG=("cap_mim_m3_1", 4.0, 1, 4.0),                   # Gm pulser C: tau ~ 530 ps typ, >= 280 ps at ff_ll / 110 C
                                                         # (a 210 ps pulse no longer reaches full swing there)
-    CH=("cap_mim_m3_1", 6.0, 1, 6.0),                   # hold pulser C
+    CH=("cap_mim_m3_1", 4.5, 1, 4.5),                   # hold pulser C (W_H ~1.8 ns tt, so the hold ends before tracking
+                                                        # resumes at the slowest corner with the longer gap 1)
+    # gap-1 delay (added after step 79): the pulsed Gm needs about 2-3 ns after the sample to recover from the 800 MHz
+    # tracking swing of the SSPD (its degeneration R_S x source capacitance); with the 0.6 ns gap the charge per period
+    # at lock was 4.4 fC and the gain 73 % of G tau, with 3 ns 0.7 fC and 102 % (step79hv_det.py / recovery runs)
+    RDL=("res_xhigh_po_0p35", 0.35, 1, 6.0), CDL=("cap_mim_m3_1", 5.3, 1, 5.3),
 )
 # loads of the 3.3 V pairs: 5 V switch gates of the SSPD (step 78) and the Gm (step 79), estimated about 2x the
 # 1.8 V switches of 13 Nov (thick oxide: 1/3 the C per area, but longer and wider devices); checked in steps 78 / 79
@@ -72,6 +77,11 @@ def cells(p=D):
         c += f"xc rc VSS sky130_fd_pr__{cm} w={cw} l={cl} m=1\n"
         c += inv("x3", "rc", "stop", p["INVS"]) + nor2("x4", "inb", "stop", "pls", p["NOR"])
         c += ".ends\n"
+    rm, _, _, L = p["RDL"]; cm, cw, _, cl = p["CDL"]
+    c += (".subckt sspll_ckg_dly in out VDD VSS\n* RC delay (1.8 V): both edges delayed by about ln2 RC + 4 gates; non-inverting\n" +
+          inv("x1", "in", "a", p["INVS"]) + f"xr a rc VSS sky130_fd_pr__{rm} l={L} mult=1 m=1\n"
+          f"xc rc VSS sky130_fd_pr__{cm} w={cw} l={cl} m=1\n" + inv("x2", "rc", "b", p["INVS"]) +
+          inv("x3", "b", "c", p["INVS"]) + inv("x4", "c", "out", p["INVS"]) + ".ends\n")   # x2-x4 restore a sharp edge
     c += (".subckt sspll_ckg_hlatch s r out VDD VSS\n* NOR latch q = set by s, reset by r; out = q AND NOT s\n" +
           nor2("xl1", "r", "qb", "q", p["NOR"]) + nor2("xl2", "s", "q", "qb", p["NOR"]) +
           nor2("xl3", "qb", "s", "out", p["NOR"]) + ".ends\n")
@@ -99,8 +109,8 @@ def cells(p=D):
     # driver: no VDDD gate in the sampling path (through refclk, the level shifter and two VDDD inverters the edge
     # moved 376 ps per volt of VDDD, step77hv_supply_via_vddd.json)
     c += "xds refhv cksb cks VDDA VSS sspll_ckg_drv5\n"
-    # Gm pulse: gap 1 (two 1.8 V inverters), edge pair, two level shifters, rebuild, driver
-    c += re.sub(r"\bVDD\b", "VDDD", inv("xi2", "r2", "g1", p["INVS"]) + inv("xi3", "g1", "g2", p["INVS"]))
+    # Gm pulse: gap 1 (RC delay, about 2.4 ns, then the edge pair), two level shifters, rebuild, driver
+    c += "xdl r2 g2 VDDD VSS sspll_ckg_dly\n"
     c += "xeg g2 gstop pg VDDD VSS sspll_ckg_edges_g\n"
     c += "xlsg1 g2 g2h g2hb VDDD VDDA VSS sspll_ls_1v8_3v3\nxlsg2 gstop gsh gshb VDDD VDDA VSS sspll_ls_1v8_3v3\n"
     c += "xpg g2h gsh ckg ckgb VDDA VSS sspll_ckg_pout5\n"

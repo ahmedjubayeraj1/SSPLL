@@ -11,3 +11,4 @@ net=netlist/$(basename "${sch%.sch}").spice
 $NETGEN -batch lvs "$net $cell" "$ref $cell" "$PDK_ROOT/$PDK/libs.tech/netgen/${PDK}_setup.tcl" \
   netlist/${cell}_lvs.out > netlist/${cell}_lvs.log 2>&1
 grep -E "Circuits match uniquely|Netlists do not match|Netlists match" netlist/${cell}_lvs.out | tail -1
+grep -i "property errors" netlist/${cell}_lvs.out | head -1

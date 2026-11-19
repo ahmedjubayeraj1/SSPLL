@@ -1,0 +1,1 @@
+A 0.810 V/rad, alpha 0.451, gain_v2 1.004, P 1.028 mW; kick 68.5 fs, spur -98.9 dBc, I_fref 0.73 uA

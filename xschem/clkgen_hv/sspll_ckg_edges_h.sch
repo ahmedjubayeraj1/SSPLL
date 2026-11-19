@@ -4,7 +4,7 @@ K {}
 V {}
 S {}
 E {}
-T {sspll_ckg_edges_h: stop rises ln2 RC + 2 gates after in rises (R: L = 6.0 um, C: 6.0 x 6.0 um); pls = in AND NOT stop = NOR(inb, stop), the 1.8 V pulse} 40 -560 0 0 0.3 0.3 {}
+T {sspll_ckg_edges_h: stop rises ln2 RC + 2 gates after in rises (R: L = 6.0 um, C: 4.5 x 4.5 um); pls = in AND NOT stop = NOR(inb, stop), the 1.8 V pulse} 40 -560 0 0 0.3 0.3 {}
 N 320 -50 320 50 {lab=}
 N 280 -80 240 -80 {lab=}
 N 240 -80 240 80 {lab=}
@@ -64,7 +64,7 @@ C {sky130_fd_pr/nfet3_01v8.sym} 300 80 0 0 {name=X2N L=0.15 W=0.42 nf=1 mult=1 a
 C {devices/lab_pin.sym} 320 -140 0 0 {name=l_VDD_3 sig_type=std_logic lab=VDD}
 C {devices/lab_pin.sym} 320 140 0 0 {name=l_VSS_4 sig_type=std_logic lab=VSS}
 C {sky130_fd_pr/res_xhigh_po_0p35.sym} 460 0 3 0 {name=XR L=6.0 mult=1 model=res_xhigh_po_0p35 spiceprefix=X}
-C {sky130_fd_pr/cap_mim_m3_1.sym} 600 90 0 0 {name=XC W=6.0 L=6.0 MF=1 model=cap_mim_m3_1 spiceprefix=X}
+C {sky130_fd_pr/cap_mim_m3_1.sym} 600 90 0 0 {name=XC W=4.5 L=4.5 MF=1 model=cap_mim_m3_1 spiceprefix=X}
 C {sky130_fd_pr/pfet3_01v8.sym} 800 -80 0 0 {name=X3P L=0.15 W=0.84 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=pfet_01v8 spiceprefix=X body=VDD}
 C {sky130_fd_pr/nfet3_01v8.sym} 800 80 0 0 {name=X3N L=0.15 W=0.42 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_01v8 spiceprefix=X body=VSS}
 C {devices/lab_pin.sym} 820 -140 0 0 {name=l_VDD_9 sig_type=std_logic lab=VDD}

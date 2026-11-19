@@ -20,8 +20,8 @@ result = (f"The clock generator keeps its 1.8 V timing core on VDDD and drives t
           f"shifters, the pulse formed at the 3.3 V output gate), and the **sampling edge comes straight from the receiver's "
           f"3.3 V node refhv**, so it never passes a VDDD gate. At tt: sampling instant {tt['t_s']*1e12:.0f} ps after REF_IN, "
           f"cks/cksb skew {tt['skew_s']*1e12:.0f} ps, Gm pulse **τ = {tt['tau']*1e12:.0f} ps** (322–951 ps over 25 conditions; "
-          f"τ·K_VCO 0.89–1.14 of nominal), gap 2 ≥ 108 ps, hold ≥ 1.84 ns, loop delay **t_p = {tt['t_p']*1e9:.2f} ns** "
-          f"(≤ 1.45 ns). The sampling edge adds **{J_['sigma']*1e15:.0f} fs** ({J_['L_floor']:.1f} dBc/Hz) and moves "
+          f"τ·K_VCO 0.89–1.14 of nominal), gap 2 ≥ 109 ps, hold 1.20–3.31 ns, loop delay **t_p = {tt['t_p']*1e9:.2f} ns** "
+          f"(≤ 4.15 ns; the Gm pulse waits about 2.4 ns after the sample, section B2). The sampling edge adds **{J_['sigma']*1e15:.0f} fs** ({J_['L_floor']:.1f} dBc/Hz) and moves "
           f"**{d3[1]:.1f} ps/V with VDDD** (was {do[1]:.0f} ps/V through refclk) and {a3[0]:.0f}–{a3[1]:.0f} ps/V with VDDA. "
           f"REF chain floor {last('3.3_typ', 'chain'):.1f} dBc/Hz (allocation −155). System with a 3.3 V square reference: "
           f"**{o['off']['total']:.2f} / {o['on']['total']:.2f} ps**, L(300 kHz) {o['off']['L300k']:.1f} / {o['on']['L300k']:.1f} "
@@ -67,12 +67,12 @@ system = ("| Case | receiver S1 | clock gen | VDDA | VDDD | REF chain | jitter o
           f"now the largest REF-chain terms with a square input, still {-155 - last('3.3_typ', 'chain'):.0f} dB under the "
           f"allocation; with a 1 V sine the receiver's S1 dominates.")
 powerreq = ("clock generator 0.72 mW typ (0.54–0.95) against 0.41 mW (0.08 core + 0.33 level shifters): +0.31 mW. Running "
-            "total 9.13 + 0.03 (receiver) − 0.18 (CCO) + 0.31 = 9.29 mW typ (proposal 9.1, max 15); settled after step 79, "
+            "total 7.55 (after step 74 HV) − 0.18 (CCO) + 0.03 (receiver) + 0.31 = 7.71 mW typ (proposal 9.1, max 15); settled after step 79, "
             "when the SSPD and the Gm are measured.")
 proposal = ("- **Timing, jitter, phase noise:** no change. Every typical and maximum value still holds (table in E).\n"
             "- **Architecture text:** already updated on 19 Nov (the sampling edge stays in the 3.3 V domain; VDDD carries no "
             "noise requirement).\n"
-            "- **Power:** the typical rises from 9.13 to 9.29 mW with this step, against the proposal's 9.1 mW. Steps 78 and "
+            "- **Power:** the typical rises from 7.40 to 7.71 mW with this step (proposal 9.1 mW). Steps 78 and "
             "79 add the SSPD and the Gm; the power line is decided once, after step 79, with all three numbers measured, "
             "instead of being edited three times.")
 s = open(DOC).read()

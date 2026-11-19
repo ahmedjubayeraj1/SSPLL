@@ -144,8 +144,9 @@ QA77HV = [
 ("Why was the Gm pulse lengthened from 200 ps to about 530 ps, and what does it cost?",
  "So that it reaches full swing at every corner with 5 V output gates (≥ 322 ps at ff_ll / 110 °C). The loop only sees "
  "β = 2A·g_m·τ/T, so step 79 lowers g_m by the same factor; the pulsed-Gm noise, which goes as 1/(g_m·τ), is "
- "unchanged. The loop delay t_p (sample → middle of the Gm pulse) grows to about 0.9 ns, still far below the 5 ns limit; "
- "at f_c = 2.5 MHz the extra 0.38 ns costs 0.34° of phase margin (0.85° at the slowest corner)."),
+ "unchanged. The loop delay t_p (sample → middle of the Gm pulse) became 0.9 ns with the 5 V outputs, and 2.6 ns once step 79 "
+ "asked for a 2 ns wait after the sample (the Gm must recover from the SSPD's tracking swing); still below the 5 ns limit, "
+ "costing about 1.4° of phase margin at tt."),
 ("Why is τ allowed to vary 3× over the corners?",
  "Because the loop gain is β·K_VCO and τ is set mainly by gate delays: slow devices make τ longer exactly where the "
  "thick-oxide ring has a lower K_VCO. The product τ·K_VCO stays within ×0.89–1.14 of nominal (ff_ll −40 °C to ss_hh 110 °C)."),
@@ -162,7 +163,7 @@ QA77HV = [
 ("Why does the clock generator now cost about 0.7 mW instead of 0.08 mW?",
  "Its outputs and their drivers switch 3.3 V instead of 1.8 V (3.4× the energy per unit capacitance), the thick-oxide "
  "gates are larger for the same speed, and four level shifters add contention current. Most of it is the two pulse "
- "outputs (≈ 0.15 mW each), the sampling driver (≈ 0.16 mW) and the level shifters (≈ 33 µW each). It is 0.31 mW over its 0.41 mW allocation; with the receiver (+0.03) and the CCO (−0.18) the total is 9.29 mW, inside the proposal's 'about 9 mW' (maximum 15 mW)."),
+ "outputs (≈ 0.15 mW each), the sampling driver (≈ 0.16 mW) and the level shifters (≈ 33 µW each). It is 0.31 mW over its 0.41 mW allocation; the ring and its buffers came in 1.57 mW under budget in step 74, so the running total is 7.71 mW, against the proposal's 9.1 mW (maximum 15 mW)."),
 ("Why must gap 2 be at least 100 ps, and what fixed it?",
  "Gap 2 separates the end of the Gm pulse from the start of the hold transfer: the Gm must have finished reading C1 "
  "before C1 shares its charge with C2. With two gap inverters it fell to 79 ps at the fs corner; four inverters give "

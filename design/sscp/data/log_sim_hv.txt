@@ -1,0 +1,43 @@
+A done
+  tt      27 C 3.3 V vctl 1.8 code 00: G 18.51 uS, v_os -0.93 mV, linear -0.38..0.44 V
+  ss     110 C 2.97 V vctl 1.8 code 00: G 19.17 uS, v_os 4.61 mV, linear -0.29..0.32 V
+  ss     -40 C 2.97 V vctl 1.8 code 00: G 19.07 uS, v_os 6.79 mV, linear -0.23..0.41 V
+  ff     -40 C 3.63 V vctl 1.8 code 00: G 18.00 uS, v_os -5.36 mV, linear -0.47..0.48 V
+  ff     110 C 3.63 V vctl 1.8 code 00: G 19.11 uS, v_os -6.41 mV, linear -0.38..0.39 V
+  sf      27 C 3.3 V vctl 1.8 code 00: G 18.74 uS, v_os -0.21 mV, linear -0.40..0.43 V
+  fs      27 C 3.3 V vctl 1.8 code 00: G 18.47 uS, v_os -1.30 mV, linear -0.34..0.43 V
+  ss_hh  110 C 2.97 V vctl 1.8 code 00: G 18.34 uS, v_os 4.82 mV, linear -0.30..0.34 V
+  ff_ll  -40 C 3.63 V vctl 1.8 code 00: G 19.21 uS, v_os -5.02 mV, linear -0.43..0.44 V
+  hl      27 C 3.3 V vctl 1.8 code 00: G 17.51 uS, v_os -0.98 mV, linear -0.40..0.47 V
+  lh      27 C 3.3 V vctl 1.8 code 00: G 19.64 uS, v_os -0.88 mV, linear -0.36..0.40 V
+  tt      27 C 3.3 V vctl 1.3 code 00: G 18.43 uS, v_os -6.00 mV, linear -0.38..0.44 V
+  tt      27 C 3.3 V vctl 2.3 code 00: G 18.52 uS, v_os 4.91 mV, linear -0.38..0.44 V
+  ss     110 C 2.97 V vctl 1.3 code 00: G 19.09 uS, v_os -1.09 mV, linear -0.29..0.32 V
+  ss     110 C 2.97 V vctl 2.3 code 00: G 19.16 uS, v_os 12.10 mV, linear -0.29..0.32 V
+  ff     -40 C 3.63 V vctl 1.3 code 00: G 17.92 uS, v_os -10.77 mV, linear -0.47..0.48 V
+  ff     -40 C 3.63 V vctl 2.3 code 00: G 18.00 uS, v_os 0.37 mV, linear -0.47..0.48 V
+  tt      27 C 3.3 V vctl 1.8 code 01: G 24.66 uS, v_os -0.93 mV, linear -0.38..0.44 V
+  tt      27 C 3.3 V vctl 1.8 code 10: G 12.35 uS, v_os -0.93 mV, linear -0.38..0.44 V
+  tt      27 C 3.3 V vctl 1.8 code 11: G 30.80 uS, v_os -0.93 mV, linear -0.38..0.44 V
+  D tt 27 3.3 vctl 1.3: vdump - vctl 5.41 mV, peaking -0.07 dB, f3dB 7.9 MHz
+  D tt 27 3.3 vctl 1.8: vdump - vctl 1.04 mV, peaking -0.08 dB, f3dB 10.0 MHz
+  D tt 27 3.3 vctl 2.3: vdump - vctl -3.96 mV, peaking -0.10 dB, f3dB 10.0 MHz
+  D ss 110 2.97 vctl 1.3: vdump - vctl 3.45 mV, peaking -0.09 dB, f3dB 5.0 MHz
+  D ss 110 2.97 vctl 1.8: vdump - vctl -2.71 mV, peaking -0.12 dB, f3dB 7.9 MHz
+  D ss 110 2.97 vctl 2.3: vdump - vctl -11.67 mV, peaking -0.22 dB, f3dB 7.9 MHz
+  D ss -40 2.97 vctl 1.3: vdump - vctl 1.11 mV, peaking -0.07 dB, f3dB 7.9 MHz
+  D ss -40 2.97 vctl 1.8: vdump - vctl -3.46 mV, peaking -0.09 dB, f3dB 12.6 MHz
+  D ss -40 2.97 vctl 2.3: vdump - vctl -9.42 mV, peaking -0.14 dB, f3dB 12.6 MHz
+  D ff -40 3.63 vctl 1.3: vdump - vctl 6.68 mV, peaking -0.06 dB, f3dB 10.0 MHz
+  D ff -40 3.63 vctl 1.8: vdump - vctl 3.24 mV, peaking -0.06 dB, f3dB 12.6 MHz
+  D ff -40 3.63 vctl 2.3: vdump - vctl -0.38 mV, peaking -0.07 dB, f3dB 12.6 MHz
+  D ff 110 3.63 vctl 1.3: vdump - vctl 10.63 mV, peaking -0.07 dB, f3dB 6.3 MHz
+  D ff 110 3.63 vctl 1.8: vdump - vctl 6.26 mV, peaking -0.08 dB, f3dB 7.9 MHz
+  D ff 110 3.63 vctl 2.3: vdump - vctl 1.38 mV, peaking -0.09 dB, f3dB 7.9 MHz
+  B vd 0.0 vctl 1.8: charge/period 0.24 fC, average 12.18 nA, tau 514 ps
+  B vd 0.1 vctl 1.8: charge/period 1.15 fC, average 57.41 nA, tau 514 ps
+  B vd -0.1 vctl 1.8: charge/period -0.65 fC, average -32.58 nA, tau 514 ps
+  B vd 0.0 vctl 1.3: charge/period 0.58 fC, average 29.16 nA, tau 516 ps
+  B vd 0.0 vctl 2.3: charge/period -0.11 fC, average -5.32 nA, tau 512 ps
+C noise at 1 MHz 1.48176288 pA/rtHz
+E |dI/dVDDA| at 1 MHz 1084.33649 nA/V; I(VDDA) 89.7419 uA

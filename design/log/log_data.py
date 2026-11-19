@@ -824,8 +824,8 @@ RESULTS += [
 # ------------------------------------------------------------------ step 77 redo: clock generator with 3.3 V outputs (19 Nov 2026)
 STEPS.append(("77-HV", "Clock generator: 1.8 V timing core on VDDD, edge-pair level shifting to 3.3 V, sampling edge from refhv", "done",
               "docs/design/step77_hv_clkgen.md, design/clkgen/clkgen_hv.py, step77hv_*.py, schematics_hv.py, xschem/clkgen_hv/",
-              "t_s 425 ps, cks/cksb skew -11 ps, gap1 >= 328 ps, tau 528 ps (322-951), gap2 >= 108 ps, W_H >= 1.84 ns, "
-              "t_p 0.88 ns (0.52-1.45), tau*K_VCO 0.89-1.14, 0.72 mW (0.54-0.95); sampling-edge jitter 78 fs (-169.2 dBc/Hz); "
+              "t_s 425 ps, cks/cksb skew -11 ps, gap1 2.36 ns (RC delay, >= 1.67), tau 528 ps (322-951), gap2 >= 109 ps, W_H 1.20-3.31 ns, "
+              "t_p 2.62 ns (1.83-4.15), tau*K_VCO 0.89-1.14, 0.72 mW (0.54-0.95); sampling-edge jitter 78 fs (-169.2 dBc/Hz); "
               "REF_IN -> cks: VDDA 148-175 ps/V, VDDD 2.1 ps/V; chain -164.2 dBc/Hz typ; system 1.97 / 1.31 ps typ; LVS clean"))
 PROBLEMS += [
  ("77-HV", "timing", "ckg never reached 90 % of VDDA in the first run", "tran at tt",
@@ -853,16 +853,21 @@ PROBLEMS += [
   "the sampling edge no longer uses refclk", "combined M21 run with the 1 V sine (step77hv_supply.py --sine1)", "fixed"),
  ("77-HV", "power", "clock generator 0.72 mW vs 0.41 mW allocated (0.08 core + 0.33 level shifters)", "tran",
   "six 3.3 V outputs into 40-60 fF switch gates plus their 5 V drivers: C V^2 f at 3.3 V",
-  "accepted: total 9.29 mW typ with the receiver (+0.03) and CCO (-0.18); proposal 'about 9 mW', max 15 mW", "accepted"),
+  "accepted: running total 7.71 mW typ (step 74 HV saved 1.57 mW on the ring and buffers); proposal 9.1, max 15 mW", "accepted"),
+ ("77-HV", "timing", "pulsed Gm read 0.6 ns after the sample: 4.4 fC per period at lock, 73 % of G tau", "step79hv_det.py + delay sweep",
+  "the Gm's source nodes (R_S x C ~1.5 ns) were still recovering from the SSPD's +-2 V 800 MHz tracking swing",
+  "RC delay cell sspll_ckg_dly before the Gm edge pair: gap1 2.36 ns (1.67-3.66); C_H 6x6 -> 4.5x4.5 so the hold ends "
+  "<= 8.2 ns after the sample; t_p 2.62 ns (PM 48.6 deg); charge 0.7 fC, gain 102 %", "fixed"),
  ("77-HV", "infrastructure", "cloud restarts stopped the jitter and supply runs twice", "processes gone",
   "long jobs", "setsid / nohup, checkpoint after parts A and B", "fixed"),
 ]
 RESULTS += [
  ("Clock gen HV tau (Gm pulse), tt / min", 0.528, 0.30, "ns", "min", "77-HV", "322 ps at ff_ll 110 C"),
  ("Clock gen HV tau*K_VCO spread", 1.14, 1.15, "x nominal", "max", "77-HV", "0.89-1.14"),
- ("Clock gen HV gap2 min", 108, 100, "ps", "min", "77-HV", "fs"),
- ("Clock gen HV W_H min", 1.84, 1.5, "ns", "min", "77-HV", "ff_ll 110 C"),
- ("Clock gen HV t_p worst", 1.45, 5.0, "ns", "max", "77-HV", "ss_hh 110 C; tt 0.88"),
+ ("Clock gen HV gap2 min", 109, 100, "ps", "min", "77-HV", "fs"),
+ ("Clock gen HV W_H min", 1.20, 1.0, "ns", "min", "77-HV", "ff_ll 110 C; 5 tau of the C1-C2 transfer = 0.25 ns"),
+ ("Clock gen HV hold end after the sample, max", 8.2, 9.6, "ns", "max", "77-HV", "ss_hh -40 C; tracking resumes >= 9.6 ns"),
+ ("Clock gen HV t_p worst", 4.15, 5.0, "ns", "max", "77-HV", "ss_hh -40 C; tt 2.62 (gap-1 delay for the Gm, step 79)"),
  ("Sampling-edge jitter added (refhv -> cks)", 78.3, 225, "fs", "max", "77-HV", "-169.2 dBc/Hz; limit = -160 dBc/Hz allocation"),
  ("REF_IN -> cks VDDD sensitivity", 2.1, 160, "ps/V", "max", "77-HV", "was 376 via refclk"),
  ("REF_IN -> cks VDDA sensitivity (3.3 V square)", 175, 450, "ps/V", "max", "77-HV", "limit: VDDA term -160 dBc/Hz at 100 nV/rtHz; got -169.7"),
@@ -877,8 +882,8 @@ RESULTS += [
 # ------------------------------------------------------------------ step 78 redo: SSPD with hold in 5 V devices at 800 MHz (19 Nov 2026)
 STEPS.append(("78-HV", "SSPD with hold in 5 V devices on VDDA: isolation buffer, R_s shaping, 5 V TG sampler, dummy, hold", "done",
               "docs/design/step78_hv_sspd.md, design/sspd/sspd_hv.py, step78hv_*.py, schematics_hv.py, xschem/sspd_hv/",
-              "A 0.812 V/rad tt (0.515-1.225 over 18 conditions, A ~ VDDA), alpha 0.452, hold gain 1.004; kick-back 69 fs "
-              "(-99 dBc); f_ref supply current 0.80 uA (27.9 without dummy); buffer jitter 86 fs/side (-171.4 dBc/Hz), "
+              "A 0.811 V/rad tt (0.536-1.145 over 18 conditions, A ~ VDDA), alpha 0.452, hold gain 1.004; kick-back 69 fs "
+              "(-99 dBc); f_ref supply current 0.80 uA (27.9 without dummy); buffer jitter 83 fs/side (-171.6 dBc/Hz), "
               "buffer VDDA 22 ps/V; kT/C -148.6 dBc/Hz (40 fs); system 1.97 / 1.31 ps typ, worst 3.70 / 2.50; 1.03 mW; LVS clean"))
 PROBLEMS += [
  ("78-HV", "sizing", "A had to be re-targeted for 800 MHz on 3.3 V", "A = VDDA/(2 w0 tau_s)",
@@ -887,18 +892,70 @@ PROBLEMS += [
  ("78-HV", "devices", "no low-V_T 5 V switch", "device rule", "only g5v0d10v5 allowed in analog blocks",
   "TG n 3 / p 6 um; a 4 / 8 um TG lowered A to 0.788 (junction C) and cost 4 % power", "fixed"),
  ("78-HV", "corners", "A follows VDDA (+17 / -15 % at 3.63 / 2.97 V)", "18-condition beat runs",
-  "the filtered square swings VDDA/2; no LDO", "static part covered by icp_trim (A tau K_VCO x0.78-1.42); worst A 0.515 > 0.5 floor", "accepted"),
+  "the filtered square swings VDDA/2; no LDO", "static part covered by icp_trim (A tau K_VCO x0.81-1.35); worst A 0.536 > 0.5 floor", "accepted"),
  ("78-HV", "spur", "kick-back 69 fs, 30x the 1.8 V design", "M19", "3.3 V clock swing, thick-oxide overlap capacitance",
   "spur estimate -99 dBc at the ring buffer output vs proposal max -45 dBc", "accepted"),
  ("78-HV", "power", "SSPD 1.03 mW vs 0.49 mW allocated", "beat run", "C V^2 f at 3.3 V and 800 MHz (allocation scaled by current)",
-  "C1 kept at 35 fF (step 72: C_s >= 35 fF); total tracked: 9.83 mW typ after steps 76-78; decided after step 79", "open"),
+  "C1 kept at 35 fF (step 72: C_s >= 35 fF); running total 8.25 mW typ after steps 74-78; final line after step 79", "open"),
 ]
 RESULTS += [
- ("SSPD HV detector gain A, tt", 0.812, 0.8, "V/rad", "target", "78-HV", "target 0.8"),
- ("SSPD HV detector gain A, min over 18 conditions", 0.515, 0.5, "V/rad", "min", "78-HV", "ss_hh 110 C, 2.97 V"),
+ ("SSPD HV detector gain A, tt", 0.811, 0.8, "V/rad", "target", "78-HV", "target 0.8"),
+ ("SSPD HV detector gain A, min over 18 conditions", 0.536, 0.5, "V/rad", "min", "78-HV", "ss_hh 110 C, 2.97 V"),
  ("SSPD HV kick-back spur estimate", -98.9, -45, "dBc", "max", "78-HV", "proposal typ -55"),
- ("SSPD HV isolation-buffer floor", -171.4, -160, "dBc/Hz", "max", "78-HV", "86 fs per side"),
+ ("SSPD HV isolation-buffer floor", -171.6, -160, "dBc/Hz", "max", "78-HV", "83 fs per side"),
  ("SSPD HV power typ", 1.03, 0.49, "mW", "max", "78-HV", "0.69-1.35 over corners"),
  ("Jitter FFNC on typ, 3.3 V square (cumulative)", 1.31, 1.6, "ps", "max", "78-HV", "measured A and C_s"),
- ("Jitter FFNC on worst (cumulative)", 2.50, 3.2, "ps", "max", "78-HV", "A_min 0.515"),
+ ("Jitter FFNC on worst (cumulative)", 2.50, 3.2, "ps", "max", "78-HV", "A_min 0.536"),
+]
+
+# ------------------------------------------------------------------ step 79: pulsed-Gm charge pump in 5 V devices (19-20 Nov 2026)
+STEPS.append(("79", "Pulsed-Gm charge pump (5 V): degenerated slices without a mirror, replica-biased pMOS sources, steering to vctl / "
+              "vdump, dump buffer + 2 pF, 1.8 V trim decoder", "done",
+              "docs/design/step79_hv_sscp.md, design/sscp/sscp_hv.py, step79hv_*.py, schematics_hv.py, xschem/sscp_hv/",
+              "G 18.51 uS (17.5-19.6), linear +-0.38 V (>= 0.23), codes x0.67/1/1.33/1.66; whole detector beta_eff 0.81 uA/rad "
+              "at tt (0.79 with the final C1), lock point -74..-129 mrad; noise 1.48 pA/rtHz at 1 MHz (224 fs); "
+              "system 1.98 / 1.33 ps typ, L(300k) -117.1 / -124.9; worst 3.70 / 2.50 ps; I(VDDA) 90 uA; LVS clean"))
+METHODS += [
+ ("M22", "Whole-detector beat run: SSPD + pulsed Gm + clock generator, charge per period vs phase", "79",
+  "effective detector gain beta_eff (A/rad) at the lock point, the lock point itself and the charge-phase characteristic",
+  "a pulsed block tested with DC inputs hides any internal node that needs time to settle: with the real SSPD, v1 "
+  "tracks the 800 MHz ring for half of every period, and the Gm must recover before it is read",
+  "ring at (16 + 1/32) f_ref (beat), real clock generator, real Gm on v1, vctl an ideal source; per period the "
+  "integral of i(vvc) and the ring phase at the sample; cubic fit of charge vs phase within +-0.6 rad of the v1 zero "
+  "crossing; slope at the charge's zero / T = beta_eff, the zero = lock point",
+  "python3 design/sscp/step79hv_det.py -> design/sscp/data/step79hv_det.json",
+  "32 points per ring cycle: the local slope comes from a fit; one run per corner (about 25 min)"),
+]
+PROBLEMS += [
+ ("79", "verification", "the Gm passed every DC-input bench but failed with the real SSPD: beta_eff 0.17 uA/rad, 4 fC at lock",
+  "M22 whole-detector bench", "pMOS mirror (5 x 2/4 um, 6 uA) with a pole near 30 MHz could not follow v1, which jumps from "
+  "the 800 MHz tracking waveform to the held value 0.6 ns before the pulse",
+  "no mirror: each drain has its own pMOS current source; replica half-slice biases them (offset 33 -> 7 mV)", "fixed"),
+ ("79", "circuit", "dump node swung +-90 mV at 800 MHz and was 90 mV off vctl at the switch", "locked-detector waveforms",
+  "the Gm's tracking current into vdump", "complementary drain xc on vdump (cancels x) and 2 pF MIM on vdump: 1.4 mV", "fixed"),
+ ("79", "timing", "4.4 fC per period at lock, 73 % of G tau, with the pulse 0.6 ns after the sample", "step79hv_delay.py",
+  "Gm recovery from the +-2 V tracking swing (R_S x source C)", "step 77 gap-1 RC delay: pulse 2.36 ns after the sample "
+  "(0.7 fC, 102 %)", "fixed"),
+ ("79", "circuit", "dump buffer lost tracking at ss 110 C, 2.97 V, V_cont 2.3 V (-92 mV)", "bench D",
+  "V_in,max = VDDA - V_SG + V_TN with a 4/2 um pMOS load", "BN 8/2, BP 16/2 um (step79hv_buf.py, two rounds)", "fixed"),
+ ("79", "noise", "output noise 2.98 pA/rtHz at 1 MHz: L(300 kHz) FFNC on -123.0 dBc/Hz (> -124 typ)", "noise summary",
+  "the replica's noise on pb (74 %) and the current sources' gm", "replica x6, pMOS L 4 um, tails L 8 um: 1.48 pA/rtHz, "
+  "L(300k) -124.9", "fixed"),
+ ("79", "interface", "Gm input capacitance 26.5 fF, not the 8 fF the SSPD assumed", "step79hv_cin.py",
+  "gate capacitance of five thick-oxide 4/1 um pairs", "SSPD C1 4x4 -> 2.69x2.69 um, the sampled node unchanged (step 78)", "fixed"),
+ ("79", "LVS", "replica multiplier drawn x1 against x12 in the netlist, LVS still 'Circuits match uniquely'", "drawing review",
+  "lvs.sh printed only netgen's topology verdict", "drawing fixed; lvs.sh also prints netgen's property errors", "fixed"),
+ ("79", "power", "charge pump 0.30 mW vs 0.17 mW allocated", "I(VDDA)", "replica x6, 4 uA tails, 2 pF buffer at 20 uA",
+  "accepted: running total 8.38 mW typ FFNC on", "accepted"),
+]
+RESULTS += [
+ ("Gm G at tt (code 00)", 18.51, 18.43, "uS", "target", "79", "17.5-19.6 over corners and V_cont"),
+ ("Detector beta_eff at lock, tt", 0.81, 0.79, "uA/rad", "target", "79", "0.79 with the final C1; 0.69-0.81 over corners"),
+ ("Lock-point offset, worst", 129, 230, "mrad", "max", "79", "linear range +-0.23 rad at tt"),
+ ("Gm output noise at 1 MHz", 1.48, 1.6, "pA/rtHz", "max", "79", "target of the noise resize (L(300k) FFNC on <= -124.5); 224 fs in the system"),
+ ("Dump buffer |vdump - vctl|", 11.7, 15, "mV", "max", "79", "2 pF on vdump"),
+ ("Jitter FFNC on typ, 3.3 V square (cumulative)", 1.33, 1.6, "ps", "max", "79", "off 1.98"),
+ ("L(300 kHz) FFNC on typ (cumulative)", -124.9, -124, "dBc/Hz", "max", "79", "pess -118.7"),
+ ("Jitter FFNC on worst (cumulative)", 2.50, 3.2, "ps", "max", "79", "off 3.70"),
+ ("Power typ FFNC on, pre-layout (cumulative)", 8.38, 9.1, "mW", "max", "79", "7.55 (step 74) -0.18 +0.03 +0.31 +0.54 +0.13"),
 ]

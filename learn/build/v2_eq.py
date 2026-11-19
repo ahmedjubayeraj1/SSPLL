@@ -21,6 +21,38 @@ def E(rows, words, why="", num="", watch=""):
 
 
 EXPLAIN = [
+("\\beta = \\frac{2A\\,G\\,\\tau}{T}", E(
+    [("$\\beta$", "detector + charge-pump gain: average current into the loop filter per radian of ring phase", "A/rad", "0.790 target; 0.81 measured at lock (tt)"),
+     ("$A$", "SSPD gain per side (step 78)", "V/rad", "0.811"),
+     ("$G$", "output transconductance of the pulsed Gm (3 slices)", "S", "18.5 µS"),
+     ("$\\tau$", "Gm pulse width (step 77)", "s", "528 ps"),
+     ("$T$", "reference period", "s", "20 ns")],
+    "The held sample 2Aφ drives a current G·2Aφ into the filter for τ out of every T; averaged, that is a current "
+    "proportional to the phase error.",
+    "A charge pump delivers charge per period; dividing by T makes it an average current, the quantity the loop filter integrates.",
+    "2 × 0.811 × 18.5 µS × 0.528 ns / 20 ns = 0.79 µA/rad. The whole-detector bench measured 0.81 at tt.",
+    "Measure it with the real detector in front: with DC inputs the first Gm showed the right value, with the SSPD 0.17.")),
+("i_x = I_P - I_{N2}", E(
+    [("$i_x$", "signal current out of the output drain x", "A", "± a few µA near lock"),
+     ("$I_P$", "the pMOS current source on x (replica-biased, equal to the tail)", "A", "4 µA per slice"),
+     ("$I_{N2}$", "the drain current of the input transistor on x", "A", "4 µA ± signal"),
+     ("$G_{pair}$", "differential transconductance of one degenerated pair", "S", "≈ 12.3 µS per slice"),
+     ("$R_S$", "degeneration resistor between the sources", "Ω", "≈ 98 kΩ"),
+     ("$g_m$", "transconductance of one input transistor", "S", "≈ 17 µS")],
+    "The pMOS source supplies exactly the quiescent current, so whatever the input transistor takes more or less is what "
+    "flows out of x. One drain sees half the pair's differential current.",
+    "With a fixed source on each drain no mirror is needed, and a mirror at microamps is slow (a 30 MHz pole here).",
+    "Three slices: 3 × ½ × 12.3 µS ≈ 18.5 µS.",
+    "I_P must equal the tail, or the difference flows into the filter: the replica bias keeps the offset to a few mV.")),
+("S_\\varphi = \\frac{S_i}{4A^2G^2d}", E(
+    [("$S_\\varphi$", "phase-noise density the pump adds at the detector (not multiplied by N²)", "rad²/Hz", "L = −125 dBc/Hz at 10 kHz, −133 at 1 MHz"),
+     ("$S_i$", "current-noise density at the pump's output while it is on", "A²/Hz", "(1.48 pA/√Hz)² at 1 MHz"),
+     ("$d$", "duty of the pulse, τ/T", "—", "0.0264")],
+    "The noise current reaches the filter only for the fraction d of the time, and the loop reads it as a phase error "
+    "through β = 2AGd; dividing the average noise current by β² gives the phase noise.",
+    "Average noise power d·S_i; phase per ampere 1/β with β = 2AGd: S_φ = d S_i / (2AGd)².",
+    "(1.48 pA)² / (4 × 0.811² × (18.5 µS)² × 0.0264) = 1.0e-13 rad²/Hz → L = −133 dBc/Hz at 1 MHz.",
+    "Every current source whose noise reaches x counts, not only the input pair: the replica bias was 74 % of S_i at first.")),
 ("\\tau = (t_{stop} - t_{start})", E(
     [("$t_{start}$, $t_{stop}$", "times at which the two rising steps (start, stop) leave the 1.8 V edge generator", "s", "stop ≈ ln2·R_G·C_G + 2 gates later"),
      ("$d_o - d_{ob}$", "difference between the in-phase and inverted paths of the 5 V step drivers", "s", "tens of ps; sign set by the TG width"),
@@ -35,14 +67,14 @@ EXPLAIN = [
     "falls, so the loop gain β·K_VCO ∝ g_m·τ·K_VCO stays within ±15 %.",
     "A pulse shorter than about rise + fall time of the output gate never reaches full swing: 210 ps did not at ff_ll.")),
 ("t_p = t_{gap1} + \\frac{\\tau}{2},\\qquad \\Delta PM", E(
-    [("$t_p$", "loop delay: from the sampling instant to the middle of the Gm current pulse", "s", "0.88 ns tt, 0.52–1.45 ns"),
-     ("$t_{gap1}$", "from the sampling edge (cks falls) to the start of the Gm pulse", "s", "611 ps tt"),
+    [("$t_p$", "loop delay: from the sampling instant to the middle of the Gm current pulse", "s", "2.62 ns tt, 1.83–4.15 ns"),
+     ("$t_{gap1}$", "from the sampling edge (cks falls) to the start of the Gm pulse (RC delay since step 79)", "s", "2.36 ns tt"),
      ("$f_c$", "loop bandwidth", "Hz", "2.5 MHz"),
-     ("$\\Delta PM$", "phase-margin loss caused by extra delay", "°", "0.34° for +0.38 ns")],
+     ("$\\Delta PM$", "phase-margin loss caused by extra delay", "°", "≈ 1.4° for +2.1 ns (exact sampled loop)")],
     "The charge pump acts on the sample a little after it was taken; a delay is a phase lag that grows with frequency, "
     "so at the crossover frequency it eats phase margin.",
     "A pure delay e^{−s t_p} has unit magnitude and phase −2π f t_p.",
-    "Step 73 HV assumed 0.5 ns; the 5 V outputs give 0.88 ns: 360° × 2.5 MHz × 0.38 ns = 0.34° less margin (50° → 49.7°).",
+    "Step 73 HV assumed 0.5 ns; the clock generator now gives 2.62 ns, because the Gm needs about 2 ns after the sample to recover from the SSPD's tracking swing (step 79). The first-order estimate 360° × 2.5 MHz × 2.1 ns = 1.9°; the exact sampled loop of step 73 HV gives 50.0° → 48.6°.",
     "")),
 ("\\mathcal{L}_{sup}(f) = \\frac{(2\\pi f_{ref})^2", E(
     [("$K_s(f)$", "edge-time change per volt of a supply, at ripple frequency f", "s/V", "VDDD 157 ps/V; VDDA 31–60 ps/V (square), 254–530 (1 V sine)"),
@@ -785,17 +817,17 @@ EXPLAIN = [
     "slow trend and always run the noiseless baseline.")),
 # ------------------------------------------------------------------------------------------------ step 78
 ("A = \\frac{V_{DDA}}{2\\,\\omega_0\\,\\tau_s},\\qquad \\tau_s = \\frac{V_{DDA}}", E(
-    [("$A$", "detector gain per side: volts of sample per radian of ring phase", "V/rad", "0.812 tt; 0.515–1.225 over 18 conditions"),
+    [("$A$", "detector gain per side: volts of sample per radian of ring phase", "V/rad", "0.811 tt; 0.536–1.145 over 18 conditions"),
      ("$V_{DDA}$", "analog supply; the filtered square swings ±V_DDA/2 around its mid-level", "V", "3.3 (2.97–3.63)"),
      ("$\\omega_0$", "ring angular frequency", "rad/s", "2π · 800 MHz"),
      ("$\\tau_s$", "time constant of the shaping RC: (R_s + R_buf + R_sw)·C_1,tot", "s", "≈ 0.41 ns"),
      ("$R_s$", "series xhigh-poly resistor, 0.35 × 0.6 µm", "Ω", "≈ 3.4 kΩ"),
-     ("$C_{1,tot}$", "C1 + Gm input + switch junctions", "F", "≈ 46 fF")],
+     ("$C_{1,tot}$", "C1 (16.2 fF MIM) + Gm input (26.5 fF) + switch junctions", "F", "≈ 46 fF")],
     "The sample is taken on an RC-rounded square; its slope where it crosses the middle is half the swing divided by the "
     "time constant. Dividing a slope in volts per second by ω0 turns it into volts per radian of ring phase.",
     "For an RC-filtered square of amplitude a, v(t) = a(1 − 2e^{−t/τ}/(1 + e^{−T/2τ})); at the crossing the slope is "
     "exactly a/τ, whatever the period. With a = V_DDA/2 that gives the formula.",
-    "Target 0.8 V/rad: τ_s = 3.3/(2 · 2π · 0.8e9 · 0.8) = 0.41 ns. Measured A = 0.812 V/rad with R_s = 0.6 µm long.",
+    "Target 0.8 V/rad: τ_s = 3.3/(2 · 2π · 0.8e9 · 0.8) = 0.41 ns. Measured A = 0.811 V/rad with R_s = 0.6 µm long.",
     "A ∝ V_DDA: −15 / +17 % at 2.97 / 3.63 V. With no LDO this is a loop-gain tolerance, handled by icp_trim.")),
 ("A = \\frac{1}{\\omega_0}\\left.\\frac{dv}{dt}\\right|_{cross} = \\frac{V_{DD}}{2\\,\\omega_0\\,\\tau_s}", E(
     [("$A$", "detector gain per side: volts of sample per radian of VCO phase at the lock point", "V/rad", "0.514"),

@@ -5,7 +5,7 @@ V {}
 S {}
 E {}
 T {sspll_sspd_hv_side: isolation buffer (XB1, XB2) -> R_s -> node f -> sampler xs1/C1 (tracks while cks = 1) and dummy sampler xsd/CD (opposite phase, keeps the buffer load constant); hold xs2/C2 (ckh)} 40 -560 0 0 0.3 0.3 {}
-T {R_s = res_xhigh_po_0p35, L = 0.6 um; C1 = C2 = 4.0 x 4.0 um, CD = 4.4 x 4.4 um (= C1 + the Gm input); MIM top plate on the signal, bottom plate on VSS} 40 -510 0 0 0.25 0.25 {}
+T {R_s = res_xhigh_po_0p35, L = 0.6 um; C1 = C2 = 2.69 x 2.69 um, CD = 4.4 x 4.4 um (= C1 + the Gm input); MIM top plate on the signal, bottom plate on VSS} 40 -510 0 0 0.25 0.25 {}
 N 280 -50 280 50 {lab=}
 N 240 -80 200 -80 {lab=}
 N 200 -80 200 80 {lab=}
@@ -87,7 +87,7 @@ C {devices/lab_pin.sym} 1430 0 0 0 {name=l_ckh_22 sig_type=std_logic lab=ckh}
 C {devices/lab_pin.sym} 1430 40 0 0 {name=l_ckhb_23 sig_type=std_logic lab=ckhb}
 C {devices/lab_pin.sym} 1520 -110 0 0 {name=l_VDDA_24 sig_type=std_logic lab=VDDA}
 C {devices/lab_pin.sym} 1520 110 0 0 {name=l_VSS_25 sig_type=std_logic lab=VSS}
-C {sky130_fd_pr/cap_mim_m3_1.sym} 1220 130 0 0 {name=XC1 W=4.0 L=4.0 MF=1 model=cap_mim_m3_1 spiceprefix=X}
+C {sky130_fd_pr/cap_mim_m3_1.sym} 1220 130 0 0 {name=XC1 W=2.69 L=2.69 MF=1 model=cap_mim_m3_1 spiceprefix=X}
 C {devices/lab_pin.sym} 1220 180 0 0 {name=l_VSS_27 sig_type=std_logic lab=VSS}
 C {devices/opin.sym} 2200 -260 0 1 {name=p_v1 lab=v1}
 C {sky130_fd_pr/cap_mim_m3_1.sym} 1220 550 0 0 {name=XCD W=4.4 L=4.4 MF=1 model=cap_mim_m3_1 spiceprefix=X}

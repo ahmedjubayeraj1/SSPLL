@@ -30,10 +30,14 @@ D = dict(
     RS=("res_xhigh_po_0p35", 0.35, 1, 0.6),            # series resistor: A = 0.81 V/rad at tt (step78hv_size.py)
     SWN=(N5, 3.0, 1, 0.5), SWP=(P5, 6.0, 1, 0.5),       # sampling / dummy TG
     HWN=(N5, 1.0, 1, 0.5), HWP=(P5, 2.0, 1, 0.5),       # hold TG
-    C1=("cap_mim_m3_1", 4.0, 1, 4.0), C2=("cap_mim_m3_1", 4.0, 1, 4.0),   # 34.7 fF each
-    CD=("cap_mim_m3_1", 4.4, 1, 4.4),                  # dummy = C1 + the Gm input
+    # C1 resized after step 79: the Gm's measured input capacitance is 26.5 fF at tt (final mirror-less Gm,
+    # step79hv_cin.py; 24-29 fF over corners and codes), not the 8 fF placeholder. C1 = 2.69 x 2.69 um (16.2 fF) keeps
+    # C1 + C_Gm = 42.7 fF, so the sampled node, A, alpha, kT/C and power stay where they were, and the dummy CD
+    # (= C1 + C_Gm) stays 4.4 x 4.4 um. (The step-78 verification ran with 2.73 um + a 26.0 fF load: the same 42.7 fF.)
+    C1=("cap_mim_m3_1", 2.69, 1, 2.69), C2=("cap_mim_m3_1", 4.0, 1, 4.0),   # 16.2 / 34.6 fF
+    CD=("cap_mim_m3_1", 4.4, 1, 4.4),                  # 41.6 fF: dummy = C1 + the Gm input
 )
-LOAD = dict(gm=8e-15, ncb=4e-15)       # placeholders for the Gm input (on v1, step 79) and the diff-to-SE input (on v2)
+LOAD = dict(gm=26.5e-15, ncb=4e-15)    # Gm input on v1 (measured in step 79: 26.5 fF at lock, tt) and the NCB input on v2 (placeholder)
 VCODRV = ((N5, 1.2, 1, 0.5), (P5, 3.0, 1, 0.5))      # the ring's AC-coupled buffer output stage (step 74 HV)
 
 

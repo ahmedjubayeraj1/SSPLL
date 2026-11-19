@@ -1,0 +1,292 @@
+#!/usr/bin/env python3
+"""schematics_hv.py - step 79: xschem schematics of the 5 V pulsed-Gm charge pump (hierarchical, drawing checks) and the
+LVS reference:
+   sspll_sscp_hv_rs     degeneration resistor
+   sspll_sscp_hv_slice  degenerated input pair with switched tail sinks (one Gm unit)
+   sspll_sscp_hv_buf    dump buffer (5 V OTA, unity gain)
+   sspll_sscp_hv_tg     steering transmission gate
+   sspll_sscp_hv        five slices, pMOS mirror, steering TGs, dump buffer, bias diode
+   sspll_sscp_hv_dec    icp_trim decoder (1.8 V, VDDD) + four level shifters
+   sspll_sscp_hv_top    decoder + core
+Short labelled stubs join nets inside a cell where a drawn wire would cross devices; every device terminal is wired."""
+import os, sys
+HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))
+sys.path.insert(0, os.path.join(ROOT, "tools")); sys.path.insert(0, HERE)
+from xsch import Sch, symbol
+import sscp_hv as C
+import importlib.util
+_sp = importlib.util.spec_from_file_location("ckg_sch_hv", os.path.join(ROOT, "design", "clkgen", "schematics_hv.py"))
+_ck = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(_ck)
+OUT = os.path.join(ROOT, "xschem", "sscp_hv")
+N5, P5, N18, P18 = "nfet3_g5v0d10v5", "pfet3_g5v0d10v5", "nfet3_01v8", "pfet3_01v8"
+RES = "sky130_fd_pr/res_xhigh_po_0p35.sym"
+LS_PINS = dict(left=[("in", "in")], right=[("out", "out"), ("outb", "out")], top=[("VDDD", "inout"), ("VDDA", "inout")],
+               bottom=[("VSS", "inout")])
+
+
+def stub(s, pt, name, dx=0, dy=0, flip=0):
+    q = (pt[0] + dx, pt[1] + dy)
+    s.wire(pt, q); s.label(name, q[0], q[1], flip=flip)
+
+
+def M(s, name, kind, x, y, dev, body, mult=1, flip=0):
+    return s.mos(name, kind, x, y, dev[1], dev[3], dev[2], body=body, mult=mult, flip=flip)
+
+
+def supplies(s, names, y0, ybot):
+    for k, nm in enumerate(names):
+        y = y0 + 50*k
+        s.pin(nm, "inout", 60, y); s.wire((60, y), (140, y)); s.label(nm, 140, y, flip=1)
+    s.pin("VSS", "inout", 60, ybot); s.wire((60, ybot), (140, ybot)); s.label("VSS", 140, ybot, flip=1)
+
+
+def rs(p):
+    s = Sch("sspll_sscp_hv_rs")
+    rm, rw, rl = p["RS"]
+    s.text(f"sspll_sscp_hv_rs: source-degeneration resistor, {rm}, L = {rl} um (about 206 kOhm); body to VSS", 40, -300, 0.3)
+    R = s.dev(RES, "XR0", 400, 0, f"L={rl} mult=1 model={rm} spiceprefix=X")
+    s.pin("a", "inout", 200, -120); s.wire((200, -120), (400, -120), R["P"])
+    s.pin("b", "inout", 200, 120); s.wire((200, 120), (400, 120), R["M"])
+    stub(s, R["B"], "VSS", -60)
+    s.pin("VSS", "inout", 60, 220); s.wire((60, 220), (140, 220)); s.label("VSS", 140, 220, flip=1)
+    return s
+
+
+def slice_(p, RXY):
+    s = Sch("sspll_sscp_hv_slice")
+    s.text("sspll_sscp_hv_slice: one Gm unit. Degenerated nMOS pair XN1/XN2 (R_S between the sources), tail sinks XT1/XT2 "
+           "mirrored from nb, switched by en through XE1/XE2. Drains: d1 to the mirror diode, x to the output", 40, -420, 0.3)
+    N1 = M(s, "XN1", N5, 400, -120, p["MN"], "VSS"); N2 = M(s, "XN2", N5, 1000, -120, p["MN"], "VSS", flip=1)
+    stub(s, N1["G"], "v1p", -60); stub(s, N2["G"], "v1m", 60, flip=1)
+    stub(s, N1["D"], "d1", 0, -60); stub(s, N2["D"], "x", 0, -60)
+    R = s.sub("sspll_sscp_hv_rs.sym", RXY, "xrs", 700, 60)
+    s.wire(N1["S"], (N1["S"][0], R["a"][1]), R["a"]); s.wire(N2["S"], (N2["S"][0], R["b"][1]), R["b"])
+    stub(s, R["VSS"], "VSS", 0, 30)
+    E1 = M(s, "XE1", N5, 400, 260, p["MTS"], "VSS"); E2 = M(s, "XE2", N5, 1000, 260, p["MTS"], "VSS", flip=1)
+    s.wire((N1["S"][0], R["a"][1]), E1["D"]); s.wire((N2["S"][0], R["b"][1]), E2["D"])
+    stub(s, E1["G"], "en", -60); stub(s, E2["G"], "en", 60, flip=1)
+    T1 = M(s, "XT1", N5, 400, 460, p["MT"], "VSS"); T2 = M(s, "XT2", N5, 1000, 460, p["MT"], "VSS", flip=1)
+    s.wire(E1["S"], T1["D"]); s.wire(E2["S"], T2["D"])
+    stub(s, T1["G"], "nb", -60); stub(s, T2["G"], "nb", 60, flip=1)
+    stub(s, T1["S"], "VSS", 0, 30); stub(s, T2["S"], "VSS", 0, 30)
+    for nm, y in (("v1p", 700), ("v1m", 750), ("nb", 800), ("en", 850)):
+        s.pin(nm, "in", 60, y); s.wire((60, y), (140, y)); s.label(nm, 140, y, flip=1)
+    for nm, y in (("d1", 700), ("x", 750)):
+        s.pin(nm, "out", 1300, y, flip=1); s.wire((1200, y), (1300, y)); s.label(nm, 1200, y)
+    s.pin("VSS", "inout", 60, 950); s.wire((60, 950), (140, 950)); s.label("VSS", 140, 950, flip=1)
+    return s
+
+
+def buf(p):
+    s = Sch("sspll_sscp_hv_buf")
+    s.text("sspll_sscp_hv_buf: dump buffer, nMOS-input OTA in unity gain (XA2's gate is the output). Tail XBT (x10 units "
+           "mirrored from nb, 20 uA) through the enable XBE", 40, -460, 0.3)
+    L1 = M(s, "XL1", P5, 400, -260, p["BP"], "VDDA"); L2 = M(s, "XL2", P5, 1000, -260, p["BP"], "VDDA", flip=1)
+    A1 = M(s, "XA1", N5, 400, -20, p["BN"], "VSS"); A2 = M(s, "XA2", N5, 1000, -20, p["BN"], "VSS", flip=1)
+    stub(s, L1["S"], "VDDA", 0, -30); stub(s, L2["S"], "VDDA", 0, -30)
+    s.wire(L1["D"], A1["D"]); s.wire(L2["D"], A2["D"])
+    yo = (L1["D"][1] + A1["D"][1])//2
+    s.wire(L1["G"], (L1["G"][0] - 40, L1["G"][1]), (L1["G"][0] - 40, yo), (L1["D"][0], yo))       # XL1 diode
+    stub(s, L2["G"], "o1", 60, flip=1); stub(s, (L1["G"][0] - 40, yo), "o1", -40, 0)
+    stub(s, A1["G"], "inp", -60)
+    s.wire((L2["D"][0], yo), (1200, yo)); s.label("out", 1200, yo, flip=1)
+    stub(s, A2["G"], "out", 60, flip=1)
+    ys = A1["S"][1] + 60
+    s.wire(A1["S"], (A1["S"][0], ys), (A2["S"][0], ys), A2["S"])
+    m = int(round(p["BIT"]/p["IT"]))
+    BE = M(s, "XBE", N5, 680, ys + 120, p["MTS"], "VSS", mult=m); BT = M(s, "XBT", N5, 680, ys + 300, p["BT"], "VSS", mult=m)
+    s.wire((BE["D"][0], ys), BE["D"]); s.wire(BE["S"], BT["D"])
+    stub(s, BE["G"], "en", -60); stub(s, BT["G"], "nb", -60); stub(s, BT["S"], "VSS", 0, 30)
+    for nm, y in (("inp", 560), ("nb", 610), ("en", 660)):
+        s.pin(nm, "in", 60, y); s.wire((60, y), (140, y)); s.label(nm, 140, y, flip=1)
+    s.pin("out", "out", 1400, 560, flip=1); s.wire((1300, 560), (1400, 560)); s.label("out", 1300, 560)
+    s.pin("VDDA", "inout", 60, -500); s.wire((60, -500), (140, -500)); s.label("VDDA", 140, -500, flip=1)
+    s.pin("VSS", "inout", 60, 760); s.wire((60, 760), (140, 760)); s.label("VSS", 140, 760, flip=1)
+    return s
+
+
+def tg(p):
+    s = Sch("sspll_sscp_hv_tg")
+    n, pp = p["TGN"], p["TGP"]
+    s.text("sspll_sscp_hv_tg: 5 V steering transmission gate a-b, on while g = 1 / gb = 0", 40, -420, 0.3)
+    N = s.mos("XN", N5, 300, 0, n[1], n[3], n[2], body="VSS")
+    P = s.mos("XP", P5, 600, 0, pp[1], pp[3], pp[2], body="VDDA", flip=1)
+    s.wire(N["D"], (N["D"][0], -120), (P["S"][0], -120), P["S"])
+    s.wire(N["S"], (N["S"][0], 120), (P["D"][0], 120), P["D"])
+    s.pin("a", "inout", 60, -120); s.wire((60, -120), (N["D"][0], -120))
+    s.pin("b", "inout", 860, 120, flip=1); s.wire((P["D"][0], 120), (860, 120))
+    s.pin("g", "in", 60, 0); s.wire((60, 0), N["G"])
+    s.pin("gb", "in", 860, 0, flip=1); s.wire(P["G"], (860, 0))
+    s.pin("VDDA", "inout", 60, -300); s.wire((60, -300), (140, -300)); s.label("VDDA", 140, -300, flip=1)
+    s.pin("VSS", "inout", 60, 300); s.wire((60, 300), (140, 300)); s.label("VSS", 140, 300, flip=1)
+    return s
+
+
+def core(p, SXY, BXY, TXY):
+    s = Sch("sspll_sscp_hv")
+    s.text("sspll_sscp_hv: pulsed-Gm charge pump. Five slices share the pMOS mirror XP1 (diode, d1) / XP2 (output x). "
+           "During ckg, x is steered to vctl (loop filter); otherwise to vdump, held at vctl by the dump buffer", 40, -660, 0.3)
+    s.text("buses drawn as wires: v1p, v1m, ib (top), d1 and x (right of the slices); slice enables e1..e5 by name", 40, -620, 0.25)
+    YV1P, YV1M, YIB, YD1, YX = 80, 120, 160, 760, 800
+    xs = [600 + 600*k for k in range(C.NSL)]
+    Xs = [s.sub("sspll_sscp_hv_slice.sym", SXY, f"xs{k+1}", x, 400) for k, x in enumerate(xs)]
+    for k, X in enumerate(Xs):
+        for pin, bus, dx in (("v1p", YV1P, 90), ("v1m", YV1M, 70), ("nb", YIB, 50)):
+            px, py = X[pin]
+            s.wire((px - dx, bus), (px - dx, py), (px, py))
+        stub(s, X["en"], f"e{k+1}", -30)
+        for pin, bus, dx in (("d1", YD1, 30), ("x", YX, 50)):
+            px, py = X[pin]
+            s.wire((px, py), (px + dx, py), (px + dx, bus))
+        stub(s, X["VSS"], "VSS", 0, 30)
+    x0 = Xs[0]["v1p"][0] - 90; x1 = Xs[-1]["v1p"][0] - 50
+    for bus, nm, dx in ((YV1P, "v1p", 90), (YV1M, "v1m", 70), (YIB, "ib", 50)):
+        s.wire((200, bus), (Xs[-1][nm if nm != "ib" else "nb"][0] - dx, bus)); s.label(nm, 200, bus)
+    xe = Xs[-1]["x"][0] + 50
+    s.wire((Xs[0]["d1"][0] + 30, YD1), (xe + 300, YD1)); s.wire((Xs[0]["x"][0] + 50, YX), (xe + 700, YX))
+    # mirror above the right end of the buses
+    XM = xe + 300
+    P1 = M(s, "XP1", P5, XM - 20, -300, p["MP"], "VDDA", mult=C.NSL)
+    P2 = M(s, "XP2", P5, XM + 300, -300, p["MP"], "VDDA", mult=C.NSL, flip=1)
+    stub(s, P1["S"], "VDDA", 0, -30); stub(s, P2["S"], "VDDA", 0, -30)
+    s.wire(P1["D"], (P1["D"][0], YD1))
+    s.wire(P1["G"], (P1["G"][0] - 40, P1["G"][1]), (P1["G"][0] - 40, P1["D"][1] + 40), (P1["D"][0], P1["D"][1] + 40))
+    s.wire(P2["G"], (P2["G"][0] + 40, P2["G"][1]), (P2["G"][0] + 40, P2["G"][1] - 80), (P1["G"][0] - 40, P2["G"][1] - 80),
+           (P1["G"][0] - 40, P1["G"][1]))
+    s.wire(P2["D"], (P2["D"][0], YX))
+    # steering TGs and the dump buffer to the right
+    XT = XM + 700
+    TF = s.sub("sspll_sscp_hv_tg.sym", TXY, "xtf", XT, 500); TD = s.sub("sspll_sscp_hv_tg.sym", TXY, "xtd", XT, 1000)
+    s.wire((xe + 700, TF["a"][1]), (xe + 700, YX), (xe + 700, TD["a"][1]))          # x bus end: one T-junction
+    s.wire((xe + 700, TF["a"][1]), TF["a"]); s.wire((xe + 700, TD["a"][1]), TD["a"])
+    for X, g, gb in ((TF, "ckg", "ckgb"), (TD, "ckgb", "ckg")):
+        stub(s, X["g"], g, -60); stub(s, X["gb"], gb, -60); stub(s, X["VDDA"], "VDDA", 0, -30); stub(s, X["VSS"], "VSS", 0, 30)
+    B = s.sub("sspll_sscp_hv_buf.sym", BXY, "xbuf", XT + 700, 1000)
+    XC = XT + 450
+    s.wire(TF["b"], (XC, TF["b"][1]), (XC, B["inp"][1] - 300), (B["inp"][0] - 80, B["inp"][1] - 300),
+           (B["inp"][0] - 80, B["inp"][1]), B["inp"])
+    s.wire((XC, TF["b"][1]), (XT + 1400, TF["b"][1])); s.pin("vctl", "inout", XT + 1400, TF["b"][1], flip=1)
+    s.wire(TD["b"], (XC - 60, TD["b"][1]), (XC - 60, TD["b"][1] + 260), (B["out"][0] + 80, TD["b"][1] + 260),
+           (B["out"][0] + 80, B["out"][1]), B["out"])
+    stub(s, B["nb"], "ib", -50); stub(s, B["en"], "pll_en", -50)
+    stub(s, B["VDDA"], "VDDA", 0, -30); stub(s, B["VSS"], "VSS", 0, 30)
+    NB = M(s, "XNB", N5, 300, -300, p["MT"], "VSS")
+    s.wire(NB["G"], (NB["G"][0] - 40, NB["G"][1]), (NB["G"][0] - 40, NB["D"][1] - 40), (NB["D"][0], NB["D"][1] - 40), NB["D"])
+    stub(s, (NB["D"][0], NB["D"][1] - 40), "ib", 0, -40); stub(s, NB["S"], "VSS", 0, 30)
+    names = [("v1p", "in"), ("v1m", "in"), ("ckg", "in"), ("ckgb", "in"), ("ib", "inout")] + \
+            [(f"e{k+1}", "in") for k in range(C.NSL)] + [("pll_en", "in")]
+    for k, (nm, d) in enumerate(names):
+        y = 1300 + 50*k
+        s.pin(nm, d, 60, y); s.wire((60, y), (140, y)); s.label(nm, 140, y, flip=1)
+    s.pin("VDDA", "inout", 60, -560); s.wire((60, -560), (140, -560)); s.label("VDDA", 140, -560, flip=1)
+    s.pin("VSS", "inout", 60, 2000); s.wire((60, 2000), (140, 2000)); s.label("VSS", 140, 2000, flip=1)
+    return s
+
+
+def nand2(s, name, x, y, size):
+    """1.8 V NAND2 on VDDD: series nMOS (a on top), parallel pMOS. Returns input points a, b and the output point."""
+    n, p = size
+    PA = s.mos(name + "PA", P18, x, y - 100, p[1], p[3], p[2], body="VDDD")
+    PB = s.mos(name + "PB", P18, x + 220, y - 100, p[1], p[3], p[2], body="VDDD")
+    NA = s.mos(name + "NA", N18, x, y + 90, n[1], n[3], n[2], body="VSS")
+    NB = s.mos(name + "NB", N18, x, y + 210, n[1], n[3], n[2], body="VSS")
+    s.wire(PA["D"], NA["D"]); s.wire(NA["S"], NB["D"])
+    s.wire((PA["D"][0], y), (PB["D"][0], y), PB["D"])
+    for P_ in (PA, PB):
+        stub(s, P_["S"], "VDDD", 0, -30)
+    stub(s, NB["S"], "VSS", 0, 30)
+    s.wire(PA["G"], (x - 80, PA["G"][1]), (x - 80, NA["G"][1]), NA["G"])
+    s.wire(PB["G"], (PB["G"][0] - 30, PB["G"][1]), (PB["G"][0] - 30, PB["G"][1] + 60), (x - 40, PB["G"][1] + 60),
+           (x - 40, NB["G"][1]), NB["G"])
+    return (x - 80, y), (x - 40, NB["G"][1]), (PB["D"][0] + 40, y)
+
+
+def dec(p, LS):
+    s = Sch("sspll_sscp_hv_dec")
+    s.text("sspll_sscp_hv_dec: icp_trim decoder (1.8 V, VDDD): e12 = en; e3 = en AND NOT(icp1 AND NOT icp0); "
+           "e4 = en AND icp0; e5 = en AND icp1 AND icp0; four level shifters to the 5 V enable gates", 40, -560, 0.3)
+    inv = lambda nm, x, y: _ck.inverter(s, nm, x, y, C.DL["INV"], "VDDD")
+    g = {}
+    i0, o0 = inv("XI0", 300, 0); stub(s, i0, "icp0", -60); stub(s, o0, "c0b", 60, flip=1)
+    gates = [("XA", "icp1", "c0b", "a3", 700, 0), ("XB", "pll_en", "a3", "e3b", 1300, 0), ("XC", "pll_en", "icp0", "e4b", 700, 600),
+             ("XD", "icp1", "icp0", "a5b", 1300, 600), ("XE", "pll_en", "a5", "e5b", 700, 1200)]
+    for nm, a, b, y_, x, y in gates:
+        pa, pb, po = nand2(s, nm, x, y, C.DL["NAND"])
+        stub(s, pa, a, -60); stub(s, pb, b, -60); s.wire((po[0] - 40, po[1]), po); s.label(y_, po[0], po[1], flip=1)
+    for nm, a, y_, x, y in (("XI3", "e3b", "e3l", 1900, 0), ("XI4", "e4b", "e4l", 1900, 600), ("XI5", "a5b", "a5", 1900, 1200),
+                            ("XI6", "e5b", "e5l", 2300, 1200)):
+        i_, o_ = inv(nm, x, y); stub(s, i_, a, -60); stub(s, o_, y_, 60, flip=1)
+    for k, (nm, i) in enumerate((("e12", "pll_en"), ("e3", "e3l"), ("e4", "e4l"), ("e5", "e5l"))):
+        L = s.sub("../cco_hv/sspll_ls_1v8_3v3.sym", LS, f"xls{nm}", 2900, 1700*0 + 400*k)
+        stub(s, L["in"], i, -60); stub(s, L["out"], nm, 60, flip=1); stub(s, L["outb"], nm + "_b", 60, flip=1)
+        stub(s, L["VDDD"], "VDDD", 0, -30); stub(s, L["VDDA"], "VDDA", 0, -30); stub(s, L["VSS"], "VSS", 0, 30)
+    for k, nm in enumerate(("icp0", "icp1", "pll_en")):
+        y = 1700 + 50*k
+        s.pin(nm, "in", 60, y); s.wire((60, y), (140, y)); s.label(nm, 140, y, flip=1)
+    for k, nm in enumerate(("e12", "e3", "e4", "e5")):
+        y = 1700 + 50*k
+        s.pin(nm, "out", 3500, y, flip=1); s.wire((3400, y), (3500, y)); s.label(nm, 3400, y)
+    s.pin("VDDD", "inout", 60, -500); s.wire((60, -500), (140, -500)); s.label("VDDD", 140, -500, flip=1)
+    s.pin("VDDA", "inout", 60, -450); s.wire((60, -450), (140, -450)); s.label("VDDA", 140, -450, flip=1)
+    s.pin("VSS", "inout", 60, 1950); s.wire((60, 1950), (140, 1950)); s.label("VSS", 140, 1950, flip=1)
+    return s
+
+
+def top(DXY, CXY):
+    s = Sch("sspll_sscp_hv_top")
+    s.text("sspll_sscp_hv_top: pulsed-Gm charge pump with its trim decoder; slices 1 and 2 follow pll_en (e12), "
+           "slices 3-5 follow the decoded icp_trim, the dump buffer follows pll_en", 40, -460, 0.3)
+    Dd = s.sub("sspll_sscp_hv_dec.sym", DXY, "xdec", 500, 0); Cc = s.sub("sspll_sscp_hv.sym", CXY, "xgm", 1300, 0)
+    for pin in ("icp0", "icp1", "pll_en"):
+        stub(s, Dd[pin], pin, -60)
+    for pin in ("e12", "e3", "e4", "e5"):
+        stub(s, Dd[pin], pin, 60, flip=1)
+    for pin, net in (("v1p", "v1p"), ("v1m", "v1m"), ("ckg", "ckg"), ("ckgb", "ckgb"), ("ib", "ib"), ("e1", "e12"),
+                     ("e2", "e12"), ("e3", "e3"), ("e4", "e4"), ("e5", "e5"), ("pll_en", "e12")):
+        stub(s, Cc[pin], net, -60)
+    stub(s, Cc["vctl"], "vctl", 60, flip=1)
+    for X, sup in ((Dd, ("VDDD", "VDDA")), (Cc, ("VDDA",))):
+        for nm in sup:
+            stub(s, X[nm], nm, 0, -30)
+        stub(s, X["VSS"], "VSS", 0, 30)
+    names = [("v1p", "in"), ("v1m", "in"), ("ckg", "in"), ("ckgb", "in"), ("ib", "inout"), ("icp0", "in"), ("icp1", "in"),
+             ("pll_en", "in")]
+    for k, (nm, d) in enumerate(names):
+        y = 700 + 50*k
+        s.pin(nm, d, 60, y); s.wire((60, y), (140, y)); s.label(nm, 140, y, flip=1)
+    s.pin("vctl", "inout", 2000, 700, flip=1); s.wire((1900, 700), (2000, 700)); s.label("vctl", 1900, 700)
+    s.pin("VDDA", "inout", 60, -350); s.wire((60, -350), (140, -350)); s.label("VDDA", 140, -350, flip=1)
+    s.pin("VDDD", "inout", 60, -300); s.wire((60, -300), (140, -300)); s.label("VDDD", 140, -300, flip=1)
+    s.pin("VSS", "inout", 60, 1200); s.wire((60, 1200), (140, 1200)); s.label("VSS", 140, 1200, flip=1)
+    return s
+
+
+if __name__ == "__main__":
+    os.makedirs(OUT, exist_ok=True)
+    p = C.D
+    LS = symbol("/tmp/ls_tmp.sym", "sspll_ls_1v8_3v3", **LS_PINS)
+    RXY = symbol(os.path.join(OUT, "sspll_sscp_hv_rs.sym"), "sspll_sscp_hv_rs", left=[("a", "inout")], right=[("b", "inout")],
+                 bottom=[("VSS", "inout")])
+    SXY = symbol(os.path.join(OUT, "sspll_sscp_hv_slice.sym"), "sspll_sscp_hv_slice",
+                 left=[("v1p", "in"), ("v1m", "in"), ("nb", "in"), ("en", "in")], right=[("d1", "out"), ("x", "out")],
+                 bottom=[("VSS", "inout")])
+    BXY = symbol(os.path.join(OUT, "sspll_sscp_hv_buf.sym"), "sspll_sscp_hv_buf", left=[("inp", "in"), ("nb", "in"), ("en", "in")],
+                 right=[("out", "out")], top=[("VDDA", "inout")], bottom=[("VSS", "inout")])
+    TXY = symbol(os.path.join(OUT, "sspll_sscp_hv_tg.sym"), "sspll_sscp_hv_tg", left=[("a", "inout"), ("g", "in"), ("gb", "in")],
+                 right=[("b", "inout")], top=[("VDDA", "inout")], bottom=[("VSS", "inout")])
+    CXY = symbol(os.path.join(OUT, "sspll_sscp_hv.sym"), "sspll_sscp_hv",
+                 left=[("v1p", "in"), ("v1m", "in"), ("ckg", "in"), ("ckgb", "in"), ("ib", "inout")] +
+                      [(f"e{k+1}", "in") for k in range(C.NSL)] + [("pll_en", "in")],
+                 right=[("vctl", "inout")], top=[("VDDA", "inout")], bottom=[("VSS", "inout")])
+    DXY = symbol(os.path.join(OUT, "sspll_sscp_hv_dec.sym"), "sspll_sscp_hv_dec",
+                 left=[("icp0", "in"), ("icp1", "in"), ("pll_en", "in")], right=[("e12", "out"), ("e3", "out"), ("e4", "out"), ("e5", "out")],
+                 top=[("VDDD", "inout"), ("VDDA", "inout")], bottom=[("VSS", "inout")])
+    symbol(os.path.join(OUT, "sspll_sscp_hv_top.sym"), "sspll_sscp_hv_top",
+           left=[("v1p", "in"), ("v1m", "in"), ("ckg", "in"), ("ckgb", "in"), ("ib", "inout"), ("icp0", "in"), ("icp1", "in"),
+                 ("pll_en", "in")], right=[("vctl", "inout")], top=[("VDDA", "inout"), ("VDDD", "inout")], bottom=[("VSS", "inout")])
+    for name, sch in (("sspll_sscp_hv_rs", rs(p)), ("sspll_sscp_hv_slice", slice_(p, RXY)), ("sspll_sscp_hv_buf", buf(p)),
+                      ("sspll_sscp_hv_tg", tg(p)), ("sspll_sscp_hv", core(p, SXY, BXY, TXY)), ("sspll_sscp_hv_dec", dec(p, LS)),
+                      ("sspll_sscp_hv_top", top(DXY, CXY))):
+        errs = sch.save(os.path.join(OUT, name + ".sch"))
+        print(name, ":", "\n  ".join(errs) or "drawing check clean")
+    open(os.path.join(ROOT, "xschem", "netlist", "ref_sscp_hv.spice"), "w").write(C.lvs_reference())

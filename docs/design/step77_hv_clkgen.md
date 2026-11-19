@@ -23,7 +23,7 @@ cd ../../xschem && ./lvs.sh clkgen_hv/sspll_clkgen_hv.sch netlist/ref_clkgen_hv.
 
 ## Result in one paragraph
 
-The clock generator keeps its 1.8 V timing core on VDDD and drives the 5 V switches of the SSPD and the Gm with 0 / 3.3 V clocks. Pulses cross the supply domains as **edge pairs** (two rising steps through identical level shifters, the pulse formed at the 3.3 V output gate), and the **sampling edge comes straight from the receiver's 3.3 V node refhv**, so it never passes a VDDD gate. At tt: sampling instant 425 ps after REF_IN, cks/cksb skew -11 ps, Gm pulse **τ = 528 ps** (322–951 ps over 25 conditions; τ·K_VCO 0.89–1.14 of nominal), gap 2 ≥ 108 ps, hold ≥ 1.84 ns, loop delay **t_p = 0.88 ns** (≤ 1.45 ns). The sampling edge adds **78 fs** (-169.2 dBc/Hz) and moves **2.1 ps/V with VDDD** (was 377 ps/V through refclk) and 148–175 ps/V with VDDA. REF chain floor -164.2 dBc/Hz (allocation −155). System with a 3.3 V square reference: **1.97 / 1.31 ps**, L(300 kHz) -117.2 / -125.6 dBc/Hz (FFNC off / on, typ); worst 3.70 / 2.50 ps. Power **0.72 mW** (0.54–0.95 mW), 0.31 mW over its allocation. Seven cells, all LVS-clean.
+The clock generator keeps its 1.8 V timing core on VDDD and drives the 5 V switches of the SSPD and the Gm with 0 / 3.3 V clocks. Pulses cross the supply domains as **edge pairs** (two rising steps through identical level shifters, the pulse formed at the 3.3 V output gate), and the **sampling edge comes straight from the receiver's 3.3 V node refhv**, so it never passes a VDDD gate. At tt: sampling instant 425 ps after REF_IN, cks/cksb skew -11 ps, Gm pulse **τ = 528 ps** (322–951 ps over 25 conditions; τ·K_VCO 0.89–1.14 of nominal), gap 2 ≥ 109 ps, hold 1.20–3.31 ns, loop delay **t_p = 2.62 ns** (≤ 4.15 ns; the Gm pulse waits about 2.4 ns after the sample so the Gm can recover from the SSPD's tracking swing, section B2). The sampling edge adds **78 fs** (-169.2 dBc/Hz) and moves **2.1 ps/V with VDDD** (was 377 ps/V through refclk) and 148–175 ps/V with VDDA. REF chain floor -164.2 dBc/Hz (allocation −155). System with a 3.3 V square reference: **1.97 / 1.31 ps**, L(300 kHz) -117.2 / -125.6 dBc/Hz (FFNC off / on, typ); worst 3.70 / 2.50 ps. Power **0.72 mW** (0.54–0.95 mW), 0.31 mW over its allocation. Eight cells, all LVS-clean.
 
 ## The design sheet
 
@@ -33,9 +33,10 @@ The clock generator keeps its 1.8 V timing core on VDDD and drives the 5 V switc
 | Driver taper | C_in(k+1)/C_in(k) | ≈ 3 | INV5S 1/2.5 → INV5M 2.5/6.25 → INV5L 8/20 µm into 60 fF |
 | Edge-pair delay | t_stop − t_start ≈ ln2·R·C_G + 2 gates | ≈ 0.45 ns | sets τ together with the output-gate difference |
 | Gm pulse | τ = (t_stop − t_start) + (d_o − d_ob) | 528 ps | full 0–3.3 V swing at the fastest corner (≥ 322 ps) |
-| Loop delay | t_p = gap1 + τ/2 | 875 ps | ≤ 5 ns; costs ΔPM = 360°·f_c·Δt_p = 0.34° |
+| Gap-1 delay | ln2·R_DL·C_DL + 4 gates | ≈ 1.75 ns (gap1 2.36 ns) | the Gm recovers from the 800 MHz tracking swing (step 79) |
+| Loop delay | t_p = gap1 + τ/2 | 2.62 ns | ≤ 5 ns; costs ΔPM ≈ 1.4° (step 73 HV table: 50.0° at 0.5 ns, 47.0° at 5 ns) |
 | Gap 2 | 4 inverter delays + output-gate difference | 177 ps | ≥ 100 ps: Gm off before C1 → C2 sharing |
-| Hold pulse | W_H ≈ ln2·R·C_H + gates | 2.68 ns | ≥ 1.5 ns = 5 time constants of the C1–C2 transfer |
+| Hold pulse | W_H ≈ ln2·R·C_H + gates | 1.84 ns | ≥ 1.0 ns (5 time constants of the C1–C2 transfer = 0.25 ns) and the hold must end before tracking resumes |
 | Dynamic power | Σ C·VDDA²·f_ref per output + internal | 0.72 mW | 6 outputs × (40–60 fF load + ≈ 50 fF self) × 3.3² × 50 MHz ≈ 0.3 mW, the rest is internal 5 V gates and short-circuit current |
 
 ## What happens, how, why
@@ -89,7 +90,8 @@ $$t_p = t_{gap1} + \frac{\tau}{2},\qquad \Delta PM = 360°\cdot f_c\cdot \Delta 
 | Complementary outputs | **TG + 2 inverters vs 3 inverters**, TG width sets the skew | TG 1.5 µm: cks/cksb −11 ps; TG 0.75 µm in the step drivers: ckg/ckgb −7 ps |
 | τ | **≈ 530 ps** (C_G 4 × 4 µm) | full swing at every corner (≥ 322 ps at ff_ll 110 °C) |
 | Gap 2 | **four 1.8 V inverters** | two gave 79 ps at fs (< 100 ps) |
-| Hold pulse | **edge pair, C_H 6 × 6 µm** | W_H ≥ 1.84 ns at every corner (≥ 1.5 ns needed) |
+| Hold pulse | **edge pair, C_H 4.5 × 4.5 µm** (6 × 6 before the gap-1 delay) | W_H 1.20–3.31 ns; the hold ends ≤ 8.2 ns after the sample |
+| Gap 1 | **RC delay cell `sspll_ckg_dly` (R 0.35 × 6 µm, C 5.3 × 5.3 µm) + edge pair** | added after step 79: Gm charge offset 4.4 → 0.7 fC per period, gain 73 → 102 % of G·τ |
 
 ## B. Timing over 25 conditions (method M16)
 
@@ -106,49 +108,73 @@ $$t_p = t_{gap1} + \frac{\tau}{2},\qquad \Delta PM = 360°\cdot f_c\cdot \Delta 
 
 | Condition | t_s ps | skew_s ps | gap1 ps | τ ps | skew_g ps | gap2 ps | W_H ns | t_p ps | cks fall ps | P mW |
 |---|---|---|---|---|---|---|---|---|---|---|
-| tt 27 °C, 1.8/3.3 V | 425 | -11 | 611 | 528 | -7 | 177 | 2.68 | 875 | 117 | 0.72 |
-| tt 27 °C, 1.71/3.3 V | 425 | -11 | 668 | 570 | -8 | 197 | 2.78 | 953 | 117 | 0.72 |
-| tt 27 °C, 1.89/3.3 V | 425 | -11 | 570 | 494 | -6 | 161 | 2.61 | 816 | 117 | 0.72 |
-| tt 27 °C, 1.8/2.97 V | 497 | -0 | 631 | 533 | 1 | 172 | 2.69 | 898 | 127 | 0.57 |
-| tt 27 °C, 1.8/3.63 V | 368 | -17 | 605 | 525 | -12 | 179 | 2.67 | 867 | 110 | 0.90 |
-| tt -40 °C, 1.8/3.3 V | 343 | -12 | 582 | 534 | -13 | 182 | 3.12 | 848 | 98 | 0.70 |
-| tt 110 °C, 1.8/3.3 V | 516 | -11 | 644 | 529 | 6 | 169 | 2.34 | 908 | 144 | 0.75 |
-| ss 110 °C, 1.71/2.97 V | 788 | 9 | 969 | 868 | 56 | 249 | 2.81 | 1412 | 185 | 0.61 |
-| ss -40 °C, 1.71/2.97 V | 537 | 15 | 913 | 860 | 26 | 312 | 4.07 | 1358 | 124 | 0.58 |
-| ff -40 °C, 1.89/3.63 V | 219 | -21 | 400 | 374 | -22 | 115 | 2.75 | 588 | 81 | 0.85 |
-| ff 110 °C, 1.89/3.63 V | 334 | -20 | 452 | 375 | -13 | 127 | 2.14 | 640 | 117 | 0.95 |
-| ss_hh 110 °C, 1.71/2.97 V | 788 | 9 | 969 | 951 | 56 | 240 | 3.12 | 1454 | 185 | 0.61 |
-| ss_hh -40 °C, 1.71/2.97 V | 539 | 15 | 913 | 949 | 26 | 304 | 4.58 | 1403 | 124 | 0.58 |
-| ff_ll -40 °C, 1.89/3.63 V | 218 | -21 | 400 | 327 | -22 | 123 | 2.34 | 564 | 81 | 0.84 |
-| ff_ll 110 °C, 1.89/3.63 V | 331 | -20 | 452 | 322 | -13 | 141 | 1.84 | 613 | 117 | 0.94 |
-| sf 27 °C, 1.8/3.3 V | 471 | -23 | 679 | 490 | -79 | 297 | 3.21 | 924 | 120 | 0.73 |
-| fs 27 °C, 1.8/3.3 V | 395 | -14 | 632 | 575 | 39 | 108 | 2.24 | 920 | 119 | 0.72 |
-| hl 27 °C, 1.8/3.3 V | 423 | -11 | 611 | 469 | -7 | 184 | 2.47 | 846 | 117 | 0.71 |
-| lh 27 °C, 1.8/3.3 V | 427 | -11 | 611 | 585 | -7 | 171 | 2.86 | 904 | 117 | 0.72 |
-| tt 27 °C, 1.8/3.3 V, 45 MHz | 426 | -11 | 611 | 528 | -7 | 177 | 2.74 | 875 | 117 | 0.65 |
-| tt 27 °C, 1.8/3.3 V, 55 MHz | 423 | -11 | 611 | 528 | -7 | 176 | 2.62 | 875 | 117 | 0.79 |
-| tt 27 °C, 1.8/3.3 V, 1.0 V sine | 1882 | -15 | 593 | 528 | -7 | 177 | 2.75 | 858 | 117 | 0.72 |
-| tt 27 °C, 1.8/3.3 V, 0.4 V sine | 2433 | -15 | 553 | 528 | -7 | 177 | 2.73 | 817 | 118 | 0.73 |
-| ss 110 °C, 1.71/2.97 V, 0.4 V sine | 3053 | 5 | 924 | 868 | 56 | 250 | 2.86 | 1362 | 186 | 0.61 |
-| ff -40 °C, 1.89/3.63 V, 0.4 V sine | 1987 | -25 | 328 | 374 | -22 | 115 | 2.79 | 516 | 82 | 0.86 |
+| tt 27 °C, 1.8/3.3 V | 425 | -11 | 2357 | 528 | -7 | 177 | 1.84 | 2621 | 117 | 0.72 |
+| tt 27 °C, 1.71/3.3 V | 425 | -11 | 2431 | 570 | -8 | 198 | 1.92 | 2716 | 117 | 0.72 |
+| tt 27 °C, 1.89/3.3 V | 425 | -11 | 2308 | 494 | -6 | 161 | 1.77 | 2555 | 117 | 0.73 |
+| tt 27 °C, 1.8/2.97 V | 497 | -0 | 2382 | 533 | 1 | 173 | 1.84 | 2648 | 127 | 0.57 |
+| tt 27 °C, 1.8/3.63 V | 368 | -17 | 2341 | 525 | -12 | 180 | 1.84 | 2603 | 110 | 0.90 |
+| tt -40 °C, 1.8/3.3 V | 343 | -12 | 2567 | 534 | -13 | 182 | 2.15 | 2834 | 98 | 0.70 |
+| tt 110 °C, 1.8/3.3 V | 516 | -11 | 2170 | 529 | 6 | 169 | 1.60 | 2435 | 144 | 0.76 |
+| ss 110 °C, 1.71/2.97 V | 788 | 9 | 2634 | 868 | 56 | 250 | 2.01 | 3077 | 185 | 0.61 |
+| ss -40 °C, 1.71/2.97 V | 537 | 15 | 3346 | 859 | 26 | 312 | 2.85 | 3791 | 124 | 0.58 |
+| ff -40 °C, 1.89/3.63 V | 219 | -21 | 2300 | 374 | -22 | 115 | 1.83 | 2487 | 81 | 0.85 |
+| ff 110 °C, 1.89/3.63 V | 334 | -20 | 1917 | 374 | -13 | 127 | 1.44 | 2104 | 117 | 0.96 |
+| ss_hh 110 °C, 1.71/2.97 V | 788 | 9 | 2856 | 951 | 56 | 241 | 2.30 | 3341 | 185 | 0.62 |
+| ss_hh -40 °C, 1.71/2.97 V | 539 | 15 | 3661 | 949 | 26 | 305 | 3.31 | 4151 | 124 | 0.59 |
+| ff_ll -40 °C, 1.89/3.63 V | 218 | -21 | 1980 | 326 | -22 | 123 | 1.51 | 2143 | 81 | 0.85 |
+| ff_ll 110 °C, 1.89/3.63 V | 331 | -20 | 1672 | 322 | -13 | 142 | 1.20 | 1833 | 117 | 0.95 |
+| sf 27 °C, 1.8/3.3 V | 471 | -23 | 2859 | 490 | -80 | 297 | 2.14 | 3104 | 120 | 0.74 |
+| fs 27 °C, 1.8/3.3 V | 395 | -14 | 2003 | 575 | 39 | 109 | 1.58 | 2290 | 119 | 0.72 |
+| hl 27 °C, 1.8/3.3 V | 423 | -11 | 2187 | 468 | -7 | 184 | 1.65 | 2422 | 117 | 0.72 |
+| lh 27 °C, 1.8/3.3 V | 427 | -11 | 2498 | 585 | -7 | 171 | 2.01 | 2791 | 117 | 0.73 |
+| tt 27 °C, 1.8/3.3 V, 45 MHz | 426 | -11 | 2387 | 528 | -7 | 177 | 1.84 | 2651 | 117 | 0.65 |
+| tt 27 °C, 1.8/3.3 V, 55 MHz | 423 | -11 | 2317 | 528 | -7 | 177 | 1.83 | 2581 | 117 | 0.80 |
+| tt 27 °C, 1.8/3.3 V, 1.0 V sine | 1882 | -15 | 2374 | 528 | -7 | 177 | 1.84 | 2638 | 117 | 0.73 |
+| tt 27 °C, 1.8/3.3 V, 0.4 V sine | 2433 | -15 | 2322 | 528 | -7 | 177 | 1.84 | 2586 | 118 | 0.73 |
+| ss 110 °C, 1.71/2.97 V, 0.4 V sine | 3053 | 5 | 2617 | 868 | 56 | 250 | 2.01 | 3055 | 186 | 0.62 |
+| ff -40 °C, 1.89/3.63 V, 0.4 V sine | 1987 | -25 | 2251 | 374 | -22 | 115 | 1.83 | 2438 | 82 | 0.87 |
 
-**Spread over all 25 conditions (none failed):** τ 322–951 ps, gap1 ≥ 328 ps, gap2 ≥ 108 ps, W_H ≥ 1.84 ns, t_p 516–1454 ps, power 0.57–0.95 mW.
+**Spread over all 25 conditions (none failed):** τ 322–951 ps, gap1 ≥ 1672 ps, gap2 ≥ 109 ps, W_H ≥ 1.20 ns, t_p 1833–4151 ps, power 0.57–0.96 mW.
 
-**τ·K_VCO (part B):** ss 110 °C 1.04, ss -40 °C 1.03, ff -40 °C 1.02, ff 110 °C 1.03, ss hh 110 °C 1.14, ff ll -40 °C 0.89. The product stays within 0.89–1.14 because τ (gate delay) grows exactly where the ring's K_VCO falls.
+**τ·K_VCO (part B):** ss 110 °C 1.04, ss -40 °C 1.03, ff -40 °C 1.02, ff 110 °C 1.02, ss hh 110 °C 1.14, ff ll -40 °C 0.89. The product stays within 0.89–1.14 because τ (gate delay) grows exactly where the ring's K_VCO falls.
 
 **Reading the table.**
 - t_s grows with a smaller reference amplitude (1.88 ns at 1 V sine, 2.43 ns at 0.4 V): that is the receiver's slope, not the clock generator. Only its *stability* matters, because the loop locks the VCO to whatever instant cks falls.
-- gap1 is the time between cks/cksb settling and the Gm turning on; it is ≥ 328 ps, so the sample is always frozen before it is read.
-- t_p (sample → middle of the Gm pulse) is the loop's delay; the slowest corner gives 1.45 ns.
+- gap1 is the time between cks/cksb settling and the Gm turning on. Since step 79 it holds an RC delay of about 2 ns (section B2): ≥ 1.67 ns, so the Gm has recovered from the SSPD's tracking swing before it is read.
+- t_p (sample → middle of the Gm pulse) is the loop's delay; the slowest corner gives 4.15 ns (≤ 5 ns, PM ≥ 47.5°).
+- The hold pulse ends at most 8.2 ns after the sample (ss_hh −40 °C), before tracking resumes (≥ 9.6 ns: the shortest refhv high time, 48 % duty).
 
 **Requirements:**
 - t_p ≤ 5 ns ✔
 - gaps ≥ 100 ps ✔ (gap 2 ≥ 108 ps at fs)
-- W_H ≥ 1.5 ns ✔ (≥ 1.84)
+- W_H ≥ 1.0 ns ✔ (≥ 1.20); hold ends before tracking ✔ (≤ 8.2 ns of ≥ 9.6 ns)
 - τ·K_VCO within ±15 % ✔
 - cks/cksb skew ≤ 25 ps ✔
 
 The ckg/ckgb skew reaches −79 ps at sf and +56 ps at ss. Step 79 is designed so that this does not matter (section G).
+
+## B2. The gap-1 delay (added after step 79)
+
+**What happened.** Step 79's whole-detector bench (SSPD + Gm + this clock generator, beat run) found that with the
+original 0.6 ns gap the Gm delivered 4.4 fC per period at lock and only 73 % of G·τ per volt. During tracking the
+SSPD's v1 swings ±2 V at 800 MHz; the Gm's source nodes (degeneration R_S ≈ 97 kΩ × ≈ 12 fF) need about 1.5 ns to
+come back after the sample, and the Gm was read before they had.
+
+**Measurement (ideal ckg at a variable delay after the sample, tt, locked):**
+
+| Pulse start after the sample | 0.7 ns | 2.0 ns | 3.0 ns | 4.5 ns |
+|---|---|---|---|---|
+| charge per period at lock | 4.42 fC | 1.05 fC | 0.68 fC | 0.61 fC |
+| gain, fraction of G·τ | 73 % | 113 % | 102 % | 104 % |
+
+**Fix.** An RC delay cell (`sspll_ckg_dly`: inverter, xhigh-poly 0.35 × 6 µm, MIM 5.3 × 5.3 µm, three inverters to
+sharpen the edge again) replaces the two gap inverters in front of the Gm edge pair: gap1 = 2.36 ns at tt
+(1.67–3.66 ns). The hold pulse follows the Gm pulse, so C_H shrank from 6 × 6 to 4.5 × 4.5 µm to end the hold
+before tracking resumes at the slowest corner (8.2 ns after the sample, against ≥ 9.6 ns). The sampling path
+(refhv → cks) is untouched, so its jitter (C) and supply sensitivity (D) still hold; part A and B were re-run.
+
+**Cost.** t_p rises from 0.88 to 2.62 ns: PM 50.0° → 48.6° at tt, ≥ 47.5° at the slowest corner (step 73 HV);
+the step-73 HV PM table puts that at +0.01 ps of FFNC-on jitter.
 
 ## C. Jitter of the sampling edge (method M17)
 
@@ -231,6 +257,7 @@ Floors in dBc/Hz at 50 MHz (white region). Worst case (3.3 V square, pess chain,
 
 | Level | Cell | Contents |
 |---|---|---|
+| 1 | `sspll_ckg_dly` | gap-1 RC delay (added after step 79): inverter, R, C, three inverters |
 | 1 | `sspll_ckg_edges_g` / `_h` | 1.8 V RC edge pair: stop = delayed edge, pls = 1.8 V pulse |
 | 1 | `sspll_ckg_hlatch` | hold trigger latch (set by the 1.8 V Gm pulse, reset while refclk is low) |
 | 1 | `sspll_ckg_drv5` / `drv5t` | 5 V complementary driver (always-on TG + 2 inverters / 3 inverters); large / small output stage |
@@ -244,7 +271,7 @@ Floors in dBc/Hz at 50 MHz (white region). Worst case (3.3 V square, pess chain,
 
 **Checks:**
 - **Drawing:** clean (no overlap, no wire through a pin, no floating pin, no 4-way junction, no text collision).
-- **LVS:** netgen against `xschem/netlist/ref_clkgen_hv.spice` (= `clkgen_hv.cells()`): all seven cells give *Circuits match uniquely*.
+- **LVS:** netgen against `xschem/netlist/ref_clkgen_hv.spice` (= `clkgen_hv.cells()`): all eight cells give *Circuits match uniquely*.
 
 ## G. Sizing table (all devices pass `tools/pdk_limits.py`)
 
@@ -260,7 +287,9 @@ Floors in dBc/Hz at 50 MHz (white region). Worst case (3.3 V square, pess chain,
 | NOR5L | n 2.0 µm ×1, p 5.0 µm ×2 | L 0.5 µm | 5 V (g5v0d10v5) |
 | NAND5L | n 2.0 µm ×2, p 5.0 µm ×1 | L 0.5 µm | 5 V (g5v0d10v5) |
 | CG | cap_mim_m3_1 | 4.0 × 4.0 µm | — |
-| CH | cap_mim_m3_1 | 6.0 × 6.0 µm | — |
+| CH | cap_mim_m3_1 | 4.5 × 4.5 µm | — |
+| CDL (gap-1 delay) | cap_mim_m3_1 | 5.3 × 5.3 µm | — |
+| RDL (gap-1 delay) | res_xhigh_po_0p35 | 0.35 × 6 µm | — |
 
 The 1.8 V core (RC edge generators, gap inverters, hold latch) keeps the 13 Nov sizes of `clkgen.py`; the four level shifters are the step-75 HV cell `sspll_ls_1v8_3v3`. All widths ≥ 0.42 µm, all 5 V lengths = 0.5 µm (PDK minimum for g5v0d10v5), MIM sides between 2 and 30 µm: inside the PDK limits (`tools/pdk_limits.py`).
 
@@ -270,10 +299,10 @@ The 1.8 V core (RC edge generators, gap inverters, hold latch) keeps the 13 Nov 
 |---|---|
 | Step 78 SSPD | cks/cksb are 0 / 3.3 V, 117 ps fall (tt), 81–186 ps over corners; sampling instant 425 ps after REF_IN (square, tt). Gate load ≤ 60 fF per output. |
 | Step 79 Gm | ckg/ckgb: τ = 528 ps tt (322–951 ps); β = 2A·g_m·τ/T → g_m for β·K_VCO = step 73 HV. ckg/ckgb skew up to ±80 ps: the pulse width must be set by ckg alone (TG steering whose both halves see the same pulse is fine). Load ≤ 40 fF. |
-| Step 73 HV loop | t_p = 0.88 ns tt (0.52–1.45 ns) instead of 0.5 ns: −0.34° PM at tt, −0.85° at the slowest corner. |
+| Step 73 HV loop | t_p = 2.62 ns tt (1.83–4.15 ns) instead of 0.5 ns: PM 48.6° at tt, ≥ 47.5° at the slowest corner (step 73 HV table); jitter +0.01 ps (step 73 HV PM table). |
 | Step 76 receiver | new output refhv (done; LVS redone). |
 | Proposal | none for timing; the architecture text now says the sampling edge stays in the 3.3 V domain (19 Nov). |
-| Power budget | clock generator 0.72 mW typ (0.54–0.95) against 0.41 mW (0.08 core + 0.33 level shifters): +0.31 mW. Running total 9.13 + 0.03 (receiver) − 0.18 (CCO) + 0.31 = 9.29 mW typ (proposal 9.1, max 15); settled after step 79, when the SSPD and the Gm are measured. |
+| Power budget | clock generator 0.72 mW typ (0.54–0.95) against 0.41 mW (0.08 core + 0.33 level shifters): +0.31 mW. Running total 7.55 (after step 74 HV) − 0.18 (CCO) + 0.03 (receiver) + 0.31 = 7.71 mW typ (proposal 9.1, max 15); settled after step 79, when the SSPD and the Gm are measured. |
 
 ## I. Problems met and how they were solved
 
@@ -293,7 +322,7 @@ The 1.8 V core (RC edge generators, gap inverters, hold latch) keeps the 13 Nov 
 
 - **Timing, jitter, phase noise:** no change. Every typical and maximum value still holds (table in E).
 - **Architecture text:** already updated on 19 Nov (the sampling edge stays in the 3.3 V domain; VDDD carries no noise requirement).
-- **Power:** the typical rises from 9.13 to 9.29 mW with this step, against the proposal's 9.1 mW. Steps 78 and 79 add the SSPD and the Gm; the power line is decided once, after step 79, with all three numbers measured, instead of being edited three times.
+- **Power:** the typical rises from 7.40 to 7.71 mW with this step (proposal 9.1 mW). Steps 78 and 79 add the SSPD and the Gm; the power line is decided once, after step 79, with all three numbers measured, instead of being edited three times.
 
 ## Interview questions (step 77 redo)
 

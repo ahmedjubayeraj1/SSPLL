@@ -20,7 +20,7 @@ C77 = J("design", "clkgen", "data", "step77hv_noise.json")
 SIM = J("design", "sspd", "data", "step78hv_sim.json")
 FREF = 50e6
 VN = dict(typ=100e-9, pess=300e-9)
-CS = 34.7e-15 + 8e-15 + 3e-15           # C1 + Gm input (step 79 placeholder) + TG junctions
+CS = 16.2e-15 + 26.5e-15 + 3e-15        # C1 + Gm input (measured, step 79) + TG junctions
 
 
 if __name__ == "__main__":

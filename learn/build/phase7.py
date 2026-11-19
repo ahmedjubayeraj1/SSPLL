@@ -9,8 +9,9 @@ from qa75 import QA75, QA75HV
 from qa76 import QA76, QA76HV
 from qa77 import QA77, QA77HV
 from qa78 import QA78, QA78HV
+from qa79 import qa79
 
-b = Book("Phase 7 — Block design (steps 72–78)",
+b = Book("Phase 7 — Block design (steps 72–79)",
          "Phases 1–6 explained *why* each block exists. Phase 7 designs them — and the first design step is to decide how "
          "much each block is allowed to cost: jitter, power and area (step 72); the second is the loop itself (step 73). "
          "This notebook splits the proposal's targets "
@@ -1250,6 +1251,8 @@ $$t_p = t_{gap1} + \frac{\tau}{2},\qquad \Delta PM = 360°\cdot f_c\cdot \Delta 
   ≈ 530 ps, and step 79 lowers g_m by the same factor (β = 2A·g_m·τ/T is what the loop sees).
 - Through refclk the sampling edge moved 376 ps per volt of VDDD — a supply shared with every other project on the
   chip. From refhv it does not see VDDD at all.
+- The Gm pulse waits about 2.4 ns after the sample (an RC delay added after step 79): the Gm needs that long to recover
+  from the SSPD's ±2 V, 800 MHz tracking swing. The loop delay t_p becomes 2.6 ns (PM 48.6° instead of 50°).
 
 Full write-up: `docs/design/step77_hv_clkgen.md`.
 """)
@@ -1267,7 +1270,7 @@ def frame(i):
              dict(x=["gap 1", "τ", "gap 2", "W_H / 10", "t_p"], y=[100]*5, name="100 ps", mode="lines", line=dict(color="#f0a30a", dash="dash"))],
             lab(r) + f": skew cks/cksb {r['skew_s']*1e12:.0f} ps, power {r['power']*1e3:.2f} mW")
 def lay(fig):
-    fig.update_yaxes(title="ps", range=[0, 1600])
+    fig.update_yaxes(title="ps", range=[0, 4500])
 show(sweep(list(range(len(R))), frame, "condition", fmt="{:d}", active=0, layout=lay))
 """)
 b.md(r"""
@@ -1484,4 +1487,93 @@ display(Image(filename="../docs/img/step78hv_kick.png", width=900))
 display(Image(filename="../docs/img/step78hv_sch_sspll_sspd_hv_side.png", width=900))
 """)
 b.qa(QA78HV, "78 — 800 MHz redo")
+
+# ------------------------------------------------------------------------------------------------ step 79 (5 V pulsed Gm)
+V79 = r"""
+import json, os
+import numpy as np
+DG = "../design/sscp/data"
+ld79 = lambda n: json.load(open(os.path.join(DG, n)))
+S79, N79, D79, DLY79 = ld79("step79hv_sim.json"), ld79("step79hv_noise.json"), ld79("step79hv_det.json"), ld79("step79hv_delay.json")
+"""
+b.step(79, "Pulsed-Gm charge pump (sub-sampling charge pump) in 5 V devices", "schematic")
+b.md(r"""
+<a id='step-79'></a>
+### What happens
+After every sample the SSPD holds $v_{1p} - v_{1m} = 2A\varphi$. During the Gm pulse a transconductor turns it into a
+current into the loop filter; averaged over the period that is a current proportional to the phase error — a charge
+pump with no PFD and no dead zone:
+
+$$\beta = \frac{2A\,G\,\tau}{T}$$
+
+### How it happens
+Five identical slices (three on at code 00), each a degenerated nMOS pair. There is **no current mirror**: each drain
+has its own pMOS current source equal to its tail, biased by a replica half-slice, so the output drain carries only the
+change of its transistor's current:
+
+$$i_x = I_P - I_{N2} = \tfrac{1}{2}\,G_{pair}\,(v_{1p} - v_{1m}),\qquad G_{pair} = \frac{1}{1/g_m + R_S/2}$$
+
+The output x is steered to the loop filter during ckg and to a dump node otherwise; a buffer and 2 pF hold the dump
+node at V_cont. The pump's current noise reaches the loop only during the pulse:
+
+$$S_\varphi = \frac{S_i}{4A^2G^2d},\qquad d = \frac{\tau}{T}$$
+
+### Why it happens this way
+- **No mirror.** The first version had one (5 × 2/4 µm pMOS at 6 µA, a pole near 30 MHz). With DC test inputs it was
+  fine; with the real SSPD in front — v1 tracks the 800 MHz ring for half of every period and jumps to the held value
+  0.6 ns before the pulse — the loop gain collapsed to 0.17 µA/rad (target 0.79). Lesson: test a pulsed block with its
+  real neighbour.
+- **The pulse waits 2.4 ns after the sample.** The degeneration remembers the ±2 V tracking swing for about 1.5 ns.
+- **2 pF on the dump node.** The tracking current made it swing ±90 mV.
+- **Noise sets the bias.** S_φ has G² in the denominator: every current source whose noise reaches x counts against a
+  small G. The replica bias was 74 % of the noise at first; a 6× replica and longer current sources cut it 6 dB.
+
+Full write-up: `docs/design/step79_hv_sscp.md`.
+""")
+b.md(r"""
+**Figure 79.1 — the whole detector (SSPD + Gm + clock generator, beat run).** Charge into the loop filter per reference
+period against the ring phase at the sample, at five conditions. The slope at the zero is β_eff·T; the zero is the lock
+point. Use the selector to switch conditions.
+""")
+b.code(V79 + r"""
+def frame(i):
+    r = D79[i]; a = np.array(r["rows"]); d = (a[:, 0] - r["phi0"] + np.pi) % (2*np.pi) - np.pi; o = np.argsort(d)
+    lab = f"{r['corner']} {r['temp']}°C {r['vdda']} V, V_cont {r['vc']} V"
+    return ([dict(x=d[o], y=a[o, 1]*1e15, name="charge per period (fC)", mode="lines+markers", line=dict(color="#2a78d6")),
+             dict(x=[-0.6, 0.6], y=[-0.6*0.79e-6*20e-9*1e15, 0.6*0.79e-6*20e-9*1e15], name="target slope 0.79 µA/rad", mode="lines",
+                  line=dict(color="#eb6834", dash="dash"))], lab)
+def lay(fig):
+    fig.update_xaxes(title="ring phase relative to the SSPD zero crossing (rad)"); fig.update_yaxes(title="fC per period")
+show(sweep(list(range(len(D79))), frame, "condition", fmt="{:d}", active=0, layout=lay))
+""")
+b.md(r"""
+**Figure 79.2 — why the pulse waits.** Charge at lock and gain (as a fraction of G·τ) against the delay between the
+sample and the Gm pulse, measured on the locked detector.
+""")
+b.code(V79 + r"""
+ds = sorted(set(x["dly"] for x in DLY79)); q, g = [], []
+for d_ in ds:
+    a, b_ = [x for x in DLY79 if x["dly"] == d_]
+    q.append(a["q"]*1e15); g.append((b_["q"] - a["q"])/(b_["v1"] - a["v1"])/(18.42e-6*0.53e-9)*100)
+fig = make_subplots(rows=1, cols=2, subplot_titles=("charge per period at lock (fC)", "gain / (G·τ) (%)"))
+fig.add_trace(go.Scatter(x=[d*1e9 for d in ds], y=q, mode="lines+markers", name="charge"), 1, 1)
+fig.add_trace(go.Scatter(x=[d*1e9 for d in ds], y=g, mode="lines+markers", name="gain"), 1, 2)
+fig.update_xaxes(title="pulse start after the sample (ns)"); fig.update_layout(height=380, showlegend=False)
+show(fig)
+""")
+b.code(V79 + r"""
+dc = S79["dc"]; print("G (code 00):", ", ".join(f"{r['corner']} {r['temp']}°C {r['vc']} V: {r['G']*1e6:.2f} µS" for r in dc if r["code"] == "00"))
+fn, n = np.array(S79["noise"]["f"]), np.array(S79["noise"]["n"])
+print(f"output noise {np.interp(1e4, fn, n)*1e12:.2f} / {np.interp(1e6, fn, n)*1e12:.2f} pA/rtHz at 10 kHz / 1 MHz")
+for k in ("3.3_typ", "3.3_pess", "1.0_typ", "3.3_worst"):
+    o = N79["sys"][k]
+    print(f"{k:10s} Gm {o['on']['terms']['pulsed-Gm charge pump']*1e3:.0f} fs; jitter off {o['off']['total']:.2f} / on {o['on']['total']:.2f} ps, L(300 kHz) {o['off']['L300k']:.1f} / {o['on']['L300k']:.1f}")
+""")
+b.code(r"""
+from IPython.display import Image, display
+for n_ in ("sspll_sscp_hv", "sspll_sscp_hv_slice"):
+    display(Image(filename=f"../docs/img/step79hv_sch_{n_}.png", width=900))
+display(Image(filename="../docs/img/step79hv_noise.png", width=900))
+""")
+b.qa(qa79(), 79)
 b.save(os.path.join(os.path.dirname(__file__), "..", "phase7_design.ipynb"))

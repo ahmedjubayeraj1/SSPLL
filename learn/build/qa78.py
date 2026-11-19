@@ -127,7 +127,7 @@ QA78HV = [
  "cost 4 % more power."),
 ("Why does A now change with VDDA, and why is that acceptable without an LDO?",
  "The filtered square swings VDDA/2 around its mid-level, so the slope at the crossing, and A, are proportional to VDDA: "
- "0.694 / 0.812 / 0.951 V/rad at 2.97 / 3.3 / 3.63 V. The static part (the chip's VDDA) is a fixed loop-gain error, "
+ "0.693 / 0.811 / 0.950 V/rad at 2.97 / 3.3 / 3.63 V. The static part (the chip's VDDA) is a fixed loop-gain error, "
  "covered by the icp_trim like a process corner. The fast part (supply noise) only scales the tiny locked phase error "
  "and so produces a second-order effect; the supply noise that matters is what moves edges, measured separately (M21)."),
 ("Why is the kick-back 30× larger than in the 1.8 V design, and does it matter?",
@@ -139,10 +139,12 @@ QA78HV = [
  "Each side swings its sampling capacitance (≈ 46 fF with the Gm input and junctions) through 3.3 V at 800 MHz: "
  "2 × 46 fF × 3.3² × 0.8 GHz ≈ 0.80 mW, plus the buffers' own gates: 1.03 mW measured. The step-72 allocation (0.49 mW) "
  "scaled the 1.8 V design by current; the right scaling is C·V²·f, which is (3.3/1.8)² × ½ = 1.68× higher per farad."),
-("Why was C1 not reduced to save power?",
- "Step 72 requires C_s ≥ 35 fF. With C1 = 20 fF the sampled node (C1 + 8 fF Gm input + 3 fF junctions) would be about "
- "31 fF, and the Gm's non-linear gate capacitance would be a quarter of it. The saving would be about 0.25 mW. Noise is "
- "not the limit: kT/C costs only 40 fs in the system."),
+("Why is the MIM capacitor C1 only 16.2 fF?",
+ "Because the Gm's input is part of the sampled node. Step 79 measured it: 26.5 fF per side at tt (24–29 fF over "
+ "corners and trim codes), not the 8 fF placeholder used at first. The node that sets A, α and kT/C is C1 + C_Gm + junctions, so "
+ "C1 was cut from 4 × 4 to 2.69 × 2.69 µm to keep that node at 45.7 fF (step 72 requires ≥ 35 fF); the dummy CD "
+ "(= C1 + C_Gm) stayed the same. A rerun of all 18 conditions confirmed A = 0.811 V/rad at tt. Making the node "
+ "smaller would save power, but the Gm's non-linear gate capacitance (up to +25 % over ±0.8 V) would dominate it."),
 ("Why is a DC supply step enough for the isolation buffers but not for the receiver?",
  "Method M21 exists because a self-biased, AC-coupled stage changes its operating point with a time constant, so its "
  "sensitivity depends on the ripple frequency. The isolation buffers are plain inverters driven rail to rail: no bias "
@@ -151,7 +153,7 @@ QA78HV = [
 ("How was R_s chosen?",
  "By full beat runs with the real clock generator at three lengths of the xhigh-poly resistor (0.35 µm wide): 0.8 µm "
  "gave A = 0.701, 0.6 µm 0.812 and 0.5 µm 0.880 V/rad. 0.6 µm is closest to the 0.8 V/rad target and keeps the "
- "minimum over corners (0.515 at ss_hh, 2.97 V) above the 0.5 V/rad floor."),
+ "minimum over corners (0.536 at ss_hh, 2.97 V, in the final design) above the 0.5 V/rad floor."),
 ("Why does the dummy sampler matter more without an LDO?",
  "Without it, the isolation buffer charges C1 only while the sampler tracks, so the SSPD current has a component at "
  "f_ref (27.9 µA). That current flows in the VDDA wiring shared with the ring's CCO, the NCB and the buffers: an f_ref "
@@ -160,5 +162,5 @@ QA78HV = [
  "kT/C of the sampling capacitor is detector noise: divided by the detector gain it is a phase error already in ring "
  "radians, so it reaches the output without ×N² (−148.6 dBc/Hz floor, 40 fs). Timing noise of the isolation buffers and "
  "their supply sensitivity shift the moment the ring is looked at, exactly like reference jitter: those are multiplied "
- "by N² in band (−171.4 and −186 dBc/Hz at 50 MHz)."),
+ "by N² in band (−171.6 and −186 dBc/Hz at 50 MHz)."),
 ]
