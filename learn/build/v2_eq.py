@@ -21,6 +21,32 @@ def E(rows, words, why="", num="", watch=""):
 
 
 EXPLAIN = [
+("\\mathcal{L}_{sup}(f) = \\frac{(2\\pi f_{ref})^2", E(
+    [("$K_s(f)$", "edge-time change per volt of a supply, at ripple frequency f", "s/V", "VDDD 157 ps/V; VDDA 31–60 ps/V (square), 254–530 (1 V sine)"),
+     ("$S_v(f)$", "noise density of that supply at the die", "V²/Hz", "(100 nV/√Hz)² typ, (300)² pess, 10 kHz 1/f corner"),
+     ("$f_{ref}$", "reference frequency", "Hz", "50 MHz"),
+     ("$\\mathcal{L}_{sup}$", "phase noise this adds to the reference", "dBc/Hz", "VDDD: −169 typ, −160 pess"),
+     ("$N$", "multiplication factor of the PLL", "—", "16 (+24 dB)")],
+    "A supply wiggle moves every edge by K_s volts-to-seconds; a time shift is a phase shift of 2π f_ref per second; "
+    "squared and halved, that is the single-sideband phase noise. Inside the loop bandwidth the reference phase is "
+    "multiplied by N, so its noise power by N².",
+    "Edge timing is phase: φ = 2π f_ref·t. A small-signal transfer from volts to seconds becomes volts to radians.",
+    "VDDD: K = 157 ps/V, S_v = (100 nV/√Hz)² → (3.14e8)²·(1.57e-10)²·1e-14/2 = 1.2e-17 → −169 dBc/Hz at 50 MHz, "
+    "−145 at 800 MHz in band. At 1 µV/√Hz it would be −149 / −125: as large as the whole in-band output noise.",
+    "Read the edge at the threshold of the gate that receives it (VDDD/2 for a VDDD gate), or K_s is wrong.")),
+("s_{gate} = \\pi f_{ref}V_{pp}", E(
+    [("$\\sigma_v$", "rms noise voltage at the gate around the crossing", "V", "≈ 3.2 nV/√Hz × √B_eff"),
+     ("$s_{gate}$", "slope of the gate voltage at the crossing", "V/s", "1 V sine: 0.10 V/ns; 3.3 V square: 4.4 V/ns"),
+     ("$V_{pp}$", "peak-to-peak reference amplitude at the pad", "V", "0.4 / 1.0 / 3.3"),
+     ("$|v_{gate}/v_{pad}|$", "AC-coupling divider at 50 MHz", "—", "0.662"),
+     ("$t_{edge}$", "rise time of a square reference", "s", "0.5 ns")],
+    "Noise moves a crossing by its voltage divided by how fast the signal passes the threshold. A sine is fastest at its "
+    "zero crossing (π f V_pp); a square passes in its edge time.",
+    "Linearising the waveform around the crossing: v(t) ≈ s·t, so a voltage error δv is a time error δv/s.",
+    "S1's per-edge white jitter: 0.556 ps with 1 V sine, 0.034 ps with 3.3 V square. The slope is 42× steeper but the "
+    "jitter only 16× smaller (the stage's noise bandwidth limits the gain): −151.7 → −176.4 dBc/Hz for S1 alone, and "
+    "the output chain then sets the receiver's white floor at −166.8.",
+    "")),
 ("K_{vdd} = K_I\\left|\\frac{dI_{out}}{dV_{DDA}}\\right|", E(
     [("$I_{out}$", "current the CCO pushes into the ring's supply node", "A", "0.991 mA at code 10 (tt)"),
      ("$I_{BIAS}$", "reference current from the harness", "A", "5 µA (±20 %)"),

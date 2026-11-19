@@ -241,3 +241,15 @@ Generated from `design/log/log_data.py` (also in `design/SSPLL_design_log.xlsx`,
 **How to run it.** `python3 design/feas/hv_noise.py -> design/feas/hv_noise.json`
 
 **Limits.** tt, 27 C, one V_DS; SKY130 flicker parameters are binned by length, so the corner must be measured per L used
+
+## M21. Supply-to-edge sensitivity by differential sinusoidal supply modulation (step 76-HV)
+
+**What it gives.** |dt_edge/dV_supply| (s/V) of a clock path as a function of the ripple frequency, for each supply separately; with the supply noise density it gives the path's supply-induced phase noise L(f) = (2 pi f_ref)^2 K(f)^2 S_v(f)/2
+
+**Why this method.** without an LDO every supply ripple that moves an edge is reference noise (x N^2 in band); a DC step misses the frequency dependence of AC-coupled / self-biased circuits and of decoupled bias nodes, and a single run with a fit confuses the start-up drift of slow bias loops with the ripple
+
+**How it works.** two transients from the same operating point: rail = V0 + 10 mV sin(2 pi f_m (t - t_set)) and rail = V0; the edge times are read where the output crosses the receiving gate's threshold (VDDD/2 for a VDDD gate, fixed for VDDA); the edge-by-edge difference is fitted to offset + sinusoid at f_m (least squares); f_m = 0.3, 1, 5, 20 MHz < f_ref/2; a +10 mV DC step at settled bias gives the low-frequency point
+
+**How to run it.** `python3 design/refbuf/step76hv_supply.py --diff -> design/refbuf/data/step76hv_supply.json`
+
+**Limits.** small-signal (10 mV), tt only; 2-3 ripple periods per point (+-5 %); edges sample the ripple at f_ref, so f_m must stay below f_ref/2

@@ -1,0 +1,14 @@
+S1 gate white 3.19 nV/rtHz, pad 3.74, |v_gate/v_pad| at 50 MHz 0.662
+chain noise {'s2': ('1.99 pA/rtHz', 1.521), 's3': ('0.61 pA/rtHz', 0.837), 'refclk': ('3.67 pA/rtHz', 0.895)}
+S1 per-edge white jitter 3.3 V pp square: 0.129 ps (period/sqrt2 0.034)
+S1 per-edge white jitter 1.0 V pp sine: 0.560 ps (period/sqrt2 0.556)
+S1 per-edge white jitter 0.4 V pp sine: 1.190 ps (period/sqrt2 1.162)
+output chain: 0.097 ps raw, baseline 0.003 -> 0.097 ps (square), 0.173 ps (1 V sine)
+VDDD noise for -165 dBc/Hz: 161 nV/rtHz (K_VDDD 157 ps/V)
+3.3 V pp typ: rx floor -161.9 (white -162.9, VDDA -183.2, VDDD -169.0), rx L(10 kHz) -156.9; system off 1.98 / on 1.32 ps, L300k -117.2 / -125.3, ref chain 0.192 ps
+3.3 V pp pess: rx floor -157.8 (white -162.9, VDDA -173.7, VDDD -159.5), rx L(10 kHz) -148.5; system off 2.97 / on 2.12 ps, L300k -112.5 / -118.7, ref chain 0.228 ps
+1.0 V pp typ: rx floor -150.8 (white -151.7, VDDA -158.6, VDDD -169.4), rx L(10 kHz) -149.4; system off 2.00 / on 1.40 ps, L300k -116.8 / -123.3, ref chain 0.506 ps
+1.0 V pp pess: rx floor -146.9 (white -151.7, VDDA -149.1, VDDD -159.9), rx L(10 kHz) -143.1; system off 3.00 / on 2.21 ps, L300k -112.3 / -118.0, ref chain 0.635 ps
+0.4 V pp typ: rx floor -145.2 (white -145.4, VDDA -158.6, VDDD -169.4), rx L(10 kHz) -144.8; system off 2.06 / on 1.62 ps, L300k -115.7 / -119.9, ref chain 0.952 ps
+0.4 V pp pess: rx floor -143.8 (white -145.4, VDDA -149.1, VDDD -159.9), rx L(10 kHz) -141.5; system off 3.04 / on 2.32 ps, L300k -111.9 / -116.7, ref chain 0.948 ps
+worst (ss/110 C, VDDA 2.97 V): off 3.70 / on 2.50 ps

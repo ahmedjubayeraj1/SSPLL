@@ -6,7 +6,7 @@ from qa72 import QA72, QA72HV
 from qa73 import QA73, QA73HV
 from qa74 import QA74, QA74HV
 from qa75 import QA75, QA75HV
-from qa76 import QA76
+from qa76 import QA76, QA76HV
 from qa77 import QA77
 from qa78 import QA78
 
@@ -1010,6 +1010,98 @@ Per-edge jitter 0.23 / 0.61 / 1.15 ps at 3.3 / 1.0 / 0.4 V pp; system at 3.3 V p
 −111.0 / −120.7 dBc/Hz (FFNC off / on). Full report: `docs/design/step76_refbuf.md`.
 """)
 b.qa(QA76, 76)
+
+# ------------------------------------------------------------------------------------------------ step 76 redo (5 V, VDDD)
+V76H = r"""
+import json, os
+import numpy as np
+DR = "../design/refbuf/data"
+ld = lambda n: json.load(open(os.path.join(DR, f"step76hv_{n}.json")))
+SIM, SUP, NZ = ld("sim"), ld("supply"), ld("noise")
+"""
+b.md(r"""
+<a id='step-76-hv'></a>
+### Step 76 redo — the REF receiver without VDDL (19 Nov 2026)
+
+**What happens.** The receiver's analog core (S1, S2, bias, R_B, C_AC, C_H) was already built from 5 V devices on VDDA
+and stays. Its 1.8 V side — the level-shift inverter, the output NOR and the pll_en inverter — lived on VDDL, the LDO
+output; the LDO is gone, so they now run on VDDD, the harness digital supply. That makes VDDD a new path from a supply
+to the reference edge, and the reference edge is the PLL's phase reference: in band, its noise reaches 800 MHz ×16.
+
+**How it happens.** A voltage error at a crossing becomes a time error through the slope; a supply that moves the
+edge by $K_s$ seconds per volt adds reference phase noise:
+
+$$\sigma_t = \frac{\sigma_v}{s},\qquad s_{gate} = \pi f_{ref}V_{pp}\,\Big|\tfrac{v_{gate}}{v_{pad}}\Big|\ (\text{sine})$$
+
+$$\mathcal{L}_{sup}(f) = \frac{(2\pi f_{ref})^2\,K_s(f)^2\,S_v(f)}{2},\qquad \mathcal{L}_{out} = \mathcal{L}_{ref} + 20\log_{10}N$$
+
+**Why it happens this way.**
+- A square reference is ≈ 40× steeper than a 1 V pp sine: S1's jitter falls 16× and the VDDA sensitivity 4–10×.
+- VDDA enters through S1's header node, which C_H ties to VDDA at high frequency: with a sine it rises to 530 ps/V at
+  5 MHz.
+- VDDD enters through the delay of the level shifter and the NOR (a thick-oxide inverter on 1.8 V has little
+  overdrive): 157 ps/V, flat to 20 MHz because that path has no slow nodes. So VDDD must be as quiet as VDDA.
+
+Full write-up: `docs/design/step76_hv_refbuf.md`.
+""")
+b.md(r"""
+**Figure 76.5 — how the supply moves the reference edge.** Slide through the ripple frequency. Each bar is one measured
+sensitivity (method M21: modulated minus unmodulated run, edge read at the receiving gate's threshold). The VDDD bars do
+not move with frequency; the VDDA bar with a sine input grows above 1 MHz.
+""")
+b.code(V76H + r"""
+FM = [0.0, 0.3e6, 1e6, 5e6, 20e6]
+CASES = [("vdda", 3.3, "VDDA, 3.3 V square"), ("vdda", 1.0, "VDDA, 1 V sine"), ("vddd", 3.3, "VDDD, 3.3 V square"),
+         ("vddd", 1.0, "VDDD, 1 V sine")]
+def get(rail, vpp, fm):
+    r = [x for x in SUP if x["rail"] == rail and x["vpp"] == vpp and abs(x["fm"] - fm) < 1]
+    return abs(r[0]["k"])*1e12 if r else float("nan")
+def frame(i):
+    fm = FM[i]
+    return ([dict(x=[c[2] for c in CASES], y=[get(c[0], c[1], fm) for c in CASES], name="ps/V", mode="lines+markers",
+                  line=dict(color="#2a78d6"), marker=dict(size=12))],
+            ("DC step" if fm == 0 else f"ripple at {fm/1e6:g} MHz") + ": " +
+            ", ".join(f"{c[2]} {get(c[0], c[1], fm):.0f}" for c in CASES) + " ps/V (gaps: not run)")
+def lay(fig):
+    fig.update_yaxes(title="|Δt_edge / ΔV| (ps/V)", range=[0, 560])
+show(sweep(list(range(len(FM))), frame, "ripple", fmt="{:d}", active=2, layout=lay))
+""")
+b.md(r"""
+**Figure 76.6 — where the receiver's phase noise comes from.** The parts at 50 MHz (typ, 100 nV/√Hz on both supplies)
+and the REF-chain total against its −155 dBc/Hz allocation, for the two reference waveforms. Hover the curves.
+""")
+b.code(V76H + r"""
+f = np.array(NZ["fL"])
+fig = make_subplots(rows=1, cols=2, subplot_titles=("3.3 V pp square (CMOS XO)", "1 V pp sine (proposal typ)"))
+COL = dict(white="#2a78d6", vdda="#eb6834", vddd="#1baf7a", chain="#1f2328")
+for c, key in ((1, "3.3_typ"), (2, "1.0_typ")):
+    L = NZ["L"][key]
+    for nm in ("white", "vdda", "vddd", "chain"):
+        fig.add_trace(go.Scatter(x=f, y=L[nm], name={"white": "S1 + chain, white", "vdda": "VDDA", "vddd": "VDDD",
+                                 "chain": "REF chain total"}[nm], line=dict(color=COL[nm], width=3 if nm == "chain" else 1.5,
+                                 dash="dash" if nm in ("vdda", "vddd") else None), showlegend=(c == 1)), 1, c)
+    fig.add_hline(y=-155, line_dash="dot", line_color="#f0a30a", row=1, col=c)
+fig.update_xaxes(type="log", title="offset (Hz)"); fig.update_yaxes(title="L at 50 MHz (dBc/Hz)", range=[-190, -135])
+fig.update_layout(height=430)
+show(fig)
+""")
+b.code(V76H + r"""
+for key, lab in (("3.3_typ", "3.3 V square, typ"), ("1.0_typ", "1.0 V sine, typ"), ("0.4_typ", "0.4 V sine, typ"),
+                 ("3.3_pess", "3.3 V square, pess"), ("3.3_worst", "3.3 V square, worst")):
+    o = NZ["sys"][key]
+    print(f"{lab:22s} jitter off {o['off']['total']:.2f} / on {o['on']['total']:.2f} ps, "
+          f"L(300 kHz) {o['off']['L300k']:.1f} / {o['on']['L300k']:.1f} dBc/Hz")
+print("proposal typ: 2.6 / 1.6 ps, -114 / -124 dBc/Hz; max 5.0 / 3.2 ps, -108 / -116 dBc/Hz")
+print(f"VDDD noise for a -165 dBc/Hz VDDD term: {NZ['vddd_max']*1e9:.0f} nV/rtHz")
+t = SIM["tran"]
+print(f"delay square {min(r['delay'] for r in t if r['wave']=='square')*1e12:.0f}-{max(r['delay'] for r in t if r['wave']=='square')*1e12:.0f} ps, "
+      f"duty {min(r['duty'] for r in t)*100:.0f}-{max(r['duty'] for r in t)*100:.0f} %, power {min(r['power'] for r in t)*1e3:.2f}-{max(r['power'] for r in t)*1e3:.2f} mW")
+""")
+b.code(r"""
+from IPython.display import Image, display
+display(Image(filename="../docs/img/step76hv_sch_sspll_refbuf_hv.png", width=900))
+""")
+b.qa(QA76HV, "76 — 800 MHz redo")
 
 # ------------------------------------------------------------------------------------------------ step 77
 V77 = r"""

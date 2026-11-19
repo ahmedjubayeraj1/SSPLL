@@ -479,6 +479,25 @@ of the trip-point size (2.43 and 5.11 pA/√Hz), 312 edges at 1.6 GHz, 4th-order
   - A PSR run with code 31 at IBIAS 5 µA at ss pushes 1.8 mA, more than any corner needs: do not use that point for the budget.
 - **xschem.** `xschem/cco_hv/sspll_cco_hv.sym` in a testbench with `vsource` for VDDA (value `dc 3.3 ac 1` for C), `isource` for IBIAS, `vsource` at the ring pin, and a `code_shown` block with the `.control` lines above. Cadence: the same with `vdc`/`idc`, an `ac` analysis with `acm=1` on VDDA, and `noise` with the output as `i(vr)` (Spectre supports current outputs directly).
 
+#### 5 V REF receiver benches (M10, M14–M17, M21, step 76 redo) — `design/refbuf/refbuf_hv.py`
+- **Purpose.** Prove that the receiver turns any 0.4–3.3 V pp reference into a clean refclk edge on VDDD at every corner, that its own noise and the noise it picks up from VDDA and VDDD stay inside the REF-chain allocation (−155 dBc/Hz at 50 MHz), and that it starts and stops cleanly.
+- **Common setup (`head()`).**
+  - The drawn circuit `full()`: pad divider (2 × 500 kΩ xhigh-poly), C_AC (2 MIM tiles), R_B (10 segments), S1 with header and C_H, S2 on VDDA, the 5 V level-shift inverter and the 1.8 V NOR on VDDD, the enable level shifter.
+  - Ideal `vdda`, `vddd`, `iib` (2.5 µA out of the bias diode), `ven` for pll_en, 50 fF load on refclk (the clock-generator input).
+  - Reference source `vsrc` + 50 Ω (`src()`): a sine of V_pp around VDDA/2, or a square with 0.5 ns edges (a CMOS crystal oscillator).
+  - `.ic` puts vin and s1 at the self-bias point from `op()`, so a run does not have to wait 4 µs for the AC-coupled input to settle.
+- **Benches.**
+  - **A — bias (`op`).** 6 corners (incl. ss/−40 °C, the slowest thick-oxide level shifter) × VDDA 2.97/3.3/3.63 V: v(vin) = trip point, I(VDDA).
+  - **B — large signal (`tran`, M16).** 14 cycles; the last 5 give delay pad → refclk (both at mid-level: VDDA/2 and VDDD/2), duty, 10–90 % rise, average supply currents and power. Amplitude sweep at tt, corners at both supply limits (VDDA 2.97 V with VDDD 1.71 V, 3.63 V with 1.89 V), 45 / 55 MHz.
+  - **C — supply sensitivity (`supply_dc`, `supply_mod`, M21).** DC: delay with VDDA (or VDDD) +10 mV minus nominal, each at its own settled bias. AC: two transients from the same start, one with a 10 mV sine on the rail at f_m and one without; the edge-by-edge difference is fitted to a sinusoid at f_m. Edges are read where refclk crosses VDDD/2 *at that instant*, because the clock generator on VDDD switches there.
+  - **D — start-up (`startup`).** pll_en steps at 0.5 µs; refclk edges counted at 0.9 V; settled = first edge after which every period is within 2 % of T. While disabled: I(VDDA), I(VDDD), refclk level.
+  - **Noise (`step76hv_noise.py`).** S1 gate-referred `.noise` at the self-bias point (M14); per-edge jitter of S1 with the white plateau injected at the pad by `trnoise` (M15); the output chain S2 → level shifter → NOR with a `trnoise` current of each stage's trip-point noise at its output (M17, flat copy of the top cell so the sources can reach the nodes, `save` of the two vectors only); supply terms L = (2π f_ref)²·K(f)²·S_v/2.
+- **Pitfalls.**
+  - A single modulated run fitted to "line + sinusoid" read 345 ps/V at 0.3 MHz instead of 35: the AC-coupled self-bias still drifts for microseconds after the start and the fit took the drift for ripple. The differential (modulated − unmodulated) form removes the drift exactly.
+  - Reading the VDDD edge at a fixed 0.9 V added a false 80 ps/V (half the ripple divided by the edge slope): the receiving gate's threshold moves with VDDD.
+  - A long trnoise transient with every node saved ran out of memory and stopped after 28 edges without an error message: `save` only the vectors you need, and check the edge count.
+- **xschem.** `xschem/refbuf_hv/sspll_refbuf_hv.sym` with `vsource` on VDDA, VDDD (value `dc 1.8` or `sin(1.8 10m 1e6 0.4u)` for C), an `isource` from ib to ground, `vsource` + `res` 50 Ω on REF_IN, `capa` 50 fF on refclk, and a `code_shown` block with the `.control` lines above. Cadence: the same with `vsin`/`vpulse`, `idc`, `vdc`; the supply ripple with `vsin` (delay 0.4 µs) and the edge times from the calculator's `cross()` on refclk − VDDD/2.
+
 #### moscap_hv_cv — C-V of the 5 V loop-filter capacitor (M6, step 73 redo)
 - **Purpose.** Step 73 needs the capacitance per area of the thick-oxide MOS capacitor that now forms C1, and the
   V_cont range over which it is flat. It also needs MIM1 and MIM2 for comparison.

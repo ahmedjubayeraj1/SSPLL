@@ -763,3 +763,58 @@ RESULTS += [
  ("Jitter FFNC on, worst (ss/110 C, VDDA 2.97 V)", 2.53, 3.2, "ps", "max", "75-HV", "proposal max 3.2"),
  ("Jitter FFNC off, worst (ss/110 C, VDDA 2.97 V)", 3.71, 5.0, "ps", "max", "75-HV", "proposal max 5.0"),
 ]
+
+# ------------------------------------------------------------------ step 76 redo: method for supply-to-edge sensitivity
+METHODS += [
+ ("M21", "Supply-to-edge sensitivity by differential sinusoidal supply modulation", "76-HV",
+  "|dt_edge/dV_supply| (s/V) of a clock path as a function of the ripple frequency, for each supply separately; with "
+  "the supply noise density it gives the path's supply-induced phase noise L(f) = (2 pi f_ref)^2 K(f)^2 S_v(f)/2",
+  "without an LDO every supply ripple that moves an edge is reference noise (x N^2 in band); a DC step misses the "
+  "frequency dependence of AC-coupled / self-biased circuits and of decoupled bias nodes, and a single run with a fit "
+  "confuses the start-up drift of slow bias loops with the ripple",
+  "two transients from the same operating point: rail = V0 + 10 mV sin(2 pi f_m (t - t_set)) and rail = V0; the edge "
+  "times are read where the output crosses the receiving gate's threshold (VDDD/2 for a VDDD gate, fixed for VDDA); "
+  "the edge-by-edge difference is fitted to offset + sinusoid at f_m (least squares); f_m = 0.3, 1, 5, 20 MHz < f_ref/2; "
+  "a +10 mV DC step at settled bias gives the low-frequency point",
+  "python3 design/refbuf/step76hv_supply.py --diff -> design/refbuf/data/step76hv_supply.json",
+  "small-signal (10 mV), tt only; 2-3 ripple periods per point (+-5 %); edges sample the ripple at f_ref, so f_m must "
+  "stay below f_ref/2"),
+]
+
+# ------------------------------------------------------------------ step 76 redo: REF receiver, 5 V, level shifter on VDDD (19 Nov 2026)
+STEPS.append(("76-HV", "REF receiver in 5 V devices; 3.3 -> 1.8 V level shifter and output NOR on VDDD (no VDDL)", "done",
+              "docs/design/step76_hv_refbuf.md, design/refbuf/refbuf_hv.py, step76hv_*.py, schematics_hv.py, xschem/refbuf_hv/, "
+              "design/budget/hv_system.py",
+              "analog core unchanged; delay 46-343 ps (square) / 0.99-2.32 ns (sine), duty 48-63 %, 0.233 mW typ; VDDA -> edge "
+              "31-60 ps/V (square), 254-530 (1 V sine); VDDD -> edge 157 ps/V; receiver floor -164.7 dBc/Hz (square), -150.9 "
+              "(1 V sine); system 1.98 / 1.32 ps typ (square), 2.00 / 1.40 (1 V sine), worst 3.70 / 2.50; LVS clean"))
+PROBLEMS += [
+ ("76-HV", "measurement", "VDDD edge sensitivity 240-260 ps/V in AC runs vs 155 ps/V at DC", "inconsistent AC / DC",
+  "edges read at a fixed 0.9 V while VDDD moved; the receiving gate's threshold is VDDD/2 (false 1/(2 slope) term)",
+  "edge read where refclk crosses VDDD/2 at that instant: 157 ps/V from DC to 20 MHz", "fixed"),
+ ("76-HV", "measurement", "VDDA 345 ps/V at 0.3 MHz vs 60 at DC and 67 at 1 MHz", "single-run fit",
+  "the AC-coupled self-bias drifts for microseconds after the start; the line + sinusoid fit took drift for ripple",
+  "differential method M21 (modulated minus unmodulated run from the same start): 35 ps/V", "fixed"),
+ ("76-HV", "simulation setup", "output-chain transient-noise run stopped after 28 of 150 edges without an error",
+  "few edge times", "all node vectors kept for 1.7 M time points: memory", "save only the needed vectors; assert the "
+  "edge count; 80 edges at a 4 ps noise step (+-8 %)", "fixed"),
+ ("76-HV", "infrastructure", "a cloud restart lost an hour of transient-noise runs", "processes gone",
+  "results held only in memory until the end", "each job cached in design/refbuf/data/step76hv_cache/", "fixed"),
+ ("76-HV", "measurement", "S1 absolute jitter with a square input 0.13 ps vs period/sqrt2 0.034 ps", "two estimators differ",
+  "slow numerical wander (10 ps time grid vs 0.5 ns edges); white noise cannot cause it at that slope",
+  "white per-edge jitter = period jitter / sqrt 2 in every case (equal for the sines)", "fixed"),
+ ("76-HV", "specification", "1 V pp sine (proposal typ) gives L(300 kHz) FFNC on -123.3 dBc/Hz vs -124 typ", "system model",
+  "S1 white jitter 0.556 ps with the shallow sine slope; +24 dB in band", "recommend a 3.3 V CMOS reference as the "
+  "typical condition (-125.4 dBc/Hz) or a -123 typ; user to decide", "open"),
+ ("76-HV", "supply", "VDDD noise reaches the refclk edge at 157 ps/V (no VDDL any more)", "M21",
+  "level shifter and NOR on VDDD", "requirement VDDD <= 160 nV/rtHz at the die; final value after step 77", "open"),
+]
+RESULTS += [
+ ("REF receiver floor at 50 MHz, 3.3 V square, typ (5 V)", -164.7, -155, "dBc/Hz", "max", "76-HV", "chain target -155"),
+ ("REF receiver floor at 50 MHz, 1 V sine, typ (5 V)", -150.9, -151, "dBc/Hz", "max", "76-HV", "pess chain -151"),
+ ("REF edge VDDD sensitivity", 157, 160, "ps/V", "max", "76-HV", "with VDDD <= 160 nV/rtHz"),
+ ("REF receiver power typ (5 V, square)", 0.233, 0.20, "mW", "max", "76-HV", "over by 0.03 mW; CCO -0.18 mW"),
+ ("Jitter FFNC on typ, 3.3 V square ref (cumulative)", 1.32, 1.6, "ps", "max", "76-HV", "proposal typ 1.6"),
+ ("L(300 kHz) FFNC on typ, 1 V sine ref (cumulative)", -123.3, -124, "dBc/Hz", "max", "76-HV", "0.7 dB over typ"),
+ ("Jitter FFNC on worst, 3.3 V square (cumulative)", 2.50, 3.2, "ps", "max", "76-HV", "proposal max 3.2"),
+]

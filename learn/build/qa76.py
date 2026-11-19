@@ -107,3 +107,58 @@ QA76 = [
  "capacitor's bottom plate — no gate is connected directly to the pad. The MIM dielectric must withstand the pad's ESD "
  "voltage; this is checked with the pad cell in the top-level ESD review."),
 ]
+
+# Step 76 redo for the device-rule migration: REF receiver in 5 V devices, level shifter on VDDD (docs/design/step76_hv_refbuf.md)
+QA76HV = [
+("What changed in the REF receiver for the 800 MHz / 5 V redo, and what did not?",
+ "S1, S2, the bias, R_B, C_AC and C_H were already 5 V devices on VDDA and stay as they are. What changed is the "
+ "1.8 V side: the level-shift inverter and the output NOR were on VDDL, the clean LDO output; the LDO is gone, so they "
+ "now run on VDDD, the harness digital supply. The loop also has N = 16 now, so reference noise reaches the output "
+ "+24 dB instead of +30 dB."),
+("Why is a 5 V inverter on a 1.8 V supply a correct 3.3 V → 1.8 V level shifter?",
+ "Its gate oxide is rated for 5 V, so the 0–3.3 V swing of S2 on its gate is safe; its output can only swing between "
+ "its own rails, 0 and VDDD. With a 3.3 V high input the nMOS is fully on and the pMOS (source at 1.8 V, gate at 3.3 V, "
+ "V_GS = +1.5 V) fully off; with 0 V the pMOS has V_GS = −1.8 V. A down-shift needs no latch. The cost is speed: the "
+ "thick-oxide V_T near 1 V leaves little overdrive at 1.71 V, so the slowest case (ss, −40 °C) has a 490 ps rise."),
+("Why must a supply-sensitivity measurement on a VDDD gate read the edge at VDDD/2 and not at a fixed level?",
+ "The next gate, the clock generator, sits on the same VDDD and switches near VDDD/2. If VDDD rises 10 mV its "
+ "threshold rises 5 mV too, so that is the level that decides when the edge 'arrives'. A fixed 0.9 V level adds "
+ "5 mV / slope to every edge — about 80 ps/V of false sensitivity with a 6 V/ns edge. Measured right, the VDDD path "
+ "gives 157 ps/V, flat from DC to 20 MHz, the same as the DC step."),
+("The first supply-modulation fit gave 345 ps/V at 0.3 MHz but 60 ps/V at DC and 67 at 1 MHz. What was wrong?",
+ "The input is AC-coupled and self-biased through 5 MΩ; after the start of a run the bias still drifts for "
+ "microseconds. A fit of 'line + sinusoid' to the edge times over 1.5 ripple periods takes part of that drift for "
+ "ripple. The fix is a differential measurement: two runs from the same start, with and without the ripple; their "
+ "edge-by-edge difference contains only the ripple's effect. Result: 35 ps/V at 0.3 MHz, consistent with the others."),
+("How large is the VDDA sensitivity of the edge, and why does it depend on the input waveform?",
+ "With a 3.3 V pp square input 31–60 ps/V; with a 1 V pp sine 254 ps/V at DC rising to 530 ps/V at 5 MHz. A supply "
+ "ripple moves S1's trip point by some millivolts; the edge moves by that amount divided by the input slope at the "
+ "gate. A square with 0.5 ns edges is about 40× steeper than a 1 V pp sine at 50 MHz, so the same trip-point shift "
+ "costs 40× less time. Above about 1 MHz the header node, held to VDDA by C_H, follows VDDA, so S1's trip point "
+ "follows more of the ripple and the sine case gets worse."),
+("Why is VDDD noise now a design requirement?",
+ "The level shifter and the NOR on VDDD move the edge by 157 ps/V. Any VDDD noise is therefore reference timing "
+ "noise: L = (2π f_ref)²·K²·S_v/2 at 50 MHz, and +24 dB at the output in band. 100 nV/√Hz gives −169 dBc/Hz, harmless; "
+ "1 µV/√Hz would give −149, more than the whole −155 dBc/Hz chain allocation. So VDDD at the die must be as quiet as "
+ "VDDA (≈ 160 nV/√Hz keeps it 10 dB under the allocation). Digital switching that repeats every reference period "
+ "only gives a fixed edge offset, not jitter."),
+("How is the noise of the output chain (S2, level shifter, NOR) estimated?",
+ "Method M17: each stage's white drain-noise current at its trip point (from .noise with input = output = V_M) is "
+ "injected at its output node with trnoise in a transient with a noiseless input; the jitter of the refclk edges, "
+ "minus a baseline run with the sources scaled by 10⁻⁶, is the added jitter. It is pessimistic because the trip-point "
+ "noise density is applied all the time, not only during the switching."),
+("Why use period jitter / √2 as the per-edge white jitter of S1?",
+ "If every edge has independent jitter σ, the difference of two edges has σ√2. The detrended absolute jitter should "
+ "give the same; for the sines it does (0.560 vs 0.556 ps at 1 V pp). For the square input the absolute value was "
+ "0.13 ps while period/√2 was 0.034 ps: a slow wander, most likely numerical (a 10 ps time grid against 0.5 ns "
+ "edges), which the period difference removes. The white source cannot make slow wander with such a steep edge."),
+("Why can the receiver draw 0.23–0.25 mW when the budget gave it 0.20 mW?",
+ "The header current is chosen for noise (60 µA, moderate inversion); halving it would cost 3 dB of white noise "
+ "with a sine input. The 0.04 mW excess at typ (0.10 at the worst corner) is covered by the CCO (step 75), which came "
+ "in 0.18 mW under its allocation; the total stays at the proposal's 9.1 mW."),
+("What happens while pll_en = 0?",
+ "The enable level shifter turns XPEN on, which pulls the header gate to VDDA (S1 off), and XNS1 pulls s1 low; the "
+ "local VDDD inverter makes enl high, so the NOR holds refclk at 0 (≤ 2 µV). What still flows from VDDA is 5.9 µA: "
+ "3.3 µA through the pad divider and the 2.5 µA the bias generator pulls through XPEN (the bias block turns that off). "
+ "VDDD draws < 2 nA."),
+]
