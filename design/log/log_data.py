@@ -820,3 +820,85 @@ RESULTS += [
  ("L(300 kHz) FFNC on typ, 1 V sine ref (cumulative)", -123.3, -124, "dBc/Hz", "max", "76-HV", "0.7 dB over typ"),
  ("Jitter FFNC on worst, 3.3 V square (cumulative)", 2.50, 3.2, "ps", "max", "76-HV", "proposal max 3.2"),
 ]
+
+# ------------------------------------------------------------------ step 77 redo: clock generator with 3.3 V outputs (19 Nov 2026)
+STEPS.append(("77-HV", "Clock generator: 1.8 V timing core on VDDD, edge-pair level shifting to 3.3 V, sampling edge from refhv", "done",
+              "docs/design/step77_hv_clkgen.md, design/clkgen/clkgen_hv.py, step77hv_*.py, schematics_hv.py, xschem/clkgen_hv/",
+              "t_s 425 ps, cks/cksb skew -11 ps, gap1 >= 328 ps, tau 528 ps (322-951), gap2 >= 108 ps, W_H >= 1.84 ns, "
+              "t_p 0.88 ns (0.52-1.45), tau*K_VCO 0.89-1.14, 0.72 mW (0.54-0.95); sampling-edge jitter 78 fs (-169.2 dBc/Hz); "
+              "REF_IN -> cks: VDDA 148-175 ps/V, VDDD 2.1 ps/V; chain -164.2 dBc/Hz typ; system 1.97 / 1.31 ps typ; LVS clean"))
+PROBLEMS += [
+ ("77-HV", "timing", "ckg never reached 90 % of VDDA in the first run", "tran at tt",
+  "a 200-300 ps pulse sent through a 5 V driver whose first stage drove fan-out 8: thick-oxide edges (100-250 ps) "
+  "filter it away", "5 V gates resized (P/N 2.5, taper 3); later the pulse is formed only at the output gate", "fixed"),
+ ("77-HV", "timing", "pulses through a level shifter shrink or vanish at ss", "step77hv_size.py: 'output never switched'",
+  "a cross-coupled level shifter rises fast and falls slowly: the pulse loses the difference",
+  "edge-pair level shifting: start and stop rising edges cross in identical shifters; pulse = start AND NOT stop at "
+  "the 3.3 V output NOR / NAND (pout5)", "fixed"),
+ ("77-HV", "timing", "cks / cksb skew 117 ps", "tran", "in-phase path one inverter shorter than the inverted one",
+  "always-on 5 V TG (1.5 um) in the in-phase path: -11 ps", "fixed"),
+ ("77-HV", "corners", "ff_ll 110 C: Gm pulse reached only 84 % of VDDA", "25-condition tran", "tau 210 ps at the fastest corner",
+  "C_G 4 x 4 um: tau 528 ps typ, >= 322 ps everywhere; step 79 lowers G by the same factor (beta = 2A G tau / T)", "fixed"),
+ ("77-HV", "corners", "gap2 79 ps at fs", "25-condition tran", "two gap inverters", "four gap inverters: >= 108 ps", "fixed"),
+ ("77-HV", "simulation setup", "Pool.map returned fewer results than jobs, silently", "result count",
+  "a StopIteration from a failed edge search ended map's internal iteration", "every job catches it and reports 'failed'", "fixed"),
+ ("77-HV", "supply", "VDDD moved the sampling edge 376 ps/V", "M21, REF_IN -> cks",
+  "edge through refclk, two VDDD inverters and a level shifter (receiver 157 + clock generator ~220 ps/V)",
+  "sampling edge from the receiver's 3.3 V node refhv (new receiver output): 2.1 ps/V; VDDA 148-175 ps/V (chain "
+  "-169.7 dBc/Hz at 100 nV/rtHz)", "fixed"),
+ ("77-HV", "budget", "REF chain counted the receiver's output chain twice", "step77hv_noise.py",
+  "step 76's white jitter held S2 -> level shifter -> NOR, and S2 is also inside this step's M17 run",
+  "receiver white part = S1 only (period jitter / sqrt 2)", "fixed"),
+ ("77-HV", "budget", "1 V sine supply terms were estimated from the refclk-path runs of step 76", "step77hv_noise.py",
+  "the sampling edge no longer uses refclk", "combined M21 run with the 1 V sine (step77hv_supply.py --sine1)", "fixed"),
+ ("77-HV", "power", "clock generator 0.72 mW vs 0.41 mW allocated (0.08 core + 0.33 level shifters)", "tran",
+  "six 3.3 V outputs into 40-60 fF switch gates plus their 5 V drivers: C V^2 f at 3.3 V",
+  "accepted: total 9.29 mW typ with the receiver (+0.03) and CCO (-0.18); proposal 'about 9 mW', max 15 mW", "accepted"),
+ ("77-HV", "infrastructure", "cloud restarts stopped the jitter and supply runs twice", "processes gone",
+  "long jobs", "setsid / nohup, checkpoint after parts A and B", "fixed"),
+]
+RESULTS += [
+ ("Clock gen HV tau (Gm pulse), tt / min", 0.528, 0.30, "ns", "min", "77-HV", "322 ps at ff_ll 110 C"),
+ ("Clock gen HV tau*K_VCO spread", 1.14, 1.15, "x nominal", "max", "77-HV", "0.89-1.14"),
+ ("Clock gen HV gap2 min", 108, 100, "ps", "min", "77-HV", "fs"),
+ ("Clock gen HV W_H min", 1.84, 1.5, "ns", "min", "77-HV", "ff_ll 110 C"),
+ ("Clock gen HV t_p worst", 1.45, 5.0, "ns", "max", "77-HV", "ss_hh 110 C; tt 0.88"),
+ ("Sampling-edge jitter added (refhv -> cks)", 78.3, 225, "fs", "max", "77-HV", "-169.2 dBc/Hz; limit = -160 dBc/Hz allocation"),
+ ("REF_IN -> cks VDDD sensitivity", 2.1, 160, "ps/V", "max", "77-HV", "was 376 via refclk"),
+ ("REF_IN -> cks VDDA sensitivity (3.3 V square)", 175, 450, "ps/V", "max", "77-HV", "limit: VDDA term -160 dBc/Hz at 100 nV/rtHz; got -169.7"),
+ ("REF chain floor at 50 MHz, 3.3 V square, typ", -164.2, -155, "dBc/Hz", "max", "77-HV", "pess -159.1"),
+ ("REF_IN -> cks VDDA sensitivity (1 V sine), DC-1 MHz / 20 MHz", 330, 450, "ps/V", "max", "77-HV", "1410 ps/V at 20 MHz (above the loop bandwidth; system 1.40 ps typ unchanged)"),
+ ("Jitter FFNC on, 1 V sine ref, pess (cumulative)", 2.25, 3.2, "ps", "max", "77-HV", "L(300 kHz) -118.0 vs max -116"),
+ ("Clock gen HV power typ", 0.72, 0.41, "mW", "max", "77-HV", "0.54-0.95 over corners"),
+ ("Jitter FFNC on typ, 3.3 V square ref (cumulative)", 1.31, 1.6, "ps", "max", "77-HV", "off 1.97"),
+ ("L(300 kHz) FFNC on typ, 3.3 V square (cumulative)", -125.6, -124, "dBc/Hz", "max", "77-HV", "pess -118.8"),
+]
+
+# ------------------------------------------------------------------ step 78 redo: SSPD with hold in 5 V devices at 800 MHz (19 Nov 2026)
+STEPS.append(("78-HV", "SSPD with hold in 5 V devices on VDDA: isolation buffer, R_s shaping, 5 V TG sampler, dummy, hold", "done",
+              "docs/design/step78_hv_sspd.md, design/sspd/sspd_hv.py, step78hv_*.py, schematics_hv.py, xschem/sspd_hv/",
+              "A 0.812 V/rad tt (0.515-1.225 over 18 conditions, A ~ VDDA), alpha 0.452, hold gain 1.004; kick-back 69 fs "
+              "(-99 dBc); f_ref supply current 0.80 uA (27.9 without dummy); buffer jitter 86 fs/side (-171.4 dBc/Hz), "
+              "buffer VDDA 22 ps/V; kT/C -148.6 dBc/Hz (40 fs); system 1.97 / 1.31 ps typ, worst 3.70 / 2.50; 1.03 mW; LVS clean"))
+PROBLEMS += [
+ ("78-HV", "sizing", "A had to be re-targeted for 800 MHz on 3.3 V", "A = VDDA/(2 w0 tau_s)",
+  "half the carrier and almost twice the swing double A twice at the same RC",
+  "tau_s 0.41 ns: R_s xhigh-poly 0.35 x 0.6 um (beat runs at 0.8 / 0.6 / 0.5 um: 0.701 / 0.812 / 0.880 V/rad)", "fixed"),
+ ("78-HV", "devices", "no low-V_T 5 V switch", "device rule", "only g5v0d10v5 allowed in analog blocks",
+  "TG n 3 / p 6 um; a 4 / 8 um TG lowered A to 0.788 (junction C) and cost 4 % power", "fixed"),
+ ("78-HV", "corners", "A follows VDDA (+17 / -15 % at 3.63 / 2.97 V)", "18-condition beat runs",
+  "the filtered square swings VDDA/2; no LDO", "static part covered by icp_trim (A tau K_VCO x0.78-1.42); worst A 0.515 > 0.5 floor", "accepted"),
+ ("78-HV", "spur", "kick-back 69 fs, 30x the 1.8 V design", "M19", "3.3 V clock swing, thick-oxide overlap capacitance",
+  "spur estimate -99 dBc at the ring buffer output vs proposal max -45 dBc", "accepted"),
+ ("78-HV", "power", "SSPD 1.03 mW vs 0.49 mW allocated", "beat run", "C V^2 f at 3.3 V and 800 MHz (allocation scaled by current)",
+  "C1 kept at 35 fF (step 72: C_s >= 35 fF); total tracked: 9.83 mW typ after steps 76-78; decided after step 79", "open"),
+]
+RESULTS += [
+ ("SSPD HV detector gain A, tt", 0.812, 0.8, "V/rad", "target", "78-HV", "target 0.8"),
+ ("SSPD HV detector gain A, min over 18 conditions", 0.515, 0.5, "V/rad", "min", "78-HV", "ss_hh 110 C, 2.97 V"),
+ ("SSPD HV kick-back spur estimate", -98.9, -45, "dBc", "max", "78-HV", "proposal typ -55"),
+ ("SSPD HV isolation-buffer floor", -171.4, -160, "dBc/Hz", "max", "78-HV", "86 fs per side"),
+ ("SSPD HV power typ", 1.03, 0.49, "mW", "max", "78-HV", "0.69-1.35 over corners"),
+ ("Jitter FFNC on typ, 3.3 V square (cumulative)", 1.31, 1.6, "ps", "max", "78-HV", "measured A and C_s"),
+ ("Jitter FFNC on worst (cumulative)", 2.50, 3.2, "ps", "max", "78-HV", "A_min 0.515"),
+]

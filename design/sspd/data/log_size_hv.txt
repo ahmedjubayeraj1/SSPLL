@@ -1,0 +1,4 @@
+RS0.8      A 0.701 V/rad alpha 0.452 CM 1.668 V P 0.950 mW
+RS0.6      A 0.812 V/rad alpha 0.452 CM 1.664 V P 1.028 mW
+RS0.5      A 0.880 V/rad alpha 0.452 CM 1.662 V P 1.073 mW
+RS0.6_SW4  A 0.788 V/rad alpha 0.444 CM 1.679 V P 1.069 mW

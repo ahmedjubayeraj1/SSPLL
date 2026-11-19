@@ -112,3 +112,53 @@ QA78 = [
  "to the switch; the clock lines cks/cksb routed with equal length to both sides and away from v1; v1 and v2 shielded "
  "(they are high-impedance during hold); clkp/clkm entering symmetrically from the VCO buffers."),
 ]
+
+# step 78 redo: 5 V SSPD at 800 MHz (19 Nov 2026)
+QA78HV = [
+("Why does A need a longer τ_s at 800 MHz on 3.3 V than at 1.6 GHz on 1.8 V?",
+ "A = VDDA/(2ω0τ_s). Halving ω0 doubles A for the same τ_s, and the 3.3 V swing almost doubles it again. To land on "
+ "the same kind of target (0.8 V/rad from step 72 HV) the RC must therefore be about 2.3× slower: τ_s = 3.3/(2·2π·0.8 GHz·0.8) "
+ "= 0.41 ns instead of 0.18 ns. With C1 unchanged that means a larger R_s (≈ 3.4 kΩ, xhigh-poly 0.35 × 0.6 µm)."),
+("Why is there no low-V_T sampling switch any more, and what replaces it?",
+ "The device rule allows only g5v0d10v5 devices in analog blocks, and there is no low-V_T 5 V nMOS. At the sampled "
+ "level (≈ 1.66 V) the nMOS has V_GS ≈ 1.65 V on a 3.3 V clock, which is enough, but its on-resistance is higher per "
+ "micron. So the TG is wider (n 3 µm, p 6 µm) and the pMOS, which is well on at mid-rail with a 3.3 V clock, carries "
+ "about half the conductance. A wider TG (4/8 µm) was tried: more junction capacitance lowered A to 0.788 V/rad and "
+ "cost 4 % more power."),
+("Why does A now change with VDDA, and why is that acceptable without an LDO?",
+ "The filtered square swings VDDA/2 around its mid-level, so the slope at the crossing, and A, are proportional to VDDA: "
+ "0.694 / 0.812 / 0.951 V/rad at 2.97 / 3.3 / 3.63 V. The static part (the chip's VDDA) is a fixed loop-gain error, "
+ "covered by the icp_trim like a process corner. The fast part (supply noise) only scales the tiny locked phase error "
+ "and so produces a second-order effect; the supply noise that matters is what moves edges, measured separately (M21)."),
+("Why is the kick-back 30× larger than in the 1.8 V design, and does it matter?",
+ "The sampling clock now swings 3.3 V instead of 1.8 V, and 0.5 µm-long thick-oxide devices have larger overlap "
+ "capacitances, so more charge reaches XB2's output and, through XB1's gate–drain capacitance, clkp. The edge right "
+ "after the sampling instant moves by 69 fs, a spur estimate of −99 dBc at the ring buffer output. The proposal allows "
+ "−45 dBc maximum (−55 typical), so it is 54 dB inside, and the ring itself is one more buffer away."),
+("Why does the SSPD use twice its power allocation?",
+ "Each side swings its sampling capacitance (≈ 46 fF with the Gm input and junctions) through 3.3 V at 800 MHz: "
+ "2 × 46 fF × 3.3² × 0.8 GHz ≈ 0.80 mW, plus the buffers' own gates: 1.03 mW measured. The step-72 allocation (0.49 mW) "
+ "scaled the 1.8 V design by current; the right scaling is C·V²·f, which is (3.3/1.8)² × ½ = 1.68× higher per farad."),
+("Why was C1 not reduced to save power?",
+ "Step 72 requires C_s ≥ 35 fF. With C1 = 20 fF the sampled node (C1 + 8 fF Gm input + 3 fF junctions) would be about "
+ "31 fF, and the Gm's non-linear gate capacitance would be a quarter of it. The saving would be about 0.25 mW. Noise is "
+ "not the limit: kT/C costs only 40 fs in the system."),
+("Why is a DC supply step enough for the isolation buffers but not for the receiver?",
+ "Method M21 exists because a self-biased, AC-coupled stage changes its operating point with a time constant, so its "
+ "sensitivity depends on the ripple frequency. The isolation buffers are plain inverters driven rail to rail: no bias "
+ "node, no coupling capacitor, nothing with memory. Their delay sensitivity is the same at DC and at MHz, so a +10 mV "
+ "step (22 ps/V) is the whole answer."),
+("How was R_s chosen?",
+ "By full beat runs with the real clock generator at three lengths of the xhigh-poly resistor (0.35 µm wide): 0.8 µm "
+ "gave A = 0.701, 0.6 µm 0.812 and 0.5 µm 0.880 V/rad. 0.6 µm is closest to the 0.8 V/rad target and keeps the "
+ "minimum over corners (0.515 at ss_hh, 2.97 V) above the 0.5 V/rad floor."),
+("Why does the dummy sampler matter more without an LDO?",
+ "Without it, the isolation buffer charges C1 only while the sampler tracks, so the SSPD current has a component at "
+ "f_ref (27.9 µA). That current flows in the VDDA wiring shared with the ring's CCO, the NCB and the buffers: an f_ref "
+ "ripple there is a reference spur source. With the dummy the buffer always drives one capacitor: 0.80 µA (−31 dB)."),
+("Which SSPD noise is multiplied by N², and which is not?",
+ "kT/C of the sampling capacitor is detector noise: divided by the detector gain it is a phase error already in ring "
+ "radians, so it reaches the output without ×N² (−148.6 dBc/Hz floor, 40 fs). Timing noise of the isolation buffers and "
+ "their supply sensitivity shift the moment the ring is looked at, exactly like reference jitter: those are multiplied "
+ "by N² in band (−171.4 and −186 dBc/Hz at 50 MHz)."),
+]

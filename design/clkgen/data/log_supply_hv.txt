@@ -1,0 +1,8 @@
+vddd f_m  1.00 MHz:    2.1 ps/V
+vdda f_m  1.00 MHz:  159.3 ps/V
+vddd f_m  0.00 MHz:    2.1 ps/V
+vdda f_m  0.00 MHz:  175.0 ps/V
+vddd f_m  5.00 MHz:    2.1 ps/V
+vdda f_m  5.00 MHz:  159.2 ps/V
+vddd f_m 20.00 MHz:    2.1 ps/V
+vdda f_m 20.00 MHz:  147.9 ps/V

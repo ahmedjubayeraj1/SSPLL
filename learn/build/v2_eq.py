@@ -21,6 +21,29 @@ def E(rows, words, why="", num="", watch=""):
 
 
 EXPLAIN = [
+("\\tau = (t_{stop} - t_{start})", E(
+    [("$t_{start}$, $t_{stop}$", "times at which the two rising steps (start, stop) leave the 1.8 V edge generator", "s", "stop ≈ ln2·R_G·C_G + 2 gates later"),
+     ("$d_o - d_{ob}$", "difference between the in-phase and inverted paths of the 5 V step drivers", "s", "tens of ps; sign set by the TG width"),
+     ("$R_G C_G$", "RC of the Gm edge generator: 3.48 kΩ (xhigh-poly, 0.5 µm) × 4 × 4 µm MIM", "s", "≈ 0.1 ns"),
+     ("$\\tau$", "width of the Gm current pulse at the 5 V outputs", "s", "528 ps tt; 322–951 ps over corners"),
+     ("$K_{VCO}$", "fine-tuning gain of the 5 V ring (step 74 HV)", "Hz/V", "−173 MHz/V tt, −110 ss, −250 ff")],
+    "The pulse width is the time between two edges that took the same path across the level shifters, plus the small "
+    "difference between the two branches of the 5 V step drivers. Everything common to both edges cancels.",
+    "Only rising steps cross the domains, so both edges see the level shifter's fast edge; the pulse is formed at the "
+    "output gates as start AND NOT stop.",
+    "τ·K_VCO relative to tt: ss 110 °C 1.04, ff −40 °C 1.02, ss_hh 1.14, ff_ll 0.89 — τ grows where the ring's gain "
+    "falls, so the loop gain β·K_VCO ∝ g_m·τ·K_VCO stays within ±15 %.",
+    "A pulse shorter than about rise + fall time of the output gate never reaches full swing: 210 ps did not at ff_ll.")),
+("t_p = t_{gap1} + \\frac{\\tau}{2},\\qquad \\Delta PM", E(
+    [("$t_p$", "loop delay: from the sampling instant to the middle of the Gm current pulse", "s", "0.88 ns tt, 0.52–1.45 ns"),
+     ("$t_{gap1}$", "from the sampling edge (cks falls) to the start of the Gm pulse", "s", "611 ps tt"),
+     ("$f_c$", "loop bandwidth", "Hz", "2.5 MHz"),
+     ("$\\Delta PM$", "phase-margin loss caused by extra delay", "°", "0.34° for +0.38 ns")],
+    "The charge pump acts on the sample a little after it was taken; a delay is a phase lag that grows with frequency, "
+    "so at the crossover frequency it eats phase margin.",
+    "A pure delay e^{−s t_p} has unit magnitude and phase −2π f t_p.",
+    "Step 73 HV assumed 0.5 ns; the 5 V outputs give 0.88 ns: 360° × 2.5 MHz × 0.38 ns = 0.34° less margin (50° → 49.7°).",
+    "")),
 ("\\mathcal{L}_{sup}(f) = \\frac{(2\\pi f_{ref})^2", E(
     [("$K_s(f)$", "edge-time change per volt of a supply, at ripple frequency f", "s/V", "VDDD 157 ps/V; VDDA 31–60 ps/V (square), 254–530 (1 V sine)"),
      ("$S_v(f)$", "noise density of that supply at the die", "V²/Hz", "(100 nV/√Hz)² typ, (300)² pess, 10 kHz 1/f corner"),
@@ -761,6 +784,19 @@ EXPLAIN = [
     "The raw edge times also drift by ~1.2 ps because of the time grid (seen with the noise switched off): remove a "
     "slow trend and always run the noiseless baseline.")),
 # ------------------------------------------------------------------------------------------------ step 78
+("A = \\frac{V_{DDA}}{2\\,\\omega_0\\,\\tau_s},\\qquad \\tau_s = \\frac{V_{DDA}}", E(
+    [("$A$", "detector gain per side: volts of sample per radian of ring phase", "V/rad", "0.812 tt; 0.515–1.225 over 18 conditions"),
+     ("$V_{DDA}$", "analog supply; the filtered square swings ±V_DDA/2 around its mid-level", "V", "3.3 (2.97–3.63)"),
+     ("$\\omega_0$", "ring angular frequency", "rad/s", "2π · 800 MHz"),
+     ("$\\tau_s$", "time constant of the shaping RC: (R_s + R_buf + R_sw)·C_1,tot", "s", "≈ 0.41 ns"),
+     ("$R_s$", "series xhigh-poly resistor, 0.35 × 0.6 µm", "Ω", "≈ 3.4 kΩ"),
+     ("$C_{1,tot}$", "C1 + Gm input + switch junctions", "F", "≈ 46 fF")],
+    "The sample is taken on an RC-rounded square; its slope where it crosses the middle is half the swing divided by the "
+    "time constant. Dividing a slope in volts per second by ω0 turns it into volts per radian of ring phase.",
+    "For an RC-filtered square of amplitude a, v(t) = a(1 − 2e^{−t/τ}/(1 + e^{−T/2τ})); at the crossing the slope is "
+    "exactly a/τ, whatever the period. With a = V_DDA/2 that gives the formula.",
+    "Target 0.8 V/rad: τ_s = 3.3/(2 · 2π · 0.8e9 · 0.8) = 0.41 ns. Measured A = 0.812 V/rad with R_s = 0.6 µm long.",
+    "A ∝ V_DDA: −15 / +17 % at 2.97 / 3.63 V. With no LDO this is a loop-gain tolerance, handled by icp_trim.")),
 ("A = \\frac{1}{\\omega_0}\\left.\\frac{dv}{dt}\\right|_{cross} = \\frac{V_{DD}}{2\\,\\omega_0\\,\\tau_s}", E(
     [("$A$", "detector gain per side: volts of sample per radian of VCO phase at the lock point", "V/rad", "0.514"),
      ("$\\omega_0 = 2\\pi f_0$", "VCO angular frequency", "rad/s", "$2\\pi\\cdot1.6$ GHz"),

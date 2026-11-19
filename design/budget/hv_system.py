@@ -31,12 +31,18 @@ def kvdd_f(f, k1):
     return np.maximum(k1, np.where(f > 1e6, ktt, 0))
 
 
-def system(corner="typ", ref=None, extra=None, band=(10e3, 40e6)):
+def system(corner="typ", ref=None, extra=None, band=(10e3, 40e6), corner_over=None, pd=None):
     """ref: callable f -> L_ref(f) in dBc/Hz AT THE REFERENCE (50 MHz) for the whole REF chain (receiver, clock
     generator, level shifters, SSPD buffers); None keeps the step-72 allocation.
     extra: {name: callable f -> L(f) dBc/Hz at the reference} added as further in-loop reference terms.
+    corner_over: {key: value} replaces entries of the step-72 corner (e.g. A, Cs: the measured SSPD gain and sampling
+    capacitance change the kT/C term) for this call only.
+    pd: {name: callable f -> L(f) dBc/Hz in output-phase units, in-loop like detector noise (|H + G_c(1 - H)|^2, no N^2)};
+    a name that already exists (e.g. "pulsed-Gm charge pump") is replaced.
     Returns {"off": {...}, "on": {...}} with per-term jitter (ps), total (ps), L(300 kHz) and L(1 MHz) (dBc/Hz)."""
     kc = "typ" if corner == "typ" else "pess"
+    saved = dict(b.CORNER[kc])
+    b.CORNER[kc].update(corner_over or {})
     kv = CCO["kvdd"][{"typ": "typ", "pess": "pess", "worst": "worst"}[corner]]
     f0, _ = b.spectra(kc, False, lf=(L73["R"], L73["C1"], L73["C2"]))
     over = {"ring VCO core (5 V, 3-stage)": (RING["Lth"], RING["fc3"]) if kc == "typ" else (RING["Lth"] + 3, 2*RING["fc3"]),
@@ -52,9 +58,12 @@ def system(corner="typ", ref=None, extra=None, band=(10e3, 40e6)):
             S[REFNAME] = 2*10**(ref(f)/10)*b.N**2*T_in
         for name, fn in (extra or {}).items():
             S[name] = 2*10**(fn(f)/10)*b.N**2*T_in
+        for name, fn in (pd or {}).items():
+            S[name] = 2*10**(fn(f)/10)*T_in
         j, L = b.jitter(S, f, band=band)
         out["on" if on else "off"] = dict(terms={k: float(v*1e12) for k, v in j.items()}, total=float(j["TOTAL"]*1e12),
                                           L300k=float(L[np.argmin(abs(f - 3e5))]), L1M=float(L[np.argmin(abs(f - 1e6))]))
+    b.CORNER[kc].clear(); b.CORNER[kc].update(saved)
     return out
 
 

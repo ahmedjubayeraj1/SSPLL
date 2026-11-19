@@ -120,3 +120,51 @@ QA77 = [
  "the power is dominated by switching, not leakage. Matching is not important here because the absolute delays are "
  "re-referenced every period and only their noise matters."),
 ]
+
+# Step 77 redo for the device-rule migration: 1.8 V clock generator on VDDD + level shifters + 5 V outputs
+# (docs/design/step77_hv_clkgen.md)
+QA77HV = [
+("Why does the clock generator stay in 1.8 V logic when its outputs must swing 0–3.3 V?",
+ "The timing core — buffers, gap inverters, RC edge generators and the hold latch — is fastest, smallest and least "
+ "power-hungry in thin-oxide 1.8 V devices, and the reference receiver already delivers a 1.8 V edge on VDDD. Only "
+ "the switch gates of the SSPD and the Gm (5 V devices on VDDA) need 3.3 V. So the logic stays at 1.8 V and level "
+ "shifters plus 5 V drivers sit only at the outputs."),
+("Why can't a short pulse simply be passed through one level shifter?",
+ "A cross-coupled level shifter is asymmetric: its output rises when the input nMOS pulls one latch node down (fast), "
+ "but falls only after the latch flips back through the weak pMOS (slow). The difference — a few hundred ps at the "
+ "slow corner — is subtracted from the pulse width, and a few-hundred-ps pulse shrinks or disappears."),
+("What is edge-pair level shifting?",
+ "Each pulse is sent across as two rising steps, start and stop, through two identical level shifters and two "
+ "identical step drivers; both edges see the same (fast) delay. The pulse is formed only at the 5 V output gates: "
+ "ckg = NOR(NOT start, stop), ckgb = NAND(start, NOT stop). The steps fall when refclk falls, where nothing is timed."),
+("Why does a narrow pulse not survive a 5 V buffer chain, and how was that found?",
+ "Thick-oxide gates have 100–200 ps edges with realistic loads. A pulse not much longer than rise + fall never reaches "
+ "full swing at the next stage and is filtered away. It showed as an output that never crossed 90 % of VDDA in the "
+ "timing bench; at ff_ll / 110 °C even the final 210 ps pulse reached only 84 % of the rail."),
+("Why was the Gm pulse lengthened from 200 ps to about 530 ps, and what does it cost?",
+ "So that it reaches full swing at every corner with 5 V output gates (≥ 322 ps at ff_ll / 110 °C). The loop only sees "
+ "β = 2A·g_m·τ/T, so step 79 lowers g_m by the same factor; the pulsed-Gm noise, which goes as 1/(g_m·τ), is "
+ "unchanged. The loop delay t_p (sample → middle of the Gm pulse) grows to about 0.9 ns, still far below the 5 ns limit; "
+ "at f_c = 2.5 MHz the extra 0.38 ns costs 0.34° of phase margin (0.85° at the slowest corner)."),
+("Why is τ allowed to vary 3× over the corners?",
+ "Because the loop gain is β·K_VCO and τ is set mainly by gate delays: slow devices make τ longer exactly where the "
+ "thick-oxide ring has a lower K_VCO. The product τ·K_VCO stays within ×0.89–1.14 of nominal (ff_ll −40 °C to ss_hh 110 °C)."),
+("How are cks and cksb made to switch together?",
+ "The driver's inverted output goes through three inverters, the in-phase output through two plus an always-on "
+ "transmission gate whose RC delay replaces the missing inverter. Its width sets the skew: 1.5 µm gives −11 ps at tt."),
+("Why does the sampling edge no longer pass through refclk and a level shifter?",
+ "Measured with M21, the edge that went REF_IN → receiver → refclk (VDDD) → two VDDD inverters → level shifter → 5 V "
+ "driver moved by 376 ps per volt of VDDD: the receiver's VDDD gates gave 157 ps/V and the level shifter, whose input "
+ "nMOS is driven with VDDD's level, most of the rest. VDDD would have had to be quieter than about 70 nV/√Hz. The "
+ "receiver already has the edge at 3.3 V (S2's output on VDDA), so it is brought out as refhv and drives the 5 V "
+ "sampling driver directly: no VDDD gate is left in the sampling path. The Gm and hold pulses still come from refclk; "
+ "their timing acts on a sample that is already held, so their jitter does not matter. Result: 2.1 ps/V of VDDD (was 376); VDDA gives 148–175 ps/V, a −169.7 dBc/Hz term at 100 nV/√Hz."),
+("Why does the clock generator now cost about 0.7 mW instead of 0.08 mW?",
+ "Its outputs and their drivers switch 3.3 V instead of 1.8 V (3.4× the energy per unit capacitance), the thick-oxide "
+ "gates are larger for the same speed, and four level shifters add contention current. Most of it is the two pulse "
+ "outputs (≈ 0.15 mW each), the sampling driver (≈ 0.16 mW) and the level shifters (≈ 33 µW each). It is 0.31 mW over its 0.41 mW allocation; with the receiver (+0.03) and the CCO (−0.18) the total is 9.29 mW, inside the proposal's 'about 9 mW' (maximum 15 mW)."),
+("Why must gap 2 be at least 100 ps, and what fixed it?",
+ "Gap 2 separates the end of the Gm pulse from the start of the hold transfer: the Gm must have finished reading C1 "
+ "before C1 shares its charge with C2. With two gap inverters it fell to 79 ps at the fs corner; four inverters give "
+ "≥ 100 ps everywhere."),
+]

@@ -498,6 +498,172 @@ of the trip-point size (2.43 and 5.11 pA/√Hz), 312 edges at 1.6 GHz, 4th-order
   - A long trnoise transient with every node saved ran out of memory and stopped after 28 edges without an error message: `save` only the vectors you need, and check the edge count.
 - **xschem.** `xschem/refbuf_hv/sspll_refbuf_hv.sym` with `vsource` on VDDA, VDDD (value `dc 1.8` or `sin(1.8 10m 1e6 0.4u)` for C), an `isource` from ib to ground, `vsource` + `res` 50 Ω on REF_IN, `capa` 50 fF on refclk, and a `code_shown` block with the `.control` lines above. Cadence: the same with `vsin`/`vpulse`, `idc`, `vdc`; the supply ripple with `vsin` (delay 0.4 µs) and the edge times from the calculator's `cross()` on refclk − VDDD/2.
 
+#### 5 V clock-generator benches (M16, M17, M21, step 77 redo) — `design/clkgen/clkgen_hv.py`
+- **Purpose.** Prove four things:
+  - the three clock pairs have the right order, gaps and widths at every corner on a 3.3 V swing:
+    - cks/cksb for the sampling switch;
+    - ckg/ckgb for the Gm pulse;
+    - ckh/ckhb for the hold transfer;
+  - the product τ·K_VCO, which sets the loop gain, stays near its nominal value;
+  - the sampling edge adds almost no jitter;
+  - VDDD noise no longer moves the sampling edge.
+- **Why the receiver is always in front.**
+  - Since this redo, the two inputs come from different places:
+    - the sampling edge comes from `refhv` (the receiver's S2 output on VDDA);
+    - the Gm and hold timing come from `refclk` (on VDDD).
+  - The relative timing of the two inputs is part of what is being verified. An ideal source on each would hide exactly the errors we look for.
+  - So every timing bench drives REF_IN through 50 Ω and the real step-76 receiver (`tran()`).
+- **Common setup (`tran()`).**
+  - The receiver `xrx` (flat netlist from `refbuf_hv.full()`) runs on `vdda`/`vddd`.
+  - The clock generator `x1` runs on its own sources `vdda2`/`vddd2` at the same voltages, so its power can be read alone.
+  - Loads equal the gate capacitance of what each output drives:
+    - **60 fF** on cks/cksb (the 5 V sampling switch, step 78);
+    - **40 fF** on ckg/ckgb/ckh/ckhb.
+
+    If step 78 or 79 draws bigger switches, rerun with the new loads.
+  - `.ic` puts the receiver's AC-coupled input at its self-bias point, so there is no 4 µs wait.
+  - The run is 4 cycles with `tran 2p`. Every edge is read in the **last** cycle at VDDA/2, because all outputs swing 0–3.3 V.
+- **Read-out** (all from one run):
+
+| Name | from → to | Meaning | Requirement |
+|---|---|---|---|
+| t_s | REF_IN rise → cks fall | sampling instant | only stable, not small |
+| skew_s | cks fall → cksb rise | complementary sampling pair | ≤ ±30 ps |
+| gap1 | later of cks/cksb → ckg rise | switch open before Gm reads C | > 0 at every corner |
+| τ | ckg rise → ckg fall | Gm pulse width | τ·K_VCO within ±15 % |
+| skew_g | ckg rise → ckgb fall | complementary Gm pair | small vs τ |
+| gap2 | later ckg/ckgb fall → ckh rise | Gm off before C1 → C2 sharing | > 50 ps |
+| W_H | ckh rise → ckh fall | hold transfer time | ≥ 5 τ_settle of C1–C2 |
+| t_p | cks fall → middle of ckg | loop delay | ≤ 5 ns |
+| power | — | avg I(vdda2)·VDDA + I(vddd2)·VDDD | — |
+
+- **Benches (`step77hv_sim.py`).**
+  - **A — timing (M16).** 25 conditions:
+    - tt at nominal, at each supply limit, and at −40/110 °C;
+    - ss/ff with matching supply limits;
+    - **ss_hh / ff_ll** (MOS and R/C together, because τ is set by an R·C);
+    - sf/fs and hl/lh;
+    - 45/55 MHz;
+    - the reference as a 3.3 V square, a 1 V sine, and a 0.4 V sine (the smallest allowed REF_IN amplitude).
+  - **B — τ·K_VCO.**
+    - Normalise τ at each corner to τ at tt.
+    - Normalise K_VCO at that corner to K_VCO at tt (step 74 HV: 173 / 110 / 250 MHz/V).
+    - Multiply the two. The loop sees the product, so a long τ where the VCO is weak partly cancels.
+  - **C — sampling-edge jitter (M17).** Same method as step 76:
+    - Build a flat copy of the receiver and the cks path (INV5S → INV5M → INV5L).
+    - Put a white `trnoise` current at refhv, c1, c2 and cks. Each equals the trip-point noise of the stage that drives the node.
+    - `path_noise()` gets those densities from `.noise` on one inverter biased at its own V_M.
+    - NT = 4 ps, so NA = √(S_i/(2·NT)).
+    - Measure 80 edges after 20 settling cycles.
+    - Subtract a **noiseless baseline** run (all NA × 10⁻⁶) in quadrature.
+    - Only S1's white jitter is left out here; step 76 covers it.
+  - **D — supply sensitivity (M21, `step77hv_supply.py`).**
+    - Path: REF_IN → cks, with the receiver and the clock generator on the **same** rails.
+    - AC: two runs from the same start. One has a 10 mV sine on VDDA (or VDDD) at f_m = 1, 5 or 20 MHz; the other has none.
+    - The edge-by-edge difference is fitted to a sinusoid at f_m.
+    - DC: a +10 mV step, with each run starting from its own settled bias.
+    - cks is read at VDDA/2 of that instant.
+  - **Noise budget (`step77hv_noise.py`).**
+    - The REF chain at 50 MHz is the sum of:
+      - S1 white (step 76);
+      - clock-generator white (from C, 1/f corner 30 kHz);
+      - the VDDA and VDDD terms with the combined K(f) from D;
+      - the SSPD buffer floor.
+    - This chain then goes into the system model (`hv_system.py`) as the reference.
+- **Results (tt, 27 °C).**
+  - Timing:
+    - t_s 425 ps, skew_s −11 ps, gap1 611 ps;
+    - τ 528 ps (322–951 ps over corners);
+    - gap2 177 ps (min 108 ps, fs);
+    - W_H 2.68 ns (min 1.84 ns);
+    - t_p 875 ps.
+  - Power 0.72 mW.
+  - τ·K_VCO: 0.89 (ff_ll) to 1.14 (ss_hh).
+  - Sampling-edge jitter 78 fs → −169.2 dBc/Hz.
+  - Supply: VDDD 2.1 ps/V (was 377 via refclk), VDDA 148–175 ps/V (3.3 V square) and 323–1410 ps/V (1 V sine); REF chain -164.2 dBc/Hz typ.
+- **Pitfalls.**
+  - A 1.8 V-to-3.3 V level shifter cannot pass a 200–500 ps pulse at ss: the pulse is filtered away. So only **edges** cross the domains here:
+    - `edges_g/h` make a start edge and a stop edge on VDDD;
+    - each edge is level-shifted;
+    - the pulse is rebuilt on VDDA as start AND NOT stop in `pout5`.
+  - Read the pulse widths only at the **combined** corners. Plain ss/ff keep R and C typical and miss the τ extremes.
+  - In the old architecture the sampling edge came through a VDDD level shifter and moved 376 ps/V with VDDD. Keep that result (`step77hv_supply_via_vddd.json`) to compare with.
+  - `tran()` asserts that every edge exists in the last cycle. A StopIteration means a pulse vanished; the bench reports it as `failed` instead of stopping the pool.
+- **xschem.**
+  - Place `xschem/clkgen_hv/sspll_clkgen_hv.sym` behind `xschem/refbuf_hv/sspll_refbuf_hv.sym`.
+  - Sources: `vsource` + `res` 50 Ω on REF_IN; `isource` 2.5 µA on ib; `vsource` on VDDA/VDDD, with separate ones for the clock generator so its power can be read.
+  - Loads: `capa` 60 fF on cks/cksb and 40 fF on the others.
+  - A `code_shown` block holds the `tran` and `meas` lines.
+- **Cadence.**
+  - The same circuit with `vpulse`/`vsin`, `idc`, `vdc`.
+  - Read the edges with the calculator's `cross(sig 1.65 n "rising"/"falling")` and `delay()`.
+  - For C: transient noise, or pss + pnoise at the cks crossing.
+  - For D: `vsin` with a delay on the rail.
+
+#### 5 V SSPD benches (M17, M18, M19, M21, step 78 redo) — `design/sspd/sspd_hv.py`
+- **Purpose.** Prove four things:
+  - the 5 V sampler has the detector gain the loop was designed for (A = 0.8 V/rad), at every corner;
+  - the hold has the expected first-order memory;
+  - switching the sampler does not disturb the ring;
+  - the isolation buffers add little reference-like noise.
+- **Common setup (`bench()`).**
+  - DUT `sspll_sspd_hv` (both sides) plus the step-77 HV clock generator, which makes all six clock phases from ideal edges:
+    - refhv: 0–VDDA, the receiver's S2 node;
+    - refclk: 0–VDDD, 0.2 ns later, as the receiver makes it.
+  - The "ring": two ideal complementary 0/VDDA squares (60 ps edges), each behind a 5 V inverter sized like the ring's buffer output stage (1.2/3 µm). So clkp/clkm have a realistic source impedance, which matters for the kick-back.
+  - Loads: 8 fF on each v1 (the Gm input) and 4 fF on each v2 (the NCB input).
+- **Benches (`step78hv_sim.py`).**
+  - **A — sampled characteristic (M18, `characteristic`).**
+    - **Beat.** The ring runs at f = (16 + 1/32)·f_ref, so the sampling instant slides 2π/32 of a ring cycle per period. One 34-period run sweeps the whole characteristic: no phase sweep with 32 separate runs.
+    - **Readings.**
+      - v1p − v1m in the middle of each Gm pulse (what the Gm will read);
+      - v2p − v2m 0.5 ns after each hold pulse;
+      - A = half the slope of a line fit within ±0.35 rad of the zero crossing;
+      - α and the hold DC gain from a least-squares fit of v2[k] = a·v1[k] + b·v2[k−1];
+      - power = VDDA × average I(VDDA) of the SSPD.
+    - **Conditions.** 18 in total:
+      - tt at VDDA 2.97/3.3/3.63 V;
+      - VDDD 1.71 V;
+      - −40/110 °C;
+      - ss_hh/ff_ll at both temperatures and both supply limits;
+      - ss, ff, sf, fs, hl, lh;
+      - 45/55 MHz.
+  - **B — kick-back (M19, `kick`).**
+    - The ring runs at exactly 16·f_ref, with the sampling instant on the zero crossing (locked).
+    - Run 1: the clock generator switches.
+    - Run 2: the reference is held, so the sampler tracks and nothing switches.
+    - The difference of the clkp edge times is the kick-back. Its f_ref component, as the phase deviation 2π·f_0·Δt, gives the spur estimate 20·log(a1/2).
+    - A third run with a 2 × 2 µm dummy capacitor (no real dummy) gives the f_ref supply current without the dummy sampler.
+  - **C — isolation-buffer jitter (M17, `buf_jitter`).**
+    - Flat path: ring buffer stage → XB1 → XB2 → R_s → C.
+    - White `trnoise` currents at b1 and b2, each the trip-point noise of the inverter driving that node.
+    - 800 MHz input, then a 4th-order detrend.
+    - Run the noiseless baseline (sources × 10⁻⁶) and subtract it in quadrature.
+    - The differential crossing sees σ/√2 (the two sides are independent).
+  - **D — buffer supply sensitivity (M21 DC form, `buf_supply`).** Delay of the flat buffer path at VDDA and VDDA + 10 mV. The DC form is enough here: plain inverters have no bias loop or coupling capacitor, so their sensitivity is flat in frequency.
+  - **Noise budget (`step78hv_noise.py`).** The step-77 REF chain with the SSPD-buffer placeholder replaced by C and D. Then the system model, with the measured A and C_s (kT/C).
+- **Results (tt, 27 °C, 3.3 V).**
+  - A 0.812 V/rad (0.515–1.225 over the 18 conditions); α 0.452; hold DC gain 1.004.
+  - CM 1.66 V; power 1.03 mW.
+  - Kick-back 69 fs (spur −99 dBc); f_ref supply current 0.80 µA with the dummy vs 27.9 µA without.
+  - Buffer jitter 86 fs per side (−171.4 dBc/Hz); buffer VDDA 22 ps/V.
+- **Pitfalls.**
+  - Use the combined MOS + R/C corners. A is set by R_s·C1, and plain ss/ff keep R and C typical.
+  - A is proportional to VDDA. Always pair the slow corner with VDDA 2.97 V, or the minimum A is missed.
+  - In the kick-back runs, read the edges of clkp (the shared buffer output), not of b1. The kick-back that matters is what reaches the ring side.
+  - The beat run's first two periods carry the start-up of the RC nodes: they are skipped (s < 2T).
+- **xschem.**
+  - Place `xschem/sspd_hv/sspll_sspd_hv.sym` and `xschem/clkgen_hv/sspll_clkgen_hv.sym`.
+  - Sources: `vsource` pulse for refhv, refclk, vp and vm, each behind an inverter from the PDK symbols (5 V devices).
+  - Loads: `capa` on v1/v2.
+  - A `code_shown` block with `tran 2p 680n` and `wrdata`.
+  - Post-processing as in `characteristic()`.
+- **Cadence.**
+  - The same with `vpulse`.
+  - Characteristic: read v1p − v1m at the Gm-pulse times with the calculator's `value(sig time)` on a time list, or run pss with the beat frequency as the fundamental.
+  - Kick-back: two transients and `cross()` on clkp.
+  - Buffer jitter: transient noise or pss + pnoise.
+
 #### moscap_hv_cv — C-V of the 5 V loop-filter capacitor (M6, step 73 redo)
 - **Purpose.** Step 73 needs the capacitance per area of the thick-oxide MOS capacitor that now forms C1, and the
   V_cont range over which it is flat. It also needs MIM1 and MIM2 for comparison.

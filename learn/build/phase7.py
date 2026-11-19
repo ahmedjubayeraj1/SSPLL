@@ -7,8 +7,8 @@ from qa73 import QA73, QA73HV
 from qa74 import QA74, QA74HV
 from qa75 import QA75, QA75HV
 from qa76 import QA76, QA76HV
-from qa77 import QA77
-from qa78 import QA78
+from qa77 import QA77, QA77HV
+from qa78 import QA78, QA78HV
 
 b = Book("Phase 7 — Block design (steps 72–78)",
          "Phases 1–6 explained *why* each block exists. Phase 7 designs them — and the first design step is to decide how "
@@ -1218,6 +1218,88 @@ Full report: `docs/design/step77_clkgen.md`; testbenches: `docs/testbench_guide.
 """)
 b.qa(QA77, 77)
 
+# ------------------------------------------------------------------------------------------------ step 77 redo (3.3 V outputs)
+V77H = r"""
+import json, os
+import numpy as np
+DK = "../design/clkgen/data"
+ld = lambda n: json.load(open(os.path.join(DK, f"step77hv_{n}.json")))
+SIM, SUP, NZ = ld("sim"), ld("supply"), ld("noise")
+OLD = ld("supply_via_vddd")
+R = [r for r in SIM["timing"] if not r.get("failed")]
+"""
+b.md(r"""
+<a id='step-77-hv'></a>
+### Step 77 redo — the clock generator with 3.3 V outputs (19 Nov 2026)
+
+**What happens.** The SSPD and the Gm now switch with 5 V devices on VDDA, so their gates need 0 / 3.3 V. The timing is
+still made in 1.8 V logic on VDDD — buffers, gap inverters, RC edge generators, the hold latch — and only the outputs
+cross to VDDA. The sampling edge does not cross at all: it comes from the receiver's 3.3 V node (refhv).
+
+**How it happens.** Each pulse crosses as two rising steps, start and stop, through identical level shifters and step
+drivers, and is formed at the output gates:
+
+$$\tau = (t_{stop} - t_{start}) + (d_o - d_{ob}),\qquad ck = \overline{\overline{start} + stop}$$
+
+$$t_p = t_{gap1} + \frac{\tau}{2},\qquad \Delta PM = 360°\cdot f_c\cdot \Delta t_p$$
+
+**Why it happens this way.**
+- A level shifter rises fast and falls slowly; a pulse sent through one loses the difference. Two rising edges through
+  two identical shifters lose nothing.
+- Thick-oxide gates have 100–250 ps edges, so a pulse much shorter than rise + fall never reaches full swing: τ grew to
+  ≈ 530 ps, and step 79 lowers g_m by the same factor (β = 2A·g_m·τ/T is what the loop sees).
+- Through refclk the sampling edge moved 376 ps per volt of VDDD — a supply shared with every other project on the
+  chip. From refhv it does not see VDDD at all.
+
+Full write-up: `docs/design/step77_hv_clkgen.md`.
+""")
+b.md(r"""
+**Figure 77.5 — timing over the corners.** Slide through the 25 conditions (the real receiver is in front). The bars
+show the two gaps, τ and the hold width; the dashed line is the 100 ps minimum gap.
+""")
+b.code(V77H + r"""
+def lab(r):
+    return f"{r['corner']} {r['temp']}°C {r['vddd']}/{r['vdda']} V {r['f']/1e6:.0f} MHz {r['vpp']} V {r['wave']}"
+def frame(i):
+    r = R[i]
+    return ([dict(x=["gap 1", "τ", "gap 2", "W_H / 10", "t_p"], y=[r["gap1"]*1e12, r["tau"]*1e12, r["gap2"]*1e12, r["W_H"]*1e11, r["t_p"]*1e12],
+                  name="ps", mode="lines+markers", line=dict(color="#2a78d6"), marker=dict(size=12)),
+             dict(x=["gap 1", "τ", "gap 2", "W_H / 10", "t_p"], y=[100]*5, name="100 ps", mode="lines", line=dict(color="#f0a30a", dash="dash"))],
+            lab(r) + f": skew cks/cksb {r['skew_s']*1e12:.0f} ps, power {r['power']*1e3:.2f} mW")
+def lay(fig):
+    fig.update_yaxes(title="ps", range=[0, 1600])
+show(sweep(list(range(len(R))), frame, "condition", fmt="{:d}", active=0, layout=lay))
+""")
+b.md(r"""
+**Figure 77.6 — why the sampling edge left VDDD.** Edge sensitivity of the whole reference path (REF_IN → cks) to each
+supply, method M21. Left: the first version (edge through refclk and a level shifter). Right: the final one (edge from
+refhv).
+""")
+b.code(V77H + r"""
+fig = make_subplots(rows=1, cols=2, subplot_titles=("through refclk + level shifter", "from refhv (final)"))
+for col, data in ((1, OLD), (2, SUP)):
+    for rail, c in (("vddd", "#1baf7a"), ("vdda", "#eb6834")):
+        pts = sorted((max(x["fm"], 1e3), abs(x["k"])*1e12) for x in data if x["rail"] == rail)
+        fig.add_trace(go.Scatter(x=[a for a, _ in pts], y=[b_ for _, b_ in pts], mode="lines+markers", name=rail.upper(),
+                                 line=dict(color=c), showlegend=(col == 1)), 1, col)
+fig.update_xaxes(type="log", title="ripple frequency (Hz); 1 kHz = DC step"); fig.update_yaxes(title="ps/V", range=[0, 420])
+fig.update_layout(height=420)
+show(fig)
+""")
+b.code(V77H + r"""
+print(f"sampling-edge jitter added by S2 + 5 V driver: {SIM['jitter']['sigma']*1e15:.0f} fs ({SIM['jitter']['L_floor']:.1f} dBc/Hz at 50 MHz)")
+print("tau x K_VCO relative to tt:", {k: round(v["prod"], 2) for k, v in SIM["tauK"].items()})
+for k in ("3.3_typ", "1.0_typ", "3.3_pess", "3.3_worst"):
+    o = NZ["sys"][k]
+    print(f"{k:10s} jitter off {o['off']['total']:.2f} / on {o['on']['total']:.2f} ps, L(300 kHz) {o['off']['L300k']:.1f} / {o['on']['L300k']:.1f}")
+""")
+b.code(r"""
+from IPython.display import Image, display
+display(Image(filename="../docs/img/step77hv_timing.png", width=900))
+display(Image(filename="../docs/img/step77hv_sch_sspll_clkgen_hv.png", width=900))
+""")
+b.qa(QA77HV, "77 — 800 MHz redo")
+
 # ------------------------------------------------------------------------------------------------ step 78
 V78 = r"""
 import json
@@ -1331,4 +1413,75 @@ supply current at f_ref 0.76 µA (42 µA without the dummy), buffer jitter 0.080
 Full report: `docs/design/step78_sspd.md`; testbenches: `docs/testbench_guide.md`, step 78.
 """)
 b.qa(QA78, 78)
+
+# ------------------------------------------------------------------------------------------------ step 78 redo (5 V, 800 MHz)
+V78H = r"""
+import json, os
+import numpy as np
+DS = "../design/sspd/data"
+S78 = json.load(open(os.path.join(DS, "step78hv_sim.json"))); N78 = json.load(open(os.path.join(DS, "step78hv_noise.json")))
+CH = [c for c in S78["char"] if "A" in c]
+"""
+b.md(r"""
+<a id='step-78-hv'></a>
+### Step 78 redo — the SSPD in 5 V devices at 800 MHz (19 Nov 2026)
+
+**What happens.** The same detector as above — isolation buffer, $R_s$, sampler, dummy sampler, hold — but every device
+is now a 5 V g5v0d10v5 on VDDA = 3.3 V, the ring runs at 800 MHz, and the clocks come from the 3.3 V clock generator
+(step 77 redo).
+
+**How it happens.** The gain is still set by the RC near-sine, now with the 3.3 V swing:
+
+$$A = \frac{V_{DDA}}{2\,\omega_0\,\tau_s},\qquad \tau_s = \frac{V_{DDA}}{2\,\omega_0\,A} = \frac{3.3}{2\cdot 2\pi\cdot 0.8\,\text{GHz}\cdot 0.8} = 0.41\ \text{ns}$$
+
+**Why it happens this way.**
+- Half the carrier and almost twice the swing: τ_s must be 2.3× slower than the 1.8 V design's 0.18 ns, so R_s grew
+  (xhigh-poly 0.35 × 0.6 µm, ≈ 3.4 kΩ) and C1 stayed 35 fF (step 72 requires C_s ≥ 35 fF).
+- No low-V_T 5 V device exists: the TG is wider (3/6 µm) and the pMOS carries half the conductance.
+- A ∝ VDDA: without an LDO the supply tolerance is a loop-gain tolerance, covered by the icp_trim.
+- Power is C·V²·f: 1.03 mW instead of the 0.49 mW allocated (section G of the write-up).
+
+Full write-up: `docs/design/step78_hv_sspd.md`.
+""")
+b.md(r"""
+**Figure 78.5 — the sampled characteristic over 18 conditions.** Slide through the conditions: A (half the slope at
+the crossing), α, power. Dashed lines: the 0.8 V/rad target and the 0.5 V/rad floor.
+""")
+b.code(V78H + r"""
+lab = [f"{c['corner']} {c['temp']}°C {c['vdda']}/{c['vddd']} V {c['fref']/1e6:.0f} MHz" for c in CH]
+fig = make_subplots(rows=1, cols=2, subplot_titles=("A per side (V/rad)", "SSPD power (mW)"), shared_yaxes=True)
+fig.add_trace(go.Scatter(x=[c["A"] for c in CH], y=lab, mode="markers", marker=dict(size=10, color="#2a78d6"), name="A"), 1, 1)
+fig.add_trace(go.Scatter(x=[c["power"]*1e3 for c in CH], y=lab, mode="markers", marker=dict(size=10, color="#eb6834"), name="P"), 1, 2)
+for v in (0.5, 0.8):
+    fig.add_vline(x=v, line=dict(color="#e87ba4", dash="dash"), row=1, col=1)
+fig.update_yaxes(autorange="reversed"); fig.update_layout(height=560, showlegend=False)
+show(fig)
+""")
+b.md(r"""
+**Figure 78.6 — the characteristic itself (tt).** v1p − v1m against the ring phase at the sampling instant, and the
+held v2. Hover to read the slope near zero.
+""")
+b.code(V78H + r"""
+tt = CH[0]; r = np.array(tt["rows"]); d = (r[:, 1] - tt["phi0"] + np.pi) % (2*np.pi) - np.pi; o = np.argsort(d)
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=d[o], y=r[o, 2], mode="lines+markers", name="v1p − v1m (Gm reads)", line=dict(color="#2a78d6")))
+fig.add_trace(go.Scatter(x=d[o], y=r[o, 3], mode="markers", name="v2p − v2m (NCB reads)", marker=dict(color="#eb6834")))
+x = np.array([-0.6, 0.6]); fig.add_trace(go.Scatter(x=x, y=2*tt["A"]*x, mode="lines", name=f"2A = {2*tt['A']:.3f} V/rad", line=dict(color="#1f2328", dash="dash")))
+fig.update_xaxes(title="ring phase relative to lock (rad)"); fig.update_yaxes(title="V"); fig.update_layout(height=420)
+show(fig)
+""")
+b.code(V78H + r"""
+K = S78["kick"]; B = S78["buf"]
+print(f"kick-back: {K['dt_max']*1e15:.0f} fs, spur estimate {K['spur_dbc']:.0f} dBc; f_ref supply current {K['I_fref']*1e6:.2f} uA (dummy) vs {K['I_fref_nodummy']*1e6:.1f} uA")
+print(f"isolation buffers: {B['sigma']*1e15:.0f} fs per side -> {B['L_floor']:.1f} dBc/Hz; VDDA {abs(S78['bufsup']['k'])*1e12:.1f} ps/V")
+for k in ("3.3_typ", "3.3_pess", "1.0_typ", "3.3_worst"):
+    o = N78["sys"][k]
+    print(f"{k:10s} jitter off {o['off']['total']:.2f} / on {o['on']['total']:.2f} ps, L(300 kHz) {o['off']['L300k']:.1f} / {o['on']['L300k']:.1f}")
+""")
+b.code(r"""
+from IPython.display import Image, display
+display(Image(filename="../docs/img/step78hv_kick.png", width=900))
+display(Image(filename="../docs/img/step78hv_sch_sspll_sspd_hv_side.png", width=900))
+""")
+b.qa(QA78HV, "78 — 800 MHz redo")
 b.save(os.path.join(os.path.dirname(__file__), "..", "phase7_design.ipynb"))

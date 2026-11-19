@@ -1,0 +1,29 @@
+A done
+  tt      27 C 1.8/3.3 V 50 MHz 3.3 V square: t_s 425 skew -11/-7 gap1 611 tau 528 gap2 177 W_H 2.68 t_p 875 fall_cks 117 P 674+45 uW
+  tt      27 C 1.71/3.3 V 50 MHz 3.3 V square: t_s 425 skew -11/-8 gap1 668 tau 570 gap2 197 W_H 2.78 t_p 953 fall_cks 117 P 680+39 uW
+  tt      27 C 1.89/3.3 V 50 MHz 3.3 V square: t_s 425 skew -11/-6 gap1 570 tau 494 gap2 161 W_H 2.61 t_p 816 fall_cks 117 P 670+50 uW
+  tt      27 C 1.8/2.97 V 50 MHz 3.3 V square: t_s 497 skew -0/1 gap1 631 tau 533 gap2 172 W_H 2.69 t_p 898 fall_cks 127 P 525+44 uW
+  tt      27 C 1.8/3.63 V 50 MHz 3.3 V square: t_s 368 skew -17/-12 gap1 605 tau 525 gap2 179 W_H 2.67 t_p 867 fall_cks 110 P 853+45 uW
+  tt     -40 C 1.8/3.3 V 50 MHz 3.3 V square: t_s 343 skew -12/-13 gap1 582 tau 534 gap2 182 W_H 3.12 t_p 848 fall_cks 98 P 658+42 uW
+  tt     110 C 1.8/3.3 V 50 MHz 3.3 V square: t_s 516 skew -11/6 gap1 644 tau 529 gap2 169 W_H 2.34 t_p 908 fall_cks 144 P 703+49 uW
+  ss     110 C 1.71/2.97 V 50 MHz 3.3 V square: t_s 788 skew 9/56 gap1 969 tau 868 gap2 249 W_H 2.81 t_p 1412 fall_cks 185 P 568+41 uW
+  ss     -40 C 1.71/2.97 V 50 MHz 3.3 V square: t_s 537 skew 15/26 gap1 913 tau 860 gap2 312 W_H 4.07 t_p 1358 fall_cks 124 P 542+37 uW
+  ff     -40 C 1.89/3.63 V 50 MHz 3.3 V square: t_s 219 skew -21/-22 gap1 400 tau 374 gap2 115 W_H 2.75 t_p 588 fall_cks 81 P 793+53 uW
+  ff     110 C 1.89/3.63 V 50 MHz 3.3 V square: t_s 334 skew -20/-13 gap1 452 tau 375 gap2 127 W_H 2.14 t_p 640 fall_cks 117 P 881+72 uW
+  ss_hh  110 C 1.71/2.97 V 50 MHz 3.3 V square: t_s 788 skew 9/56 gap1 969 tau 951 gap2 240 W_H 3.12 t_p 1454 fall_cks 185 P 568+42 uW
+  ss_hh  -40 C 1.71/2.97 V 50 MHz 3.3 V square: t_s 539 skew 15/26 gap1 913 tau 949 gap2 304 W_H 4.58 t_p 1403 fall_cks 124 P 543+39 uW
+  ff_ll  -40 C 1.89/3.63 V 50 MHz 3.3 V square: t_s 218 skew -21/-22 gap1 400 tau 327 gap2 123 W_H 2.34 t_p 564 fall_cks 81 P 791+49 uW
+  ff_ll  110 C 1.89/3.63 V 50 MHz 3.3 V square: t_s 331 skew -20/-13 gap1 452 tau 322 gap2 141 W_H 1.84 t_p 613 fall_cks 117 P 878+66 uW
+  sf      27 C 1.8/3.3 V 50 MHz 3.3 V square: t_s 471 skew -23/-79 gap1 679 tau 490 gap2 297 W_H 3.21 t_p 924 fall_cks 120 P 689+44 uW
+  fs      27 C 1.8/3.3 V 50 MHz 3.3 V square: t_s 395 skew -14/39 gap1 632 tau 575 gap2 108 W_H 2.24 t_p 920 fall_cks 119 P 672+47 uW
+  hl      27 C 1.8/3.3 V 50 MHz 3.3 V square: t_s 423 skew -11/-7 gap1 611 tau 469 gap2 184 W_H 2.47 t_p 846 fall_cks 117 P 673+41 uW
+  lh      27 C 1.8/3.3 V 50 MHz 3.3 V square: t_s 427 skew -11/-7 gap1 611 tau 585 gap2 171 W_H 2.86 t_p 904 fall_cks 117 P 675+48 uW
+  tt      27 C 1.8/3.3 V 45 MHz 3.3 V square: t_s 426 skew -11/-7 gap1 611 tau 528 gap2 177 W_H 2.74 t_p 875 fall_cks 117 P 606+40 uW
+  tt      27 C 1.8/3.3 V 55 MHz 3.3 V square: t_s 423 skew -11/-7 gap1 611 tau 528 gap2 176 W_H 2.62 t_p 875 fall_cks 117 P 742+49 uW
+  tt      27 C 1.8/3.3 V 50 MHz 1.0 V sine: t_s 1882 skew -15/-7 gap1 593 tau 528 gap2 177 W_H 2.75 t_p 858 fall_cks 117 P 677+45 uW
+  tt      27 C 1.8/3.3 V 50 MHz 0.4 V sine: t_s 2433 skew -15/-7 gap1 553 tau 528 gap2 177 W_H 2.73 t_p 817 fall_cks 118 P 682+45 uW
+  ss     110 C 1.71/2.97 V 50 MHz 0.4 V sine: t_s 3053 skew 5/56 gap1 924 tau 868 gap2 250 W_H 2.86 t_p 1362 fall_cks 186 P 571+41 uW
+  ff     -40 C 1.89/3.63 V 50 MHz 0.4 V sine: t_s 1987 skew -25/-22 gap1 328 tau 374 gap2 115 W_H 2.79 t_p 516 fall_cks 82 P 810+53 uW
+B {'ss_110': 1.04, 'ss_-40': 1.03, 'ff_-40': 1.02, 'ff_110': 1.03, 'ss_hh_110': 1.14, 'ff_ll_-40': 0.89}
+C noise {'S2': '1.99 pA/rtHz', 'INV5S': '2.08 pA/rtHz', 'INV5M': '3.30 pA/rtHz', 'INV5L': '5.95 pA/rtHz'}
+C jitter 78.3 fs (raw 78.4, baseline 3.4), floor -169.2 dBc/Hz

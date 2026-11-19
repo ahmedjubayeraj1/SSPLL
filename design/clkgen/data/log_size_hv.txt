@@ -1,0 +1,17 @@
+P/N 1.5: rise 66.2 ps, fall 52.0 ps
+P/N 2.0: rise 61.5 ps, fall 57.0 ps
+P/N 2.5: rise 61.4 ps, fall 62.4 ps
+P/N 3.0: rise 61.4 ps, fall 68.1 ps
+P/N 3.5: rise 61.9 ps, fall 73.9 ps
+P/N 4.0: rise 62.6 ps, fall 79.4 ps
+TG1.0    t_s  725.1 skew   26.3 tau  400.9 gap1 215.5 gap2 147.0 W_H 2.70 ns t_p   442 P VDDA 808 uW VDDD 44 uW
+TG1.5    t_s  748.5 skew  -11.2 tau  400.9 gap1 218.3 gap2 147.0 W_H 2.70 ns t_p   419 P VDDA 808 uW VDDD 44 uW
+TG3.0    t_s  803.5 skew  -54.1 tau  400.9 gap1 163.4 gap2 147.0 W_H 2.70 ns t_p   364 P VDDA 812 uW VDDD 44 uW
+TGT0.5   t_s  768.8 skew  -33.3 tau  514.9 gap1 164.5 gap2  33.0 W_H 2.80 ns t_p   422 P VDDA 814 uW VDDD 44 uW
+TGT0.75  t_s  768.8 skew  -33.3 tau  444.8 gap1 182.7 gap2 103.1 W_H 2.74 ns t_p   405 P VDDA 810 uW VDDD 44 uW
+NORP14   t_s  768.8 skew  -33.3 tau  421.6 gap1 208.7 gap2 126.3 W_H 2.73 ns t_p   420 P VDDA 843 uW VDDD 44 uW
+CG2.0 FAILED: an output did not switch
+CG2.5    t_s  768.8 skew  -33.3 tau  233.3 gap1 198.6 gap2 197.8 W_H 2.69 ns t_p   315 P VDDA 802 uW VDDD 42 uW
+CH4.5    t_s  768.8 skew  -33.3 tau  400.9 gap1 198.1 gap2 147.1 W_H 1.78 ns t_p   399 P VDDA 808 uW VDDD 38 uW
+CH5.0    t_s  768.8 skew  -33.3 tau  400.9 gap1 198.1 gap2 147.1 W_H 2.08 ns t_p   399 P VDDA 809 uW VDDD 40 uW
+noload   t_s  711.1 skew  -31.7 tau  405.0 gap1 195.7 gap2 142.7 W_H 2.69 ns t_p   398 P VDDA 664 uW VDDD 44 uW
