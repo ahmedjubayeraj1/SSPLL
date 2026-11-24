@@ -58,71 +58,78 @@ D.update(
 LOADS = dict(cks=60e-15, cksb=60e-15, ckh=40e-15, ckhb=40e-15, ckg=40e-15, ckgb=40e-15)
 
 
-def inv5(name, a, y, size, vdd="VDDA"):
+def inv5(name, a, y, size, vdd="VDDA", vss="VSSA"):
     n, p = size
-    return _m(name + "n", y, a, "VSS", "VSS", n) + _m(name + "p", y, a, vdd, vdd, p)
+    return _m(name + "n", y, a, vss, vss, n) + _m(name + "p", y, a, vdd, vdd, p)
+
+
+def _d(text):
+    """A 1.8 V cell from the clkgen.py helpers (which write VDD / VSS) moved onto the digital rails VDDD / VSSD."""
+    return re.sub(r"\bVSS\b", "VSSD", re.sub(r"\bVDD\b", "VDDD", text))
 
 
 def cells(p=D):
-    """Subcircuits: 1.8 V pulser cores with start/stop taps (VDD = VDDD), the 5 V driver and pulse combiner (VDDA),
-    the level shifter (step 75 HV) and the top cell sspll_clkgen_hv."""
+    """Subcircuits: 1.8 V pulser cores with start/stop taps (VDDD / VSSD), the 5 V driver and pulse combiner
+    (VDDA / VSSA), the level shifter (step 75 HV; input on VDDD / VSSD, output on VDDA / VSSA) and the top cell
+    sspll_clkgen_hv. Ground split (24 Nov 2026): every 1.8 V device and the RC timing parts of the 1.8 V cells return to
+    VSSD, every 5 V device to VSSA."""
     c = CC.LS
-    # 1.8 V cells (VDD = VDDD)
+    # 1.8 V cells (VDDD / VSSD)
     for nm, R, Cc in (("g", "RG", "CG"), ("h", "RH", "CH")):
         rm, w, _, L = p[R]; cm, cw, _, cl = p[Cc]
-        c += (f".subckt sspll_ckg_edges_{nm} in stop pls VDD VSS\n"
-              f"* RC edge pair: stop rises ln2 RC + 2 gates after in rises; pls = in AND NOT stop (1.8 V pulse)\n")
-        c += inv("x1", "in", "inb", p["INVS"]) + inv("x2", "in", "drc", p["INVS"])
-        c += f"xr drc rc VSS sky130_fd_pr__{rm} l={L} mult=1 m=1\n"
-        c += f"xc rc VSS sky130_fd_pr__{cm} w={cw} l={cl} m=1\n"
-        c += inv("x3", "rc", "stop", p["INVS"]) + nor2("x4", "inb", "stop", "pls", p["NOR"])
-        c += ".ends\n"
+        e = (f".subckt sspll_ckg_edges_{nm} in stop pls VDD VSS\n"
+             f"* RC edge pair: stop rises ln2 RC + 2 gates after in rises; pls = in AND NOT stop (1.8 V pulse)\n")
+        e += inv("x1", "in", "inb", p["INVS"]) + inv("x2", "in", "drc", p["INVS"])
+        e += f"xr drc rc VSS sky130_fd_pr__{rm} l={L} mult=1 m=1\n"
+        e += f"xc rc VSS sky130_fd_pr__{cm} w={cw} l={cl} m=1\n"
+        e += inv("x3", "rc", "stop", p["INVS"]) + nor2("x4", "inb", "stop", "pls", p["NOR"])
+        c += _d(e) + ".ends\n"
     rm, _, _, L = p["RDL"]; cm, cw, _, cl = p["CDL"]
-    c += (".subckt sspll_ckg_dly in out VDD VSS\n* RC delay (1.8 V): both edges delayed by about ln2 RC + 4 gates; non-inverting\n" +
+    c += _d(".subckt sspll_ckg_dly in out VDD VSS\n* RC delay (1.8 V): both edges delayed by about ln2 RC + 4 gates; non-inverting\n" +
           inv("x1", "in", "a", p["INVS"]) + f"xr a rc VSS sky130_fd_pr__{rm} l={L} mult=1 m=1\n"
           f"xc rc VSS sky130_fd_pr__{cm} w={cw} l={cl} m=1\n" + inv("x2", "rc", "b", p["INVS"]) +
           inv("x3", "b", "c", p["INVS"]) + inv("x4", "c", "out", p["INVS"]) + ".ends\n")   # x2-x4 restore a sharp edge
-    c += (".subckt sspll_ckg_hlatch s r out VDD VSS\n* NOR latch q = set by s, reset by r; out = q AND NOT s\n" +
+    c += _d(".subckt sspll_ckg_hlatch s r out VDD VSS\n* NOR latch q = set by s, reset by r; out = q AND NOT s\n" +
           nor2("xl1", "r", "qb", "q", p["NOR"]) + nor2("xl2", "s", "q", "qb", p["NOR"]) +
           nor2("xl3", "qb", "s", "out", p["NOR"]) + ".ends\n")
-    # 5 V cells (VDD = VDDA)
+    # 5 V cells (VDDA / VSSA)
     for nm, L, TG in (("drv5", "INV5L", "TG5"), ("drv5t", "INV5T", "TG5T")):
         tn, tp = p[TG]
-        c += (f".subckt sspll_ckg_{nm} in o ob VDDA VSS\n* 5 V complementary driver: o follows in (TG + 2 inverters), ob is\n"
+        c += (f".subckt sspll_ckg_{nm} in o ob VDDA VSSA\n* 5 V complementary driver: o follows in (TG + 2 inverters), ob is\n"
               "* inverted (3 inverters); the always-on TG matches the extra inverter so o and ob switch together\n" +
-              _m("tn", "a0", "VDDA", "in", "VSS", tn) + _m("tp", "a0", "VSS", "in", "VDDA", tp) +
+              _m("tn", "a0", "VDDA", "in", "VSSA", tn) + _m("tp", "a0", "VSSA", "in", "VDDA", tp) +
               inv5("xa", "a0", "a1", p["INV5A"]) + inv5("xb", "a1", "o", p[L]) +
               inv5("xc", "in", "c1", p["INV5S"]) + inv5("xd", "c1", "c2", p["INV5M"]) + inv5("xe", "c2", "ob", p[L]) + ".ends\n")
     (nn, np_), (an, ap) = p["NOR5L"], p["NAND5L"]
-    c += (".subckt sspll_ckg_pout5 start stop o ob VDDA VSS\n"
+    c += (".subckt sspll_ckg_pout5 start stop o ob VDDA VSSA\n"
           "* 5 V pulse output: start and stop are rising STEPS (never a narrow pulse inside a buffer chain); each gets a\n"
           "* complementary step driver, and the pulse exists only at the two output gates:\n"
           "* o = NOR(NOT start, stop) = start AND NOT stop;  ob = NAND(start, NOT stop) = NOT o\n"
-          "xda start st stb VDDA VSS sspll_ckg_drv5t\nxdb stop sp spb VDDA VSS sspll_ckg_drv5t\n" +
-          _m("na", "o", "stb", "VSS", "VSS", nn) + _m("nb", "o", "sp", "VSS", "VSS", nn) +
+          "xda start st stb VDDA VSSA sspll_ckg_drv5t\nxdb stop sp spb VDDA VSSA sspll_ckg_drv5t\n" +
+          _m("na", "o", "stb", "VSSA", "VSSA", nn) + _m("nb", "o", "sp", "VSSA", "VSSA", nn) +
           _m("pa", "ox", "stb", "VDDA", "VDDA", np_) + _m("pb", "o", "sp", "ox", "VDDA", np_) +
-          _m("ma", "ob", "st", "oy", "VSS", an) + _m("mb", "oy", "spb", "VSS", "VSS", an) +
+          _m("ma", "ob", "st", "oy", "VSSA", an) + _m("mb", "oy", "spb", "VSSA", "VSSA", an) +
           _m("qa", "ob", "st", "VDDA", "VDDA", ap) + _m("qb", "ob", "spb", "VDDA", "VDDA", ap) + ".ends\n")
-    c += ".subckt sspll_clkgen_hv refclk refhv cks cksb ckg ckgb ckh ckhb VDDD VDDA VSS\n"
-    c += re.sub(r"\bVDD\b", "VDDD", inv("xi0", "refclk", "r1", p["INVM"]) + inv("xi1", "r1", "r2", p["INVM"]))
+    c += ".subckt sspll_clkgen_hv refclk refhv cks cksb ckg ckgb ckh ckhb VDDD VDDA VSSA VSSD\n"
+    c += _d(inv("xi0", "refclk", "r1", p["INVM"]) + inv("xi1", "r1", "r2", p["INVM"]))
     # sampling edge: taken from refhv, the receiver's 3.3 V edge (S2 output, VDDA domain), straight into the 5 V
     # driver: no VDDD gate in the sampling path (through refclk, the level shifter and two VDDD inverters the edge
     # moved 376 ps per volt of VDDD, step77hv_supply_via_vddd.json)
-    c += "xds refhv cksb cks VDDA VSS sspll_ckg_drv5\n"
+    c += "xds refhv cksb cks VDDA VSSA sspll_ckg_drv5\n"
     # Gm pulse: gap 1 (RC delay, about 2.4 ns, then the edge pair), two level shifters, rebuild, driver
-    c += "xdl r2 g2 VDDD VSS sspll_ckg_dly\n"
-    c += "xeg g2 gstop pg VDDD VSS sspll_ckg_edges_g\n"
-    c += "xlsg1 g2 g2h g2hb VDDD VDDA VSS sspll_ls_1v8_3v3\nxlsg2 gstop gsh gshb VDDD VDDA VSS sspll_ls_1v8_3v3\n"
-    c += "xpg g2h gsh ckg ckgb VDDA VSS sspll_ckg_pout5\n"
+    c += "xdl r2 g2 VDDD VSSD sspll_ckg_dly\n"
+    c += "xeg g2 gstop pg VDDD VSSD sspll_ckg_edges_g\n"
+    c += "xlsg1 g2 g2h g2hb VDDD VDDA VSSA VSSD sspll_ls_1v8_3v3\nxlsg2 gstop gsh gshb VDDD VDDA VSSA VSSD sspll_ls_1v8_3v3\n"
+    c += "xpg g2h gsh ckg ckgb VDDA VSSA sspll_ckg_pout5\n"
     # hold pulse: latch set by the 1.8 V Gm pulse, reset while refclk is low (r1 = 1); hin rises when the Gm pulse ends
-    c += "xhl pg r1 hin VDDD VSS sspll_ckg_hlatch\n"
+    c += "xhl pg r1 hin VDDD VSSD sspll_ckg_hlatch\n"
     # gap 2: four 1.8 V inverters between the latch and the hold edges (gap 2 >= 100 ps at every corner; with two it
     # was 79 ps at fs, step77hv_sim.py first run)
-    c += re.sub(r"\bVDD\b", "VDDD", inv("xi4", "hin", "h1", p["INVS"]) + inv("xi5", "h1", "h2", p["INVS"]) +
-                inv("xi6", "h2", "h3", p["INVS"]) + inv("xi7", "h3", "h4", p["INVS"]))
-    c += "xeh h4 hstop ph VDDD VSS sspll_ckg_edges_h\n"
-    c += "xlsh1 h4 hinh hinhb VDDD VDDA VSS sspll_ls_1v8_3v3\nxlsh2 hstop hsh hshb VDDD VDDA VSS sspll_ls_1v8_3v3\n"
-    c += "xph hinh hsh ckh ckhb VDDA VSS sspll_ckg_pout5\n"
+    c += _d(inv("xi4", "hin", "h1", p["INVS"]) + inv("xi5", "h1", "h2", p["INVS"]) +
+            inv("xi6", "h2", "h3", p["INVS"]) + inv("xi7", "h3", "h4", p["INVS"]))
+    c += "xeh h4 hstop ph VDDD VSSD sspll_ckg_edges_h\n"
+    c += "xlsh1 h4 hinh hinhb VDDD VDDA VSSA VSSD sspll_ls_1v8_3v3\nxlsh2 hstop hsh hshb VDDD VDDA VSSA VSSD sspll_ls_1v8_3v3\n"
+    c += "xph hinh hsh ckh ckhb VDDA VSSA sspll_ckg_pout5\n"
     return c + ".ends\n"
 
 
@@ -138,8 +145,8 @@ def tran(corner="tt", temp=27, vddd=1.8, vdda=3.3, fref=50e6, vpp=3.3, wave="squ
     net = (f"* clkgen hv + receiver\n.lib {LIB} {corner}\n.temp {temp}\n{rx}{cells(p)}"
            f"vdda VDDA 0 {vdda}\nvddd VDDD 0 {vddd}\nvdda2 VDDA2 0 {vdda}\nvddd2 VDDD2 0 {vddd}\n"
            f"iib ib 0 2.5e-6\nven pll_en 0 {vddd}\n" + H.src(vdda, vpp, fref, wave) +
-           "xrx pad0 refclk refhv ib pll_en VDDA VDDD 0 sspll_refbuf_hv\n"
-           "x1 refclk refhv cks cksb ckg ckgb ckh ckhb VDDD2 VDDA2 0 sspll_clkgen_hv\n" +
+           "xrx pad0 refclk refhv ib pll_en VDDA VDDD 0 0 sspll_refbuf_hv\n"
+           "x1 refclk refhv cks cksb ckg ckgb ckh ckhb VDDD2 VDDA2 0 0 sspll_clkgen_hv\n" +
            "".join(f"c{k} {k} 0 {v}\n" for k, v in loads.items()) +
            f".ic v(xrx.vin)={b['vin']} v(xrx.s1)={b['s1']}\n"
            f".control\ntran 2p {ncyc*T}\nwrdata w.txt v(pad0) v(cks) v(cksb) v(ckh) v(ckhb) v(ckg) v(ckgb) i(vddd2) i(vdda2)\n.endc\n.end\n")

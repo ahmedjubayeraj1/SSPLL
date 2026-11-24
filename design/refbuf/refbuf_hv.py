@@ -23,45 +23,47 @@ D, PDK = R.D, R.PDK
 
 
 def full(p=D, q=PDK):
-    """Drawn receiver. Top ports: REF_IN refclk refhv ib pll_en VDDA VDDD VSS."""
+    """Drawn receiver. Top ports: REF_IN refclk refhv ib pll_en VDDA VDDD VSSA VSSD. Ground split (24 Nov 2026): the
+    pad divider, R_B, S1 and S2 (VDDA domain) return to VSSA; the 3.3 -> 1.8 V inverter, the pll_en inverter and the
+    output NOR (VDDD domain) to VSSD; the enable level shifter has both."""
     rm, n, L = q["RB_SEG"]
-    c = C.LS + ".subckt sspll_refbuf_hv_rb a b VSS\n* R_B: %d segments of %s, L = %g um each\n" % (n, rm, L)
+    c = C.LS + ".subckt sspll_refbuf_hv_rb a b VSSA\n* R_B: %d segments of %s, L = %g um each\n" % (n, rm, L)
     nodes = ["a"] + [f"n{i}" for i in range(1, n)] + ["b"]
     for i in range(n):
-        c += f"xr{i} {nodes[i]} {nodes[i+1]} VSS sky130_fd_pr__{rm} l={L} mult=1 m=1\n"
+        c += f"xr{i} {nodes[i]} {nodes[i+1]} VSSA sky130_fd_pr__{rm} l={L} mult=1 m=1\n"
     c += ".ends\n"
-    c += ".subckt sspll_refbuf_hv_s1 vin s1 ib en enb VDDA VSS\n"
+    c += ".subckt sspll_refbuf_hv_s1 vin s1 ib en enb VDDA VSSA\n"
     c += "* S1: current-reuse inverter, header = MH units mirrored from the bias diode, C_H decouples the header node\n"
     c += _m("pd", "ib", "ib", "VDDA", "VDDA", p["PD"]) + _m("ph", "vh", "ib", "VDDA", "VDDA", p["PH"], m=p["MH"])
     cm, nt, s = q["CH"]
     c += f"xch vh VDDA sky130_fd_pr__{cm} w={s} l={s} m={nt}\n"
-    c += _m("p1", "s1", "vin", "vh", "vh", p["P1"]) + _m("n1", "s1", "vin", "VSS", "VSS", p["N1"])
-    c += _m("pen", "ib", "en", "VDDA", "VDDA", q["PEN"]) + _m("ns1", "s1", "enb", "VSS", "VSS", q["NS1"])
+    c += _m("p1", "s1", "vin", "vh", "vh", p["P1"]) + _m("n1", "s1", "vin", "VSSA", "VSSA", p["N1"])
+    c += _m("pen", "ib", "en", "VDDA", "VDDA", q["PEN"]) + _m("ns1", "s1", "enb", "VSSA", "VSSA", q["NS1"])
     c += ".ends\n"
     # refhv (added in step 77 HV): S2's 0..3.3 V output, the reference edge in the VDDA domain. The clock generator
     # takes the SSPD sampling edge from it, so that edge never passes a VDDD gate (VDDD noise moved it 376 ps/V)
-    c += ".subckt sspll_refbuf_hv REF_IN refclk refhv ib pll_en VDDA VDDD VSS\n"
+    c += ".subckt sspll_refbuf_hv REF_IN refclk refhv ib pll_en VDDA VDDD VSSA VSSD\n"
     rm2, _, L2 = q["RPAD"]
-    c += f"xrpu VDDA REF_IN VSS sky130_fd_pr__{rm2} l={L2} mult=1 m=1\nxrpd REF_IN VSS VSS sky130_fd_pr__{rm2} l={L2} mult=1 m=1\n"
+    c += f"xrpu VDDA REF_IN VSSA sky130_fd_pr__{rm2} l={L2} mult=1 m=1\nxrpd REF_IN VSSA VSSA sky130_fd_pr__{rm2} l={L2} mult=1 m=1\n"
     cm, nt, s = q["CAC"]
     c += f"xcac vin REF_IN sky130_fd_pr__{cm} w={s} l={s} m={nt}\n"
-    c += "xrb vin s1 VSS sspll_refbuf_hv_rb\nxs1 vin s1 ib en enb VDDA VSS sspll_refbuf_hv_s1\n"
-    c += "xls pll_en en enb VDDD VDDA VSS sspll_ls_1v8_3v3\n"
-    c += _m("p2", "refhv", "s1", "VDDA", "VDDA", p["P2"]) + _m("n2", "refhv", "s1", "VSS", "VSS", p["N2"])
+    c += "xrb vin s1 VSSA sspll_refbuf_hv_rb\nxs1 vin s1 ib en enb VDDA VSSA sspll_refbuf_hv_s1\n"
+    c += "xls pll_en en enb VDDD VDDA VSSA VSSD sspll_ls_1v8_3v3\n"
+    c += _m("p2", "refhv", "s1", "VDDA", "VDDA", p["P2"]) + _m("n2", "refhv", "s1", "VSSA", "VSSA", p["N2"])
     # 3.3 -> 1.8 V level shift: a 5 V inverter on VDDD. Its gate oxide takes the full 3.3 V swing of s2; its output
     # swings 0..VDDD. (A 1.8 V device cannot take 3.3 V on its gate.)
-    c += _m("pl", "s3", "refhv", "VDDD", "VDDD", p["PL"]) + _m("nl", "s3", "refhv", "VSS", "VSS", p["NL"])
-    c += _m("pei", "enl", "pll_en", "VDDD", "VDDD", q["PEI"]) + _m("nei", "enl", "pll_en", "VSS", "VSS", q["NEI"])
+    c += _m("pl", "s3", "refhv", "VDDD", "VDDD", p["PL"]) + _m("nl", "s3", "refhv", "VSSD", "VSSD", p["NL"])
+    c += _m("pei", "enl", "pll_en", "VDDD", "VDDD", q["PEI"]) + _m("nei", "enl", "pll_en", "VSSD", "VSSD", q["NEI"])
     # output NOR(s3, enl): refclk = not s3 when enabled, 0 when disabled
     c += _m("pb", "xb", "s3", "VDDD", "VDDD", q["PB2"]) + _m("pb2", "refclk", "enl", "xb", "VDDD", q["PB2"])
-    c += _m("nb", "refclk", "s3", "VSS", "VSS", p["NB"]) + _m("nb2", "refclk", "enl", "VSS", "VSS", q["NB2"])
+    c += _m("nb", "refclk", "s3", "VSSD", "VSSD", p["NB"]) + _m("nb2", "refclk", "enl", "VSSD", "VSSD", q["NB2"])
     return c + ".ends\n"
 
 
 def head(corner="tt", temp=27, vdda="3.3", vddd="1.8", en="1.8", ib=2.5e-6, p=D, cl=50e-15):
     """Netlist head: supplies may be numbers or source expressions (e.g. 'sin(3.3 0.01 1e6)')."""
     return (f"* refbuf HV\n.lib {LIB} {corner}\n.temp {temp}\n{full(p)}vdda VDDA 0 {vdda}\nvddd VDDD 0 {vddd}\n"
-            f"iib ib 0 {ib}\nven pll_en 0 {en}\nx1 pad0 refclk refhv ib pll_en VDDA VDDD 0 sspll_refbuf_hv\ncl refclk 0 {cl}\n")
+            f"iib ib 0 {ib}\nven pll_en 0 {en}\nx1 pad0 refclk refhv ib pll_en VDDA VDDD 0 0 sspll_refbuf_hv\ncl refclk 0 {cl}\n")
 
 
 def src(vdda, vpp, f, wave):

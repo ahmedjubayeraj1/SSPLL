@@ -67,7 +67,7 @@ C {sspll_vco_hv_core.sym} 1000 0 0 0 {name=xcore}
 C {devices/iopin.sym} 960 -520 0 0 {name=p_VRING lab=VRING}
 C {devices/ipin.sym} 1000 -560 0 0 {name=p_vtune lab=vtune}
 C {devices/iopin.sym} 1000 -680 0 0 {name=p_VDDA lab=VDDA}
-C {devices/iopin.sym} 1000 680 0 0 {name=p_VSS lab=VSS}
+C {devices/iopin.sym} 1000 680 0 0 {name=p_VSSA lab=VSSA}
 C {sspll_vco_hv_acbuf.sym} 700 -160 0 1 {name=xb_vop}
 C {devices/opin.sym} 560 -160 0 1 {name=p_clkp lab=clkp}
 C {sspll_vco_hv_acbuf.sym} 700 0 0 1 {name=xb_p1}

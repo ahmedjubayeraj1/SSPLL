@@ -55,24 +55,24 @@ C {devices/lab_pin.sym} 320 -620 0 0 {name=l_enb_6 sig_type=std_logic lab=enb}
 C {devices/lab_pin.sym} 1080 -620 0 1 {name=l_enb_7 sig_type=std_logic lab=enb}
 C {devices/lab_pin.sym} 320 -400 0 0 {name=l_pb_8 sig_type=std_logic lab=pb}
 C {devices/lab_pin.sym} 1080 -400 0 1 {name=l_pb_9 sig_type=std_logic lab=pb}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 400 -120 0 0 {name=XN1 L=1.0 W=4 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 1000 -120 0 1 {name=XN2 L=1.0 W=4 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 400 -120 0 0 {name=XN1 L=1.0 W=4 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSSA}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 1000 -120 0 1 {name=XN2 L=1.0 W=4 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSSA}
 C {devices/lab_pin.sym} 340 -260 0 0 {name=l_xc_12 sig_type=std_logic lab=xc}
 C {devices/lab_pin.sym} 1060 -260 0 1 {name=l_x_13 sig_type=std_logic lab=x}
 C {devices/lab_pin.sym} 320 -120 0 0 {name=l_v1p_14 sig_type=std_logic lab=v1p}
 C {devices/lab_pin.sym} 1080 -120 0 1 {name=l_v1m_15 sig_type=std_logic lab=v1m}
 C {sspll_sscp_hv_rs.sym} 700 60 0 0 {name=xrs}
-C {devices/lab_pin.sym} 660 140 0 0 {name=l_VSS_17 sig_type=std_logic lab=VSS}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 400 260 0 0 {name=XE1 L=0.5 W=1 nf=1 mult=2 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 1000 260 0 1 {name=XE2 L=0.5 W=1 nf=1 mult=2 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
+C {devices/lab_pin.sym} 660 140 0 0 {name=l_VSSA_17 sig_type=std_logic lab=VSSA}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 400 260 0 0 {name=XE1 L=0.5 W=1 nf=1 mult=2 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSSA}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 1000 260 0 1 {name=XE2 L=0.5 W=1 nf=1 mult=2 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSSA}
 C {devices/lab_pin.sym} 320 260 0 0 {name=l_en_20 sig_type=std_logic lab=en}
 C {devices/lab_pin.sym} 1080 260 0 1 {name=l_en_21 sig_type=std_logic lab=en}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 400 460 0 0 {name=XT1 L=8.0 W=1 nf=1 mult=2 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 1000 460 0 1 {name=XT2 L=8.0 W=1 nf=1 mult=2 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 400 460 0 0 {name=XT1 L=8.0 W=1 nf=1 mult=2 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSSA}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 1000 460 0 1 {name=XT2 L=8.0 W=1 nf=1 mult=2 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSSA}
 C {devices/lab_pin.sym} 320 460 0 0 {name=l_nb_24 sig_type=std_logic lab=nb}
 C {devices/lab_pin.sym} 1080 460 0 1 {name=l_nb_25 sig_type=std_logic lab=nb}
-C {devices/lab_pin.sym} 420 520 0 0 {name=l_VSS_26 sig_type=std_logic lab=VSS}
-C {devices/lab_pin.sym} 980 520 0 0 {name=l_VSS_27 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 420 520 0 0 {name=l_VSSA_26 sig_type=std_logic lab=VSSA}
+C {devices/lab_pin.sym} 980 520 0 0 {name=l_VSSA_27 sig_type=std_logic lab=VSSA}
 C {devices/ipin.sym} 60 700 0 0 {name=p_v1p lab=v1p}
 C {devices/lab_pin.sym} 140 700 0 1 {name=l_v1p_29 sig_type=std_logic lab=v1p}
 C {devices/ipin.sym} 60 750 0 0 {name=p_v1m lab=v1m}
@@ -91,5 +91,5 @@ C {devices/iopin.sym} 1400 750 0 1 {name=p_xc lab=xc}
 C {devices/lab_pin.sym} 1300 750 0 0 {name=l_xc_43 sig_type=std_logic lab=xc}
 C {devices/iopin.sym} 60 -900 0 0 {name=p_VDDA lab=VDDA}
 C {devices/lab_pin.sym} 140 -900 0 1 {name=l_VDDA_45 sig_type=std_logic lab=VDDA}
-C {devices/iopin.sym} 60 1050 0 0 {name=p_VSS lab=VSS}
-C {devices/lab_pin.sym} 140 1050 0 1 {name=l_VSS_47 sig_type=std_logic lab=VSS}
+C {devices/iopin.sym} 60 1050 0 0 {name=p_VSSA lab=VSSA}
+C {devices/lab_pin.sym} 140 1050 0 1 {name=l_VSSA_47 sig_type=std_logic lab=VSSA}

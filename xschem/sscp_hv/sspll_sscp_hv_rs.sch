@@ -14,6 +14,6 @@ N 60 220 140 220 {lab=}
 C {sky130_fd_pr/res_xhigh_po_0p35.sym} 400 0 0 0 {name=XR0 L=17.2 mult=1 model=res_xhigh_po_0p35 spiceprefix=X}
 C {devices/iopin.sym} 200 -120 0 0 {name=p_a lab=a}
 C {devices/iopin.sym} 200 120 0 0 {name=p_b lab=b}
-C {devices/lab_pin.sym} 320 0 0 0 {name=l_VSS_3 sig_type=std_logic lab=VSS}
-C {devices/iopin.sym} 60 220 0 0 {name=p_VSS lab=VSS}
-C {devices/lab_pin.sym} 140 220 0 1 {name=l_VSS_5 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 320 0 0 0 {name=l_VSSA_3 sig_type=std_logic lab=VSSA}
+C {devices/iopin.sym} 60 220 0 0 {name=p_VSSA lab=VSSA}
+C {devices/lab_pin.sym} 140 220 0 1 {name=l_VSSA_5 sig_type=std_logic lab=VSSA}

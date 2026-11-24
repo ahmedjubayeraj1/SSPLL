@@ -46,7 +46,7 @@ N 130 -20 130 -110 {lab=}
 N 130 20 130 120 {lab=}
 C {devices/iopin.sym} 200 -200 0 0 {name=p_VDD lab=VDD}
 C {devices/ipin.sym} 200 200 0 0 {name=p_vtune lab=vtune}
-C {devices/iopin.sym} 200 240 0 0 {name=p_VSS lab=VSS}
+C {devices/iopin.sym} 200 240 0 0 {name=p_VSSA lab=VSSA}
 C {sspll_vco_hv_dcell.sym} 300 0 0 0 {name=x1}
 C {sspll_vco_hv_dcell.sym} 700 0 0 0 {name=x2}
 C {sspll_vco_hv_dcell.sym} 1100 0 0 0 {name=x3}

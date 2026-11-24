@@ -5,7 +5,9 @@ wiring, drawing checks) and the LVS reference:
    sspll_ckg_hlatch        hold trigger latch (as on 13/17 Nov)
    sspll_ckg_drv5 / drv5t  5 V complementary drivers (always-on TG + 2 inverters / 3 inverters)
    sspll_ckg_pout5         5 V pulse output: two step drivers, NOR (o) and NAND (ob)
-   sspll_clkgen_hv         top: 1.8 V core on VDDD, 5 level shifters, 5 V outputs on VDDA"""
+   sspll_clkgen_hv         top: 1.8 V core on VDDD, 5 level shifters, 5 V outputs on VDDA
+Ground split (24 Nov 2026): the 1.8 V cells (edge pairs, delay, latch, the top's 1.8 V inverters) are on VDDD / VSSD,
+the 5 V cells (drivers, pulse outputs) on VDDA / VSSA, the level shifters have both grounds."""
 import os, sys
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(ROOT, "tools")); sys.path.insert(0, HERE)
@@ -19,23 +21,26 @@ OUT = os.path.join(ROOT, "xschem", "clkgen_hv")
 N18, P18, N5, P5 = "nfet3_01v8", "pfet3_01v8", "nfet3_g5v0d10v5", "pfet3_g5v0d10v5"
 RES = S18.RES; MIM = S18.MIM
 LS_PINS = dict(left=[("in", "in")], right=[("out", "out"), ("outb", "out")], top=[("VDDD", "inout"), ("VDDA", "inout")],
-               bottom=[("VSS", "inout")])
+               bottom=[("VSSA", "inout"), ("VSSD", "inout")])
+GND = {"VDDA": "VSSA", "VDDD": "VSSD"}          # the ground that goes with each supply (generic VDD -> VSS)
 
 
 def inverter(s, name, x, y, size, vdd="VDD", thick=False):
     n, p = size
     P = s.mos(name + "P", P5 if thick else P18, x, y - 80, p[1], p[3], p[2], body=vdd)
-    N = s.mos(name + "N", N5 if thick else N18, x, y + 80, n[1], n[3], n[2], body="VSS")
+    vss = GND.get(vdd, "VSS")
+    N = s.mos(name + "N", N5 if thick else N18, x, y + 80, n[1], n[3], n[2], body=vss)
     s.wire(P["D"], N["D"])
     s.wire(P["G"], (x - 60, P["G"][1]), (x - 60, N["G"][1]), N["G"])
     s.wire(P["S"], (P["S"][0], P["S"][1] - 30)); s.label(vdd, P["S"][0], P["S"][1] - 30)
-    s.wire(N["S"], (N["S"][0], N["S"][1] + 30)); s.label("VSS", N["S"][0], N["S"][1] + 30)
+    s.wire(N["S"], (N["S"][0], N["S"][1] + 30)); s.label(vss, N["S"][0], N["S"][1] + 30)
     return (x - 60, y), (P["D"][0], y)
 
 
 def supplies(s, vdd, ytop, ybot):
     s.pin(vdd, "inout", 60, ytop); s.wire((60, ytop), (140, ytop)); s.label(vdd, 140, ytop, flip=1)
-    s.pin("VSS", "inout", 60, ybot); s.wire((60, ybot), (140, ybot)); s.label("VSS", 140, ybot, flip=1)
+    vss = GND.get(vdd, "VSS")
+    s.pin(vss, "inout", 60, ybot); s.wire((60, ybot), (140, ybot)); s.label(vss, 140, ybot, flip=1)
 
 
 def edges(p, nm):
@@ -64,7 +69,7 @@ def edges(p, nm):
     s.wire((1000, 0), (1700, 0)); s.pin("stop", "out", 1700, 0, flip=1)
     s.wire(o, (1700, 300)); s.pin("pls", "out", 1700, 300, flip=1)
     supplies(s, "VDD", -400, 760)
-    return s
+    return s.rename({"VDD": "VDDD", "VSS": "VSSD"})      # 1.8 V cell: digital supply and ground
 
 
 def dly(p):
@@ -89,7 +94,7 @@ def dly(p):
     s.wire(o2, i3); s.wire(o3, i4)
     s.wire(o4, (1700, 0)); s.pin("out", "out", 1700, 0, flip=1)
     supplies(s, "VDD", -400, 400)
-    return s
+    return s.rename({"VDD": "VDDD", "VSS": "VSSD"})
 
 
 def drv5(p, nm, L, TG):
@@ -98,14 +103,14 @@ def drv5(p, nm, L, TG):
            "the TG adds about one gate delay so o and ob switch together (5 V devices on VDDA)", 40, -420, 0.3)
     tn, tp = p[TG]
     s.pin("in", "in", 60, 0)
-    TN = s.mos("XTN", N5, 300, 90, tn[1], tn[3], tn[2], body="VSS")
+    TN = s.mos("XTN", N5, 300, 90, tn[1], tn[3], tn[2], body="VSSA")
     TP = s.mos("XTP", P5, 300, -110, tp[1], tp[3], tp[2], body="VDDA")
     # the TG: nMOS source / pMOS source on in, both drains on a0
     s.wire((60, 0), (180, 0), (180, TN["S"][1]), TN["S"])
     s.wire((180, 0), (180, TP["S"][1] - 80), (TP["S"][0], TP["S"][1] - 80), TP["S"])
     s.wire(TN["D"], (TN["D"][0], 0)); s.wire(TP["D"], (TP["D"][0], 0))
     s.wire(TN["G"], (TN["G"][0] - 40, TN["G"][1])); s.label("VDDA", TN["G"][0] - 40, TN["G"][1])
-    s.wire(TP["G"], (TP["G"][0] - 40, TP["G"][1])); s.label("VSS", TP["G"][0] - 40, TP["G"][1])
+    s.wire(TP["G"], (TP["G"][0] - 40, TP["G"][1])); s.label("VSSA", TP["G"][0] - 40, TP["G"][1])
     ia, oa = inverter(s, "XA", 560, 0, p["INV5A"], "VDDA", True); ib, ob_ = inverter(s, "XB", 820, 0, p[L], "VDDA", True)
     s.wire((TN["D"][0], 0), ia); s.wire(oa, ib)
     ic, oc = inverter(s, "XC", 560, 480, p["INV5S"], "VDDA", True); id_, od = inverter(s, "XD", 820, 480, p["INV5M"], "VDDA", True)
@@ -126,26 +131,26 @@ def pout5(p, DXY):
     s.wire((60, 0), DA["in"]); s.wire((60, 600), DB["in"])
     for D_ in (DA, DB):
         s.wire(D_["VDDA"], (D_["VDDA"][0], D_["VDDA"][1] - 20)); s.label("VDDA", D_["VDDA"][0], D_["VDDA"][1] - 20)
-        s.wire(D_["VSS"], (D_["VSS"][0], D_["VSS"][1] + 20)); s.label("VSS", D_["VSS"][0], D_["VSS"][1] + 20)
+        s.wire(D_["VSSA"], (D_["VSSA"][0], D_["VSSA"][1] + 20)); s.label("VSSA", D_["VSSA"][0], D_["VSSA"][1] + 20)
     for pin, net in ((DA["o"], "st"), (DA["ob"], "stb"), (DB["o"], "sp"), (DB["ob"], "spb")):
         s.wire(pin, (pin[0] + 60, pin[1])); s.label(net, pin[0] + 60, pin[1], flip=1)
     (nn, np_), (an, ap) = p["NOR5L"], p["NAND5L"]
     X = 1000
     PA = s.mos("XPA", P5, X, -220, np_[1], np_[3], np_[2], body="VDDA"); PB = s.mos("XPB", P5, X, -100, np_[1], np_[3], np_[2], body="VDDA")
-    NA = s.mos("XNA", N5, X, 80, nn[1], nn[3], nn[2], body="VSS"); NB = s.mos("XNB", N5, X + 260, 80, nn[1], nn[3], nn[2], body="VSS")
+    NA = s.mos("XNA", N5, X, 80, nn[1], nn[3], nn[2], body="VSSA"); NB = s.mos("XNB", N5, X + 260, 80, nn[1], nn[3], nn[2], body="VSSA")
     s.wire(PA["D"], PB["S"]); s.wire(PB["D"], NA["D"]); s.wire((PB["D"][0], 0), (NB["D"][0], 0), NB["D"])
     s.wire(PA["S"], (PA["S"][0], PA["S"][1] - 30)); s.label("VDDA", PA["S"][0], PA["S"][1] - 30)
     for M_ in (NA, NB):
-        s.wire(M_["S"], (M_["S"][0], M_["S"][1] + 30)); s.label("VSS", M_["S"][0], M_["S"][1] + 30)
+        s.wire(M_["S"], (M_["S"][0], M_["S"][1] + 30)); s.label("VSSA", M_["S"][0], M_["S"][1] + 30)
     for M_, net in ((PA, "stb"), (NA, "stb"), (PB, "sp"), (NB, "sp")):
         s.wire(M_["G"], (M_["G"][0] - 40, M_["G"][1])); s.label(net, M_["G"][0] - 40, M_["G"][1])
     s.wire((PB["D"][0], 0), (PB["D"][0] + 400, 0)); s.pin("o", "out", PB["D"][0] + 400, 0, flip=1)
     QA = s.mos("XQA", P5, X, 520, ap[1], ap[3], ap[2], body="VDDA"); QB = s.mos("XQB", P5, X + 260, 520, ap[1], ap[3], ap[2], body="VDDA")
-    MA = s.mos("XMA", N5, X, 700, an[1], an[3], an[2], body="VSS"); MB = s.mos("XMB", N5, X, 820, an[1], an[3], an[2], body="VSS")
+    MA = s.mos("XMA", N5, X, 700, an[1], an[3], an[2], body="VSSA"); MB = s.mos("XMB", N5, X, 820, an[1], an[3], an[2], body="VSSA")
     s.wire(QA["D"], MA["D"]); s.wire(MA["S"], MB["D"]); s.wire((QA["D"][0], 610), (QB["D"][0], 610), QB["D"])
     for M_ in (QA, QB):
         s.wire(M_["S"], (M_["S"][0], M_["S"][1] - 30)); s.label("VDDA", M_["S"][0], M_["S"][1] - 30)
-    s.wire(MB["S"], (MB["S"][0], MB["S"][1] + 30)); s.label("VSS", MB["S"][0], MB["S"][1] + 30)
+    s.wire(MB["S"], (MB["S"][0], MB["S"][1] + 30)); s.label("VSSA", MB["S"][0], MB["S"][1] + 30)
     for M_, net in ((QA, "st"), (MA, "st"), (QB, "spb"), (MB, "spb")):
         s.wire(M_["G"], (M_["G"][0] - 40, M_["G"][1])); s.label(net, M_["G"][0] - 40, M_["G"][1])
     s.wire((QB["D"][0], 610), (PB["D"][0] + 400, 610)); s.pin("ob", "out", PB["D"][0] + 400, 610, flip=1)
@@ -189,8 +194,8 @@ def top(p, LS, EXY, LXY, DXY, PXY, DLXY):
     # Gm row
     DL = s.sub("sspll_ckg_dly.sym", DLXY, "xdl", 400, 640)
     s.wire((680, 0), (680, 360), (160, 360), (160, DL["in"][1]), DL["in"])
-    s.wire(DL["VDD"], (DL["VDD"][0], DL["VDD"][1] - 30)); s.label("VDDD", DL["VDD"][0], DL["VDD"][1] - 30)
-    s.wire(DL["VSS"], (DL["VSS"][0], DL["VSS"][1] + 30)); s.label("VSS", DL["VSS"][0], DL["VSS"][1] + 30)
+    s.wire(DL["VDDD"], (DL["VDDD"][0], DL["VDDD"][1] - 30)); s.label("VDDD", DL["VDDD"][0], DL["VDDD"][1] - 30)
+    s.wire(DL["VSSD"], (DL["VSSD"][0], DL["VSSD"][1] + 30)); s.label("VSSD", DL["VSSD"][0], DL["VSSD"][1] + 30)
     EG = s.sub("sspll_ckg_edges_g.sym", EXY, "xeg", 900, 640)
     q3 = DL["out"]
     s.wire(q3, (720, q3[1]), (720, 640), EG["in"])
@@ -231,12 +236,15 @@ def top(p, LS, EXY, LXY, DXY, PXY, DLXY):
     for X in (DS, PG, PH):
         s.wire(X["VDDA"], (X["VDDA"][0], X["VDDA"][1] - 20)); s.label("VDDA", X["VDDA"][0], X["VDDA"][1] - 20)
     for X in (EG, EH, HL):
-        s.wire(X["VDD"], (X["VDD"][0], X["VDD"][1] - 20)); s.label("VDDD", X["VDD"][0], X["VDD"][1] - 20)
-    for X in (LG1, LG2, LH1, LH2, DS, PG, PH, EG, EH, HL):
-        s.wire(X["VSS"], (X["VSS"][0], X["VSS"][1] + 20)); s.label("VSS", X["VSS"][0], X["VSS"][1] + 20)
+        s.wire(X["VDDD"], (X["VDDD"][0], X["VDDD"][1] - 20)); s.label("VDDD", X["VDDD"][0], X["VDDD"][1] - 20)
+    LSS = (LG1, LG2, LH1, LH2)    # level shifters: VSSA label to the left of its pin, VSSD to the right (no overlap)
+    # grounds: 5 V cells and the level shifters' output side on VSSA, 1.8 V cells and the level shifters' input on VSSD
+    for X, g in [(X, "VSSA") for X in (LG1, LG2, LH1, LH2, DS, PG, PH)] + [(X, "VSSD") for X in (LG1, LG2, LH1, LH2, EG, EH, HL)]:
+        s.wire(X[g], (X[g][0], X[g][1] + 20)); s.label(g, X[g][0], X[g][1] + 20, flip=1 if (g == "VSSD" and X in LSS) else 0)
     s.pin("VDDD", "inout", 60, -380); s.wire((60, -380), (140, -380)); s.label("VDDD", 140, -380, flip=1)
     s.pin("VDDA", "inout", 60, -330); s.wire((60, -330), (140, -330)); s.label("VDDA", 140, -330, flip=1)
-    s.pin("VSS", "inout", 60, 1800); s.wire((60, 1800), (140, 1800)); s.label("VSS", 140, 1800, flip=1)
+    s.pin("VSSA", "inout", 60, 1800); s.wire((60, 1800), (140, 1800)); s.label("VSSA", 140, 1800, flip=1)
+    s.pin("VSSD", "inout", 60, 1850); s.wire((60, 1850), (140, 1850)); s.label("VSSD", 140, 1850, flip=1)
     return s
 
 
@@ -245,25 +253,25 @@ if __name__ == "__main__":
     p = K.D
     LS = symbol("/tmp/ls_tmp.sym", "sspll_ls_1v8_3v3", **LS_PINS)
     EXY = symbol(os.path.join(OUT, "sspll_ckg_edges_g.sym"), "sspll_ckg_edges_g", left=[("in", "in")],
-                 right=[("stop", "out"), ("pls", "out")], top=[("VDD", "inout")], bottom=[("VSS", "inout")])
+                 right=[("stop", "out"), ("pls", "out")], top=[("VDDD", "inout")], bottom=[("VSSD", "inout")])
     symbol(os.path.join(OUT, "sspll_ckg_edges_h.sym"), "sspll_ckg_edges_h", left=[("in", "in")],
-           right=[("stop", "out"), ("pls", "out")], top=[("VDD", "inout")], bottom=[("VSS", "inout")])
+           right=[("stop", "out"), ("pls", "out")], top=[("VDDD", "inout")], bottom=[("VSSD", "inout")])
     LXY = symbol(os.path.join(OUT, "sspll_ckg_hlatch.sym"), "sspll_ckg_hlatch", left=[("s", "in"), ("r", "in")],
-                 right=[("out", "out")], top=[("VDD", "inout")], bottom=[("VSS", "inout")])
+                 right=[("out", "out")], top=[("VDDD", "inout")], bottom=[("VSSD", "inout")])
     DXY = symbol(os.path.join(OUT, "sspll_ckg_drv5.sym"), "sspll_ckg_drv5", left=[("in", "in")],
-                 right=[("o", "out"), ("ob", "out")], top=[("VDDA", "inout")], bottom=[("VSS", "inout")])
+                 right=[("o", "out"), ("ob", "out")], top=[("VDDA", "inout")], bottom=[("VSSA", "inout")])
     symbol(os.path.join(OUT, "sspll_ckg_drv5t.sym"), "sspll_ckg_drv5t", left=[("in", "in")],
-           right=[("o", "out"), ("ob", "out")], top=[("VDDA", "inout")], bottom=[("VSS", "inout")])
+           right=[("o", "out"), ("ob", "out")], top=[("VDDA", "inout")], bottom=[("VSSA", "inout")])
     PXY = symbol(os.path.join(OUT, "sspll_ckg_pout5.sym"), "sspll_ckg_pout5", left=[("start", "in"), ("stop", "in")],
-                 right=[("o", "out"), ("ob", "out")], top=[("VDDA", "inout")], bottom=[("VSS", "inout")])
+                 right=[("o", "out"), ("ob", "out")], top=[("VDDA", "inout")], bottom=[("VSSA", "inout")])
     symbol(os.path.join(OUT, "sspll_clkgen_hv.sym"), "sspll_clkgen_hv", left=[("refclk", "in"), ("refhv", "in")],
            right=[("cks", "out"), ("cksb", "out"), ("ckg", "out"), ("ckgb", "out"), ("ckh", "out"), ("ckhb", "out")],
-           top=[("VDDD", "inout"), ("VDDA", "inout")], bottom=[("VSS", "inout")])
+           top=[("VDDD", "inout"), ("VDDA", "inout")], bottom=[("VSSA", "inout"), ("VSSD", "inout")])
     DLXY = symbol(os.path.join(OUT, "sspll_ckg_dly.sym"), "sspll_ckg_dly", left=[("in", "in")], right=[("out", "out")],
-                  top=[("VDD", "inout")], bottom=[("VSS", "inout")])
+                  top=[("VDDD", "inout")], bottom=[("VSSD", "inout")])
     cells = (("sspll_ckg_dly", dly(p)), ("sspll_ckg_edges_g", edges(p, "g")), ("sspll_ckg_edges_h", edges(p, "h")),
-             ("sspll_ckg_hlatch", S18.hlatch(p)), ("sspll_ckg_drv5", drv5(p, "drv5", "INV5L", "TG5")),
-             ("sspll_ckg_drv5t", drv5(p, "drv5t", "INV5T", "TG5T")), ("sspll_ckg_pout5", pout5(p, DXY)),
+             ("sspll_ckg_hlatch", S18.hlatch(p).rename({"VDD": "VDDD", "VSS": "VSSD"})), ("sspll_ckg_drv5", drv5(p, "drv5", "INV5L", "TG5").rename({"VSS": "VSSA"})),
+             ("sspll_ckg_drv5t", drv5(p, "drv5t", "INV5T", "TG5T").rename({"VSS": "VSSA"})), ("sspll_ckg_pout5", pout5(p, DXY)),
              ("sspll_clkgen_hv", top(p, LS, EXY, LXY, DXY, PXY, DLXY)))
     for name, sch in cells:
         errs = sch.save(os.path.join(OUT, name + ".sch"))

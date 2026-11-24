@@ -769,6 +769,26 @@ of the trip-point size (2.43 and 5.11 pA/√Hz), 312 edges at 1.6 GHz, 4th-order
   - A high-V_T device can show g_m/I_D < 10 at V_GS = 0.3 V because of leakage. Search above the peak.
   - Very wide devices fall outside the model bins and give an empty `.noise` output. Use `m` fingers.
 
+### Grounds in the benches: VSSA and VSSD (24 Nov 2026)
+
+Since the ground split, see `docs/design/ground_split.md`:
+- Every 5 V cell has VSSA (analog ground), VSSD (digital ground), or both.
+- A mixed cell (level shifter, receiver, clock generator, CCO, charge-pump decoder and top) has both, side by side in its port list. A bench passes two ground nodes to it: `x1 ... VDDD VDDA 0 0 sspll_clkgen_hv`.
+- A bench that pastes a cell's body at the top level must define both nets: `vssa VSSA 0 0` and `vssd VSSD 0 0`.
+
+**Why ideal 0 V on both.** Pre-layout there is nothing between the two grounds. A noise or bounce model now would be a guess, because the ground resistance, the package and the digital current are only known after layout. With both at 0 V, a bench simulates exactly the circuit it did before the split. Method M23 proves this by comparing the netlists with VSSA = VSSD, so steps 74–79 needed no re-run.
+
+**Post-layout.** The top-level bench replaces the two ideal grounds with:
+- the extracted VSSA and VSSD;
+- a package model on each: about 1–2 nH bond wire plus its resistance, to the harness ground;
+- the real digital switching current.
+
+Only then can ground bounce appear in the sampling-edge jitter and the charge-pump error.
+
+**Pitfalls.**
+- A bench that still passes one ground node to a mixed cell fails with a node-count error in ngspice. `tools/ground_split_check.py check` finds such lines without running anything.
+- In a flattened body, VSSA or VSSD left undefined is a floating node, not ground. ngspice does not always complain; the operating point just goes wrong.
+
 ---
 
 ## 5. Drawing a testbench in xschem (same recipe for every deck)

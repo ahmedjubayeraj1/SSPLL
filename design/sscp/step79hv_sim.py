@@ -32,10 +32,10 @@ def pulsed(a):
     net = (f"* pulsed gm\n.lib {C.LIB} tt\n.temp 27\n{C.K.cells()}{C.full(p).replace(C.K.CC.LS, '')}"
            f"vdda VDDA 0 3.3\nvddd VDDD 0 1.8\niib 0 ib {p['IT']}\nvpen pll_en 0 1.8\nvc0 icp0 0 0\nvc1 icp1 0 0\n"
            f"vrh refhv 0 pulse(0 3.3 5n 300p 300p {T/2 - 300e-12} {T})\nvrc refclk 0 pulse(0 1.8 5.2n 300p 300p {T/2 - 300e-12} {T})\n"
-           "xcg refclk refhv cks cksb ckg ckgb ckh ckhb VDDD VDDA 0 sspll_clkgen_hv\n"
+           "xcg refclk refhv cks cksb ckg ckgb ckh ckhb VDDD VDDA 0 0 sspll_clkgen_hv\n"
            f"ccks cks 0 60f\nccksb cksb 0 60f\nckh1 ckh 0 40f\nckh2 ckhb 0 40f\n"
            f"vp v1p 0 {1.66 + vd/2}\nvm v1m 0 {1.66 - vd/2}\nvvc vctl 0 {vc}\n"
-           "x1 v1p v1m vctl ckg ckgb ib icp0 icp1 pll_en VDDA VDDD 0 sspll_sscp_hv_top\n"
+           "x1 v1p v1m vctl ckg ckgb ib icp0 icp1 pll_en VDDA VDDD 0 0 sspll_sscp_hv_top\n"
            f".control\nsave vvc#branch v(ckg)\ntran 2p {8*T}\nwrdata w.txt vvc#branch v(ckg)\n.endc\n.end\n")
     _, d = C.run(net, ["w.txt"])
     z = d["w.txt"]; t, i = z[:, 0], z[:, 1]

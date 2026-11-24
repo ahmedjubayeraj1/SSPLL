@@ -959,3 +959,34 @@ RESULTS += [
  ("Jitter FFNC on worst (cumulative)", 2.50, 3.2, "ps", "max", "79", "off 3.70"),
  ("Power typ FFNC on, pre-layout (cumulative)", 8.38, 9.1, "mW", "max", "79", "7.55 (step 74) -0.18 +0.03 +0.31 +0.54 +0.13"),
 ]
+
+# ------------------------------------------------------------------ ground split VSSA / VSSD (24 Nov 2026, before step 80)
+STEPS.append(("79b", "Ground split: one VSS -> VSSA (VDDA domain) + VSSD (VDDD domain) in every 5 V block, schematics and LVS",
+              "done", "docs/design/ground_split.md, tools/ground_split_check.py, tools/lvs_hv_all.py, xschem/*_hv/",
+              "no simulation needed: the 10 netlists with VSSA = VSSD are identical to the simulated ones (M23); 29 cells "
+              "LVS match with both grounds as separate nets; 0 thin-oxide devices on VDDA / VSSA; 49 instance lines checked"))
+METHODS += [
+ ("M23", "Merged-ground netlist comparison (proof that a net split changed nothing that was simulated)", "79b",
+  "IDENTICAL / DIFFERENT per netlist, the instance node counts and a domain audit (which device sits on which ground)",
+  "every pre-layout bench ties both grounds to 0 V, so the split circuit is the simulated circuit exactly when merging "
+  "the two nets gives back the old netlist; a text proof is exact and takes seconds, a re-simulation proves nothing more",
+  "snapshot the old netlists; build the new ones; rename VSSA, VSSD -> VSS, merge the adjacent 'VSSA VSSD' port pair "
+  "of each mixed cell and the matching node pair of every instance, replace port names by positions, drop comments; "
+  "compare line by line. Then count the nodes of every sspll_ instance in the design scripts against the port count",
+  "python3 tools/ground_split_check.py snap DIR (before) / check DIR (after); python3 tools/lvs_hv_all.py",
+  "covers netlists built without running ngspice (references and the cco / refbuf / sspd / sscp benches); inline "
+  "benches in step scripts are covered by the node-count check and by their VSSA / VSSD sources being 0 V"),
+]
+PROBLEMS += [
+ ("79b", "netlist / layout", "the proposal lists VSSA and VSSD, but every cell used one ground VSS",
+  "user review of the proposal pin list", "single-ground netlists carried over from the 1.8 V design",
+  "VSSA for VDDA-domain devices, VSSD for 1.8 V logic, both in the level shifter, receiver, clock generator, CCO and "
+  "charge-pump decoder/top; proven unchanged with VSSA = VSSD (M23); LVS clean", "fixed"),
+ ("79b", "schematic", "two ground labels 40 units apart under the level-shifter symbol overlapped ('VSSDSA'); the "
+  "drawing check did not see it (and an old VDDD / VDDA overlap in the charge-pump top)", "schematic renders",
+  "the check covered device and free text only, not net labels",
+  "labels of a pair point in opposite directions; xsch.py now also checks net-label overlap", "fixed"),
+ ("79b", "verification plan", "ground bounce between VSSA and VSSD is not modelled before layout", "design review",
+  "needs the real ground resistance, package (bond wire ~1-2 nH) and the digital switching current",
+  "post-layout top-level bench with a package model on each ground and the extracted grounds", "open (post-layout)"),
+]

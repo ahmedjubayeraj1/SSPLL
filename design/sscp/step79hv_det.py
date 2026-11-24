@@ -27,7 +27,7 @@ def run(a, nb=32):
     net = net.replace(f"cg1 v1p 0 {S.LOAD['gm']}\ncg2 v1m 0 {S.LOAD['gm']}\n", "").replace("cckg ckg 0 40f\ncckgb ckgb 0 40f\n", "")
     gm = (C.full(pp).replace(K.CC.LS, "") +
           f"vddd VDDD 0 {vddd}\niib 0 ib {pp['IT']}\nvpen pll_en 0 {vddd}\nvc0 icp0 0 0\nvc1 icp1 0 0\nvvc vctl 0 {vc}\n"
-          "x1 v1p v1m vctl ckg ckgb ib icp0 icp1 pll_en VDDA VDDD 0 sspll_sscp_hv_top\n")
+          "x1 v1p v1m vctl ckg ckgb ib icp0 icp1 pll_en VDDA VDDD 0 0 sspll_sscp_hv_top\n")
     net = net.replace("xcg refclk refhv", gm + "xcg refclk refhv", 1)
     _, d = S.run(net, ["w.txt"])
     z = d["w.txt"]; t = z[:, 0]; g = lambda i: z[:, 2*i + 1]

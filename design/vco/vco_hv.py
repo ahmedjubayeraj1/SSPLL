@@ -310,4 +310,5 @@ def lvs_reference(p):
         o = {"vop": "clkp", "vom": "clkm"}.get(n, f"nc_{n}")
         top.append(f"xb_{n} {n} {o} VDDA VSS sspll_vco_hv_acbuf")
     top.append(".ends")
-    return c + "\n".join(core) + "\n" + "\n".join(top) + "\n"
+    # ground split (24 Nov 2026): the ring and its buffers are all VDDA-domain devices -> analog ground VSSA
+    return re.sub(r"\bVSS\b", "VSSA", c + "\n".join(core) + "\n" + "\n".join(top) + "\n")

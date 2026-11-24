@@ -58,7 +58,7 @@ if __name__ == "__main__":
     def ls(args):
         cn, t, vdda, vddd = args
         net = (f"* ls\n.lib {c.LIB} {cn}\n.temp {t}\n{c.LS}vdda VDDA 0 {vdda}\nvddd VDDD 0 {vddd}\n"
-               f"vin in 0 pulse(0 {vddd} 1n 0.2n 0.2n 20n 40n)\nx1 in out outb VDDD VDDA 0 sspll_ls_1v8_3v3\n"
+               f"vin in 0 pulse(0 {vddd} 1n 0.2n 0.2n 20n 40n)\nx1 in out outb VDDD VDDA 0 0 sspll_ls_1v8_3v3\n"
                f"cl1 out 0 20f\ncl2 outb 0 20f\n.control\ntran 10p 80n\nmeas tran tr when v(out)={vdda/2} rise=1\n"
                f"meas tran tf when v(out)={vdda/2} fall=1\nmeas tran vh max v(out) from=10n to=20n\n"
                f"meas tran vl min v(out) from=30n to=40n\nprint tr tf vh vl\n.endc\n.end\n")

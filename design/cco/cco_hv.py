@@ -21,7 +21,27 @@ import os, re, subprocess, tempfile
 import numpy as np
 import cco as c18                     # helpers of the 1.6 GHz CCO: device line, ngspice runner, level shifter
 PDK_ROOT = c18.PDK_ROOT; LIB = c18.LIB; HERE = c18.HERE
-_m = c18._m; run = c18.run; LS = c18.LS
+_m = c18._m; run = c18.run
+
+# Ground split (24 Nov 2026): two grounds, VSSA for the VDDA domain and VSSD for the VDDD domain. The level shifter is
+# the one cell that sits in both: its thin-oxide input inverter runs on VDDD / VSSD, every 5 V device (pull-downs,
+# cross-coupled loads, output inverters) on VDDA / VSSA. Same devices and sizes as the step-75 cell (cco.LS); only the
+# ground of the input inverter is now its own pin.
+LS = """.subckt sspll_ls_1v8_3v3 in out outb VDDD VDDA VSSA VSSD
+* 1.8 V -> 3.3 V level shifter: thin-oxide input inverter on VDDD / VSSD, thick-oxide cross-coupled pMOS load,
+* thick-oxide pull-downs driven by in / inb, thick-oxide output inverters (out follows in, outb is its inverse), on VDDA / VSSA
+xpi inb in VDDD VDDD sky130_fd_pr__pfet_01v8 w=1 l=0.15 nf=1 m=1
+xni inb in VSSD VSSD sky130_fd_pr__nfet_01v8 w=0.5 l=0.15 nf=1 m=1
+xp1 x y VDDA VDDA sky130_fd_pr__pfet_g5v0d10v5 w=1 l=0.5 nf=1 m=1
+xp2 y x VDDA VDDA sky130_fd_pr__pfet_g5v0d10v5 w=1 l=0.5 nf=1 m=1
+xn1 x in VSSA VSSA sky130_fd_pr__nfet_g5v0d10v5 w=3 l=0.5 nf=1 m=1
+xn2 y inb VSSA VSSA sky130_fd_pr__nfet_g5v0d10v5 w=3 l=0.5 nf=1 m=1
+xpo out x VDDA VDDA sky130_fd_pr__pfet_g5v0d10v5 w=2 l=0.5 nf=1 m=1
+xno out x VSSA VSSA sky130_fd_pr__nfet_g5v0d10v5 w=1 l=0.5 nf=1 m=1
+xpb outb y VDDA VDDA sky130_fd_pr__pfet_g5v0d10v5 w=2 l=0.5 nf=1 m=1
+xnb outb y VSSA VSSA sky130_fd_pr__nfet_g5v0d10v5 w=1 l=0.5 nf=1 m=1
+.ends
+"""
 
 D = dict(
     UP=("pfet_g5v0d10v5", 20.0, 2, 2.0),     # mirror unit pMOS (sized in step75hv_explore.py)
@@ -79,22 +99,22 @@ def core(p, code, ideal_rc=True):
 
 def full(p):
     """The drawn circuit: DAC, mirror, PDK R_F and C_F, enable, VTEST injection, level shifters.
-    Ports: VDDA VDDD VSS vring ibias vtest code0..code4 pll_en vtest_en."""
-    c = LS + ".subckt sspll_cco_hv_dac vgr ibias en c0 c1 c2 c3 c4 VSS\n"
-    c += _m("nb", "ibias", "ibias", "VSS", "VSS", p["UN"], m=2)
+    Ports: VDDA VDDD VSSA VSSD vring ibias vtest code0..code4 pll_en vtest_en."""
+    c = LS + ".subckt sspll_cco_hv_dac vgr ibias en c0 c1 c2 c3 c4 VSSA\n"
+    c += _m("nb", "ibias", "ibias", "VSSA", "VSSA", p["UN"], m=2)
     for k, (n, g) in enumerate(zip([p["NBASE"]] + [2**i for i in range(5)], ["en", "c0", "c1", "c2", "c3", "c4"])):
-        c += _m(f"u{k}", f"d{k}", "ibias", "VSS", "VSS", p["UN"], m=n)
-        c += _m(f"s{k}", "vgr", g, f"d{k}", "VSS", p["SW"], m=n)
+        c += _m(f"u{k}", f"d{k}", "ibias", "VSSA", "VSSA", p["UN"], m=n)
+        c += _m(f"s{k}", "vgr", g, f"d{k}", "VSSA", p["SW"], m=n)
     c += ".ends\n"
-    c += ".subckt sspll_cco_hv VDDA VDDD VSS vring ibias vtest code0 code1 code2 code3 code4 pll_en vtest_en\n"
+    c += ".subckt sspll_cco_hv VDDA VDDD VSSA VSSD vring ibias vtest code0 code1 code2 code3 code4 pll_en vtest_en\n"
     for k in range(5):
-        c += f"xls{k} code{k} c{k} c{k}b VDDD VDDA VSS sspll_ls_1v8_3v3\n"
-    c += "xlsen pll_en en enb VDDD VDDA VSS sspll_ls_1v8_3v3\nxlsvt vtest_en vt vtb VDDD VDDA VSS sspll_ls_1v8_3v3\n"
-    c += "xdac vgr ibias en c0 c1 c2 c3 c4 VSS sspll_cco_hv_dac\n"
+        c += f"xls{k} code{k} c{k} c{k}b VDDD VDDA VSSA VSSD sspll_ls_1v8_3v3\n"
+    c += "xlsen pll_en en enb VDDD VDDA VSSA VSSD sspll_ls_1v8_3v3\nxlsvt vtest_en vt vtb VDDD VDDA VSSA VSSD sspll_ls_1v8_3v3\n"
+    c += "xdac vgr ibias en c0 c1 c2 c3 c4 VSSA sspll_cco_hv_dac\n"
     c += _m("mref", "vgr", "vgr", "VDDA", "VDDA", p["UP"])
-    c += _cascode(p, "VDDA", "VSS", "vring", "ibias", en="en")
+    c += _cascode(p, "VDDA", "VSSA", "vring", "ibias", en="en")
     # R_F: body terminal on VDDA (the serpentine is drawn over an n-well tied to VDDA). With the body on VSS, the
-    # poly-to-substrate capacitance (~60 fF) pulls the gate node towards VSS at high frequency, so the gate stops
+    # poly-to-substrate capacitance (~60 fF) pulls the gate node towards VSSA at high frequency, so the gate stops
     # following VDDA and VDDA ripple becomes current ripple (step 75 HV: 34 -> see step75hv_casc.py).
     model, nseg, L = p["RSEG"]
     nodes = ["vgr"] + [f"rf{i}" for i in range(1, nseg)] + ["vgo"]
@@ -102,10 +122,10 @@ def full(p):
         c += f"xrf{i} {nodes[i]} {nodes[i+1]} VDDA sky130_fd_pr__{model} l={L} mult=1 m=1\n"
     cm, nt, s = p["CTILE"]
     c += f"xcf vgo VDDA sky130_fd_pr__{cm} w={s} l={s} m={nt}\n"
-    c += _m("pen", "vgo", "en", "VDDA", "VDDA", p["PEN"]) + _m("nen", "ibias", "enb", "VSS", "VSS", p["NEN"])
-    c += _m("tgn", "vtest", "vt", "vinj", "VSS", p["TGN"]) + _m("tgp", "vtest", "vtb", "vinj", "VDDA", p["TGP"])
+    c += _m("pen", "vgo", "en", "VDDA", "VDDA", p["PEN"]) + _m("nen", "ibias", "enb", "VSSA", "VSSA", p["NEN"])
+    c += _m("tgn", "vtest", "vt", "vinj", "VSSA", p["TGN"]) + _m("tgp", "vtest", "vtb", "vinj", "VDDA", p["TGP"])
     rm, _, rl = p["RINJ"]
-    c += f"xrinj vinj vring VSS sky130_fd_pr__{rm} l={rl} mult=1 m=1\n"
+    c += f"xrinj vinj vring VSSA sky130_fd_pr__{rm} l={rl} mult=1 m=1\n"
     return c + ".ends\n"
 
 
@@ -116,7 +136,7 @@ def tb(p, c, t, vdda=3.3, ib=5e-6, code=10, vring="vr vring 0 1.89", en=1.8, vdd
     vd = f"vdda VDDA 0 dc {vdda} ac 1\n" if vdda_ac else f"vdda VDDA 0 {vdda}\n"
     return (f"* step75 HV tb\n.lib {LIB} {c}\n.temp {t}\n{full(p)}{vd}vddd VDDD 0 {vddd}\niib 0 ibias {ib}\n"
             f"{vring}\nvt vtest 0 1.89\nven pll_en 0 {en}\nvvt vtest_en 0 0\n{bits}{extra}"
-            f"x1 VDDA VDDD 0 vring ibias vtest code0 code1 code2 code3 code4 pll_en vtest_en sspll_cco_hv\n"
+            f"x1 VDDA VDDD 0 0 vring ibias vtest code0 code1 code2 code3 code4 pll_en vtest_en sspll_cco_hv\n"
             f".control\n{ctl}\n.endc\n.end\n")
 
 

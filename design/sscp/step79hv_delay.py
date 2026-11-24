@@ -21,7 +21,7 @@ def one(a):
     t0 = T/4 + 0.425e-9 + dly
     gm = (C.full(pp).replace(K.CC.LS, "") + f"vddd VDDD 0 1.8\niib 0 ib {pp['IT']}\nvpen pll_en 0 1.8\nvc0 icp0 0 0\nvc1 icp1 0 0\nvvc vctl 0 1.8\n"
           f"vg gg 0 pulse(0 3.3 {t0} 80p 80p 0.45n {T})\nvgb ggb 0 pulse(3.3 0 {t0} 80p 80p 0.45n {T})\n"
-          "x1 v1p v1m vctl gg ggb ib icp0 icp1 pll_en VDDA VDDD 0 sspll_sscp_hv_top\ncg1 gg 0 9f\ncg2 ggb 0 9f\n")
+          "x1 v1p v1m vctl gg ggb ib icp0 icp1 pll_en VDDA VDDD 0 0 sspll_sscp_hv_top\ncg1 gg 0 9f\ncg2 ggb 0 9f\n")
     net = net.replace("xcg refclk refhv", gm + "xcg refclk refhv", 1)
     _, d = S.run(net, ["w.txt"]); z = d["w.txt"]; t = z[:, 0]; ivc = z[:, 19]
     q = [float(np.trapezoid(ivc[(t > k*T) & (t < (k+1)*T)], t[(t > k*T) & (t < (k+1)*T)])) for k in range(4, 8)]

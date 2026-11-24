@@ -171,23 +171,23 @@ C {sspll_sscp_hv_slice.sym} 3500 500 0 0 {name=xs5}
 C {devices/lab_pin.sym} 560 560 0 0 {name=l_e1_5 sig_type=std_logic lab=e1}
 C {devices/lab_pin.sym} 560 600 0 0 {name=l_eb1_6 sig_type=std_logic lab=eb1}
 C {devices/lab_pin.sym} 660 320 0 0 {name=l_VDDA_7 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 660 680 0 0 {name=l_VSS_8 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 660 680 0 0 {name=l_VSSA_8 sig_type=std_logic lab=VSSA}
 C {devices/lab_pin.sym} 1260 560 0 0 {name=l_e2_9 sig_type=std_logic lab=e2}
 C {devices/lab_pin.sym} 1260 600 0 0 {name=l_eb2_10 sig_type=std_logic lab=eb2}
 C {devices/lab_pin.sym} 1360 320 0 0 {name=l_VDDA_11 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 1360 680 0 0 {name=l_VSS_12 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 1360 680 0 0 {name=l_VSSA_12 sig_type=std_logic lab=VSSA}
 C {devices/lab_pin.sym} 1960 560 0 0 {name=l_e3_13 sig_type=std_logic lab=e3}
 C {devices/lab_pin.sym} 1960 600 0 0 {name=l_eb3_14 sig_type=std_logic lab=eb3}
 C {devices/lab_pin.sym} 2060 320 0 0 {name=l_VDDA_15 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 2060 680 0 0 {name=l_VSS_16 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 2060 680 0 0 {name=l_VSSA_16 sig_type=std_logic lab=VSSA}
 C {devices/lab_pin.sym} 2660 560 0 0 {name=l_e4_17 sig_type=std_logic lab=e4}
 C {devices/lab_pin.sym} 2660 600 0 0 {name=l_eb4_18 sig_type=std_logic lab=eb4}
 C {devices/lab_pin.sym} 2760 320 0 0 {name=l_VDDA_19 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 2760 680 0 0 {name=l_VSS_20 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 2760 680 0 0 {name=l_VSSA_20 sig_type=std_logic lab=VSSA}
 C {devices/lab_pin.sym} 3360 560 0 0 {name=l_e5_21 sig_type=std_logic lab=e5}
 C {devices/lab_pin.sym} 3360 600 0 0 {name=l_eb5_22 sig_type=std_logic lab=eb5}
 C {devices/lab_pin.sym} 3460 320 0 0 {name=l_VDDA_23 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 3460 680 0 0 {name=l_VSS_24 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 3460 680 0 0 {name=l_VSSA_24 sig_type=std_logic lab=VSSA}
 C {devices/lab_pin.sym} 250 80 0 0 {name=l_v1p_25 sig_type=std_logic lab=v1p}
 C {devices/lab_pin.sym} 250 120 0 0 {name=l_v1m_26 sig_type=std_logic lab=v1m}
 C {devices/lab_pin.sym} 250 160 0 0 {name=l_ib_27 sig_type=std_logic lab=ib}
@@ -198,42 +198,42 @@ C {sspll_sscp_hv_tg.sym} 4160 1500 0 0 {name=xtd}
 C {devices/lab_pin.sym} 4000 600 0 0 {name=l_ckg_32 sig_type=std_logic lab=ckg}
 C {devices/lab_pin.sym} 4000 640 0 0 {name=l_ckgb_33 sig_type=std_logic lab=ckgb}
 C {devices/lab_pin.sym} 4120 480 0 0 {name=l_VDDA_34 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 4120 720 0 0 {name=l_VSS_35 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 4120 720 0 0 {name=l_VSSA_35 sig_type=std_logic lab=VSSA}
 C {devices/lab_pin.sym} 4000 1500 0 0 {name=l_ckgb_36 sig_type=std_logic lab=ckgb}
 C {devices/lab_pin.sym} 4000 1540 0 0 {name=l_ckg_37 sig_type=std_logic lab=ckg}
 C {devices/lab_pin.sym} 4120 1380 0 0 {name=l_VDDA_38 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 4120 1620 0 0 {name=l_VSS_39 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 4120 1620 0 0 {name=l_VSSA_39 sig_type=std_logic lab=VSSA}
 C {devices/lab_pin.sym} 4340 1500 0 1 {name=l_vdump_40 sig_type=std_logic lab=vdump}
 C {sspll_sscp_hv_buf.sym} 5060 1500 0 0 {name=xbuf}
 C {devices/iopin.sym} 5860 600 0 1 {name=p_vctl lab=vctl}
 C {devices/lab_pin.sym} 5240 1500 0 1 {name=l_vdump_43 sig_type=std_logic lab=vdump}
 C {sky130_fd_pr/cap_mim_m3_1.sym} 5660 1900 0 0 {name=XCDUMP W=22.4 L=22.4 MF=2 model=cap_mim_m3_1 spiceprefix=X}
 C {devices/lab_pin.sym} 5660 1810 0 0 {name=l_vdump_45 sig_type=std_logic lab=vdump}
-C {devices/lab_pin.sym} 5660 1990 0 0 {name=l_VSS_46 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 5660 1990 0 0 {name=l_VSSA_46 sig_type=std_logic lab=VSSA}
 C {devices/lab_pin.sym} 4910 1500 0 0 {name=l_ib_47 sig_type=std_logic lab=ib}
 C {devices/lab_pin.sym} 4910 1540 0 0 {name=l_pll_en_48 sig_type=std_logic lab=pll_en}
 C {devices/lab_pin.sym} 5020 1380 0 0 {name=l_VDDA_49 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 5020 1620 0 0 {name=l_VSS_50 sig_type=std_logic lab=VSS}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 300 -300 0 0 {name=XNB L=8.0 W=1 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
+C {devices/lab_pin.sym} 5020 1620 0 0 {name=l_VSSA_50 sig_type=std_logic lab=VSSA}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 300 -300 0 0 {name=XNB L=8.0 W=1 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSSA}
 C {devices/lab_pin.sym} 320 -410 0 0 {name=l_ib_52 sig_type=std_logic lab=ib}
-C {devices/lab_pin.sym} 320 -240 0 0 {name=l_VSS_53 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 320 -240 0 0 {name=l_VSSA_53 sig_type=std_logic lab=VSSA}
 C {sky130_fd_pr/pfet3_g5v0d10v5.sym} 1300 -880 0 0 {name=XRPE L=0.5 W=2 nf=1 mult=12 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=pfet_g5v0d10v5 spiceprefix=X body=VDDA}
 C {sky130_fd_pr/pfet3_g5v0d10v5.sym} 1300 -680 0 0 {name=XRP L=4.0 W=4 nf=1 mult=12 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=pfet_g5v0d10v5 spiceprefix=X body=VDDA}
 C {devices/lab_pin.sym} 1320 -940 0 0 {name=l_VDDA_56 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 1220 -880 0 0 {name=l_VSS_57 sig_type=std_logic lab=VSS}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 1300 -420 0 0 {name=XRD L=1.0 W=4 nf=1 mult=6 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
+C {devices/lab_pin.sym} 1220 -880 0 0 {name=l_VSSA_57 sig_type=std_logic lab=VSSA}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 1300 -420 0 0 {name=XRD L=1.0 W=4 nf=1 mult=6 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSSA}
 C {devices/lab_pin.sym} 1180 -680 0 0 {name=l_pb_59 sig_type=std_logic lab=pb}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 1300 -230 0 0 {name=XRE L=0.5 W=1 nf=1 mult=12 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 1300 -40 0 0 {name=XRT L=8.0 W=1 nf=1 mult=12 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 1300 -230 0 0 {name=XRE L=0.5 W=1 nf=1 mult=12 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSSA}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 1300 -40 0 0 {name=XRT L=8.0 W=1 nf=1 mult=12 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSSA}
 C {devices/lab_pin.sym} 1220 -230 0 0 {name=l_pll_en_62 sig_type=std_logic lab=pll_en}
 C {devices/lab_pin.sym} 1220 -40 0 0 {name=l_ib_63 sig_type=std_logic lab=ib}
-C {devices/lab_pin.sym} 1320 20 0 0 {name=l_VSS_64 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 1320 20 0 0 {name=l_VSSA_64 sig_type=std_logic lab=VSSA}
 C {sky130_fd_pr/res_xhigh_po_0p35.sym} 800 -640 0 0 {name=XRC1 L=150.0 mult=1 model=res_xhigh_po_0p35 spiceprefix=X}
 C {sky130_fd_pr/res_xhigh_po_0p35.sym} 800 -360 0 0 {name=XRC2 L=150.0 mult=1 model=res_xhigh_po_0p35 spiceprefix=X}
 C {devices/lab_pin.sym} 800 -710 0 0 {name=l_VDDA_67 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 800 -290 0 0 {name=l_VSS_68 sig_type=std_logic lab=VSS}
-C {devices/lab_pin.sym} 720 -640 0 0 {name=l_VSS_69 sig_type=std_logic lab=VSS}
-C {devices/lab_pin.sym} 720 -360 0 0 {name=l_VSS_70 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 800 -290 0 0 {name=l_VSSA_68 sig_type=std_logic lab=VSSA}
+C {devices/lab_pin.sym} 720 -640 0 0 {name=l_VSSA_69 sig_type=std_logic lab=VSSA}
+C {devices/lab_pin.sym} 720 -360 0 0 {name=l_VSSA_70 sig_type=std_logic lab=VSSA}
 C {devices/ipin.sym} 60 1300 0 0 {name=p_v1p lab=v1p}
 C {devices/lab_pin.sym} 140 1300 0 1 {name=l_v1p_72 sig_type=std_logic lab=v1p}
 C {devices/ipin.sym} 60 1350 0 0 {name=p_v1m lab=v1m}
@@ -268,5 +268,5 @@ C {devices/ipin.sym} 60 2050 0 0 {name=p_pll_en lab=pll_en}
 C {devices/lab_pin.sym} 140 2050 0 1 {name=l_pll_en_102 sig_type=std_logic lab=pll_en}
 C {devices/iopin.sym} 60 -960 0 0 {name=p_VDDA lab=VDDA}
 C {devices/lab_pin.sym} 140 -960 0 1 {name=l_VDDA_104 sig_type=std_logic lab=VDDA}
-C {devices/iopin.sym} 60 2300 0 0 {name=p_VSS lab=VSS}
-C {devices/lab_pin.sym} 140 2300 0 1 {name=l_VSS_106 sig_type=std_logic lab=VSS}
+C {devices/iopin.sym} 60 2300 0 0 {name=p_VSSA lab=VSSA}
+C {devices/lab_pin.sym} 140 2300 0 1 {name=l_VSSA_106 sig_type=std_logic lab=VSSA}

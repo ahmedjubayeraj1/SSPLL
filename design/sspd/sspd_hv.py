@@ -42,6 +42,8 @@ VCODRV = ((N5, 1.2, 1, 0.5), (P5, 3.0, 1, 0.5))      # the ring's AC-coupled buf
 
 
 def cells(p=D):
+    """Every SSPD device is in the VDDA domain, so the whole cell returns to the analog ground VSSA (ground split,
+    24 Nov 2026: written with VSS below, renamed on return)."""
     c = ".subckt sspll_sspd_hv_tg a b g gb VDDA VSS\n* 5 V transmission gate: on while g = 1 (gb = 0)\n"
     c += _m("xn", "a", "g", "b", "VSS", p["SWN"]) + _m("xp", "a", "gb", "b", "VDDA", p["SWP"]) + ".ends\n"
     c += ".subckt sspll_sspd_hv_tgh a b g gb VDDA VSS\n* hold transmission gate (smaller)\n"
@@ -60,7 +62,7 @@ def cells(p=D):
     c += ".subckt sspll_sspd_hv clkp clkm v1p v1m v2p v2m cks cksb ckh ckhb VDDA VSS\n"
     c += "xsp clkp v1p v2p cks cksb ckh ckhb VDDA VSS sspll_sspd_hv_side\n"
     c += "xsm clkm v1m v2m cks cksb ckh ckhb VDDA VSS sspll_sspd_hv_side\n.ends\n"
-    return c
+    return re.sub(r"\bVSS\b", "VSSA", c)
 
 
 def run(net, files=()):
@@ -82,13 +84,13 @@ def bench(p=D, corner="tt", temp=27, vdda=3.3, vddd=1.8, fref=50e6, nb=48, nper=
     tr = 60e-12
     src = (f"vvp vp 0 pulse(0 {vdda} {td} {tr} {tr} {Tv/2 - tr} {Tv})\n"
            f"vvm vm 0 pulse({vdda} 0 {td} {tr} {tr} {Tv/2 - tr} {Tv})\n")
-    drv = re.sub(r"\bVSS\b", "0", inv5("xdp", "vp", "clkp", VCODRV, "VDRV") + inv5("xdm", "vm", "clkm", VCODRV, "VDRV"))
+    drv = re.sub(r"\bVSSA?\b", "0", inv5("xdp", "vp", "clkp", VCODRV, "VDRV") + inv5("xdm", "vm", "clkm", VCODRV, "VDRV"))
     ref = (f"vrh refhv 0 pulse(0 {vdda} {T/4} 300p 300p {T/2 - 300e-12} {T})\n"
            f"vrc refclk 0 pulse(0 {vddd} {T/4 + 0.2e-9} 300p 300p {T/2 - 300e-12} {T})\n") if refon else "vrh refhv 0 0\nvrc refclk 0 0\n"
     net = (f"* sspd hv bench\n.lib {LIB} {corner}\n.temp {temp}\n{K.cells()}{cells(p)}"
            f"vdda VDDA 0 {vdda}\nvdrv VDRV 0 {vdda}\nvck VCK 0 {vdda}\nvckd VCKD 0 {vddd}\n{src}{drv}{ref}"
            f"cclp clkp 0 10f\ncclm clkm 0 10f\n"
-           "xcg refclk refhv cks cksb ckg ckgb ckh ckhb VCKD VCK 0 sspll_clkgen_hv\n"
+           "xcg refclk refhv cks cksb ckg ckgb ckh ckhb VCKD VCK 0 0 sspll_clkgen_hv\n"
            "xpd clkp clkm v1p v1m v2p v2m cks cksb ckh ckhb VDDA 0 sspll_sspd_hv\n"
            f"cg1 v1p 0 {LOAD['gm']}\ncg2 v1m 0 {LOAD['gm']}\ncn1 v2p 0 {LOAD['ncb']}\ncn2 v2m 0 {LOAD['ncb']}\n"
            f"cckg ckg 0 40f\ncckgb ckgb 0 40f\n{extra}"
@@ -183,7 +185,7 @@ def buf_chain(p=D, vdda=3.3, extra="", fin=0.8e9, tstop=60e-9, nt=None, cload=No
     cl = cload if cload is not None else 46e-15
     return (f"* buffer path\n.lib {LIB} tt\n.temp 27\nvdda VDDA 0 {vdda}\nvdrv VDRV 0 3.3\n"
             f"vin vp 0 pulse(0 3.3 0 {tr} {tr} {T/2 - tr} {T})\n" +
-            re.sub(r"\bVSS\b", "0", inv5("xd", "vp", "clkp", VCODRV, "VDRV") + inv5("xb1", "clkp", "b1", p["B1"]) +
+            re.sub(r"\bVSSA?\b", "0", inv5("xd", "vp", "clkp", VCODRV, "VDRV") + inv5("xb1", "clkp", "b1", p["B1"]) +
                    inv5("xb2", "b1", "b2", p["B2"])) +
             f"xrs b2 f 0 sky130_fd_pr__{rm} l={rl} mult=1 m=1\ncf f 0 {cl}\ncclp clkp 0 10f\n{extra}")
 

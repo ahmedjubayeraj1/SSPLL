@@ -23,8 +23,8 @@ def netlist(vdda, vddd, b):
     rx = H.full().replace(K.CC.LS, "")          # the level-shifter subcircuit is defined once, in the clock generator
     return (f"* REF path\n.lib {K.LIB} tt\n.temp 27\n{rx}{K.cells()}vdda VDDA 0 {vdda}\nvddd VDDD 0 {vddd}\n"
             f"iib ib 0 2.5e-6\nven pll_en 0 1.8\n"
-            "xrx pad0 refclk refhv ib pll_en VDDA VDDD 0 sspll_refbuf_hv\n"
-            "xcg refclk refhv cks cksb ckg ckgb ckh ckhb VDDD VDDA 0 sspll_clkgen_hv\n" +
+            "xrx pad0 refclk refhv ib pll_en VDDA VDDD 0 0 sspll_refbuf_hv\n"
+            "xcg refclk refhv cks cksb ckg ckgb ckh ckhb VDDD VDDA 0 0 sspll_clkgen_hv\n" +
             "".join(f"c{k} {k} 0 {v}\n" for k, v in K.LOADS.items()) + H.src(3.3, VPP, F, WAVE) +
             f".ic v(xrx.vin)={b['vin']} v(xrx.s1)={b['s1']}\n")
 

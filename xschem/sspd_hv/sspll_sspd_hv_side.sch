@@ -5,7 +5,7 @@ V {}
 S {}
 E {}
 T {sspll_sspd_hv_side: isolation buffer (XB1, XB2) -> R_s -> node f -> sampler xs1/C1 (tracks while cks = 1) and dummy sampler xsd/CD (opposite phase, keeps the buffer load constant); hold xs2/C2 (ckh)} 40 -560 0 0 0.3 0.3 {}
-T {R_s = res_xhigh_po_0p35, L = 0.6 um; C1 = C2 = 2.69 x 2.69 um, CD = 4.4 x 4.4 um (= C1 + the Gm input); MIM top plate on the signal, bottom plate on VSS} 40 -510 0 0 0.25 0.25 {}
+T {R_s = res_xhigh_po_0p35, L = 0.6 um; C1 = C2 = 2.69 x 2.69 um, CD = 4.4 x 4.4 um (= C1 + the Gm input); MIM top plate on the signal, bottom plate on VSSA} 40 -510 0 0 0.25 0.25 {}
 N 280 -50 280 50 {lab=}
 N 240 -80 200 -80 {lab=}
 N 200 -80 200 80 {lab=}
@@ -63,37 +63,37 @@ N 60 -400 140 -400 {lab=}
 N 60 960 140 960 {lab=}
 C {devices/ipin.sym} 60 0 0 0 {name=p_clk lab=clk}
 C {sky130_fd_pr/pfet3_g5v0d10v5.sym} 260 -80 0 0 {name=XB1P L=0.5 W=1.5 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=pfet_g5v0d10v5 spiceprefix=X body=VDDA}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 260 80 0 0 {name=XB1N L=0.5 W=0.6 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 260 80 0 0 {name=XB1N L=0.5 W=0.6 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSSA}
 C {devices/lab_pin.sym} 280 -140 0 0 {name=l_VDDA_3 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 280 140 0 0 {name=l_VSS_4 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 280 140 0 0 {name=l_VSSA_4 sig_type=std_logic lab=VSSA}
 C {sky130_fd_pr/pfet3_g5v0d10v5.sym} 520 -80 0 0 {name=XB2P L=0.5 W=5 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=pfet_g5v0d10v5 spiceprefix=X body=VDDA}
-C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 520 80 0 0 {name=XB2N L=0.5 W=2 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSS}
+C {sky130_fd_pr/nfet3_g5v0d10v5.sym} 520 80 0 0 {name=XB2N L=0.5 W=2 nf=1 mult=1 ad="'int((nf+1)/2) * W/nf * 0.29'" pd="'2*int((nf+1)/2) * (W/nf + 0.29)'" as="'int((nf+2)/2) * W/nf * 0.29'" ps="'2*int((nf+2)/2) * (W/nf + 0.29)'" nrd="'0.29 / W'" nrs="'0.29 / W'" sa=0 sb=0 sd=0 model=nfet_g5v0d10v5 spiceprefix=X body=VSSA}
 C {devices/lab_pin.sym} 540 -140 0 0 {name=l_VDDA_7 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 540 140 0 0 {name=l_VSS_8 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 540 140 0 0 {name=l_VSSA_8 sig_type=std_logic lab=VSSA}
 C {sky130_fd_pr/res_xhigh_po_0p35.sym} 700 0 3 0 {name=XRS L=0.6 mult=1 model=res_xhigh_po_0p35 spiceprefix=X}
-C {devices/lab_pin.sym} 700 -90 0 0 {name=l_VSS_10 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 700 -90 0 0 {name=l_VSSA_10 sig_type=std_logic lab=VSSA}
 C {sspll_sspd_hv_tg.sym} 1000 0 0 0 {name=xs1}
 C {sspll_sspd_hv_tg.sym} 1000 420 0 0 {name=xsd}
 C {sspll_sspd_hv_tgh.sym} 1560 0 0 0 {name=xs2}
 C {devices/lab_pin.sym} 870 0 0 0 {name=l_cks_14 sig_type=std_logic lab=cks}
 C {devices/lab_pin.sym} 870 40 0 0 {name=l_cksb_15 sig_type=std_logic lab=cksb}
 C {devices/lab_pin.sym} 960 -110 0 0 {name=l_VDDA_16 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 960 110 0 0 {name=l_VSS_17 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 960 110 0 0 {name=l_VSSA_17 sig_type=std_logic lab=VSSA}
 C {devices/lab_pin.sym} 870 420 0 0 {name=l_cksb_18 sig_type=std_logic lab=cksb}
 C {devices/lab_pin.sym} 870 460 0 0 {name=l_cks_19 sig_type=std_logic lab=cks}
 C {devices/lab_pin.sym} 960 310 0 0 {name=l_VDDA_20 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 960 530 0 0 {name=l_VSS_21 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 960 530 0 0 {name=l_VSSA_21 sig_type=std_logic lab=VSSA}
 C {devices/lab_pin.sym} 1430 0 0 0 {name=l_ckh_22 sig_type=std_logic lab=ckh}
 C {devices/lab_pin.sym} 1430 40 0 0 {name=l_ckhb_23 sig_type=std_logic lab=ckhb}
 C {devices/lab_pin.sym} 1520 -110 0 0 {name=l_VDDA_24 sig_type=std_logic lab=VDDA}
-C {devices/lab_pin.sym} 1520 110 0 0 {name=l_VSS_25 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 1520 110 0 0 {name=l_VSSA_25 sig_type=std_logic lab=VSSA}
 C {sky130_fd_pr/cap_mim_m3_1.sym} 1220 130 0 0 {name=XC1 W=2.69 L=2.69 MF=1 model=cap_mim_m3_1 spiceprefix=X}
-C {devices/lab_pin.sym} 1220 180 0 0 {name=l_VSS_27 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 1220 180 0 0 {name=l_VSSA_27 sig_type=std_logic lab=VSSA}
 C {devices/opin.sym} 2200 -260 0 1 {name=p_v1 lab=v1}
 C {sky130_fd_pr/cap_mim_m3_1.sym} 1220 550 0 0 {name=XCD W=4.4 L=4.4 MF=1 model=cap_mim_m3_1 spiceprefix=X}
-C {devices/lab_pin.sym} 1220 600 0 0 {name=l_VSS_30 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 1220 600 0 0 {name=l_VSSA_30 sig_type=std_logic lab=VSSA}
 C {sky130_fd_pr/cap_mim_m3_1.sym} 1780 130 0 0 {name=XC2 W=4.0 L=4.0 MF=1 model=cap_mim_m3_1 spiceprefix=X}
-C {devices/lab_pin.sym} 1780 180 0 0 {name=l_VSS_32 sig_type=std_logic lab=VSS}
+C {devices/lab_pin.sym} 1780 180 0 0 {name=l_VSSA_32 sig_type=std_logic lab=VSSA}
 C {devices/opin.sym} 2200 0 0 1 {name=p_v2 lab=v2}
 C {devices/ipin.sym} 60 700 0 0 {name=p_cks lab=cks}
 C {devices/lab_pin.sym} 160 700 0 1 {name=l_cks_35 sig_type=std_logic lab=cks}
@@ -105,5 +105,5 @@ C {devices/ipin.sym} 60 880 0 0 {name=p_ckhb lab=ckhb}
 C {devices/lab_pin.sym} 160 880 0 1 {name=l_ckhb_41 sig_type=std_logic lab=ckhb}
 C {devices/iopin.sym} 60 -400 0 0 {name=p_VDDA lab=VDDA}
 C {devices/lab_pin.sym} 140 -400 0 1 {name=l_VDDA_43 sig_type=std_logic lab=VDDA}
-C {devices/iopin.sym} 60 960 0 0 {name=p_VSS lab=VSS}
-C {devices/lab_pin.sym} 140 960 0 1 {name=l_VSS_45 sig_type=std_logic lab=VSS}
+C {devices/iopin.sym} 60 960 0 0 {name=p_VSSA lab=VSSA}
+C {devices/lab_pin.sym} 140 960 0 1 {name=l_VSSA_45 sig_type=std_logic lab=VSSA}

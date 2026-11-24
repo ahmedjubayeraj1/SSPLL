@@ -64,7 +64,7 @@ def jitter(a):
     nodes = dict(refhv="S2", c1="INV5S", c2="INV5M", cks="INV5L")
     nt = 4e-12; T = 20e-9; b = H.op()
     src = "".join(f"in_{n} 0 {n} dc 0 trnoise({scale*np.sqrt(S[sz]/(2*nt)):.4e} {nt} 0 0)\n" for n, sz in nodes.items())
-    net = (f"* sampling edge jitter\n.lib {R.LIB} tt\n.temp 27\n{subs}{body}{drv}vss VSS 0 0\nvdda VDDA 0 3.3\n"
+    net = (f"* sampling edge jitter\n.lib {R.LIB} tt\n.temp 27\n{subs}{body}{drv}vss VSS 0 0\nvssa VSSA 0 0\nvssd VSSD 0 0\nvdda VDDA 0 3.3\n"
            f"vddd VDDD 0 1.8\niib ib 0 2.5e-6\nven pll_en 0 1.8\ncl refclk 0 50f\nccks cks 0 60f\n" +
            H.src(3.3, 3.3, 50e6, "square").replace("pad0", "REF_IN") + src +
            f".ic v(vin)={b['vin']} v(s1)={b['s1']}\n.options seed={seed}\n.control\nsave v(REF_IN) v(cks)\n"

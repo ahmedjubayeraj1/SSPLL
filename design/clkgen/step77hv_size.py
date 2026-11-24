@@ -16,7 +16,7 @@ N5, P5 = K.N5, K.P5
 def ratio(k):
     N = (N5, 2.0, 1, 0.5); P = (P5, 2.0*k, 1, 0.5)
     c = "".join(K.inv5(f"x{i}", f"n{i}", f"n{i+1}", (N, P)) for i in range(4))
-    net = (f"* r\n.lib {K.LIB} tt\n.temp 27\nvdda VDDA 0 3.3\nvss VSS 0 0\nvin n0 0 pulse(0 3.3 1n 50p 50p 4n 10n)\n{c}"
+    net = (f"* r\n.lib {K.LIB} tt\n.temp 27\nvdda VDDA 0 3.3\nvss VSS 0 0\nvssa VSSA 0 0\nvssd VSSD 0 0\nvin n0 0 pulse(0 3.3 1n 50p 50p 4n 10n)\n{c}"
            ".control\ntran 1p 12n\nwrdata w.txt v(n1) v(n2) v(n3)\n.endc\n.end\n")
     _, d = K.run(net, ["w.txt"]); z = d["w.txt"]; t = z[:, 0]
     a = K.xings(t, z[:, 3], 1.65, True)[0] - K.xings(t, z[:, 1], 1.65, False)[0]

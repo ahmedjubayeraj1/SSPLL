@@ -62,7 +62,7 @@ def chain_jitter(a):
     node = dict(s2="refhv", s3="s3", refclk="refclk")    # S2's output node is called refhv since step 77 HV
     src = "".join(f"in_{n} 0 {node[n]} dc 0 trnoise({scale*np.sqrt(S[n][0]/(2*nt)):.4e} {nt} 0 0)\n" for n in ("s2", "s3", "refclk"))
     b = H.op()
-    net = (f"* chain jitter\n.lib {R.LIB} tt\n.temp 27\n{subs}{body}vss VSS 0 0\nvdda VDDA 0 3.3\nvddd VDDD 0 1.8\niib ib 0 2.5e-6\n"
+    net = (f"* chain jitter\n.lib {R.LIB} tt\n.temp 27\n{subs}{body}vss VSS 0 0\nvssa VSSA 0 0\nvssd VSSD 0 0\nvdda VDDA 0 3.3\nvddd VDDD 0 1.8\niib ib 0 2.5e-6\n"
            f"ven pll_en 0 1.8\ncl refclk 0 50f\n" + H.src(3.3, vpp, FREF, wave).replace("pad0", "REF_IN") + src +
            f".ic v(vin)={b['vin']} v(s1)={b['s1']}\n.options seed={seed}\n.control\n"
            f"save v(REF_IN) v(refclk)\ntran {nt} {(ncyc + 20)*T} {20*T} {nt}\nwrdata w.txt v(REF_IN) v(refclk)\n.endc\n.end\n")

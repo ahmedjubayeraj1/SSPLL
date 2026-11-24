@@ -265,3 +265,15 @@ Generated from `design/log/log_data.py` (also in `design/SSPLL_design_log.xlsx`,
 **How to run it.** `python3 design/sscp/step79hv_det.py -> design/sscp/data/step79hv_det.json`
 
 **Limits.** 32 points per ring cycle: the local slope comes from a fit; one run per corner (about 25 min)
+
+## M23. Merged-ground netlist comparison (proof that a net split changed nothing that was simulated) (step 79b)
+
+**What it gives.** IDENTICAL / DIFFERENT per netlist, the instance node counts and a domain audit (which device sits on which ground)
+
+**Why this method.** every pre-layout bench ties both grounds to 0 V, so the split circuit is the simulated circuit exactly when merging the two nets gives back the old netlist; a text proof is exact and takes seconds, a re-simulation proves nothing more
+
+**How it works.** snapshot the old netlists; build the new ones; rename VSSA, VSSD -> VSS, merge the adjacent 'VSSA VSSD' port pair of each mixed cell and the matching node pair of every instance, replace port names by positions, drop comments; compare line by line. Then count the nodes of every sspll_ instance in the design scripts against the port count
+
+**How to run it.** `python3 tools/ground_split_check.py snap DIR (before) / check DIR (after); python3 tools/lvs_hv_all.py`
+
+**Limits.** covers netlists built without running ngspice (references and the cco / refbuf / sspd / sscp benches); inline benches in step scripts are covered by the node-count check and by their VSSA / VSSD sources being 0 V

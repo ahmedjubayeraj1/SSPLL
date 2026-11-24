@@ -102,6 +102,27 @@ class Sch:
     def text(self, s, x, y, size=0.3):
         self.texts.append((s, x, y, size))
 
+    def rename(self, mapping):
+        """Rename nets after drawing: net labels, pins and MOS body terminals (e.g. {'VSS': 'VSSD'} moves a 1.8 V cell
+        drawn with the generic helpers onto the digital ground). Free text is left as written."""
+        cw = 7.2
+        for i in self.inst:
+            lab = i.get("label")
+            if lab in mapping:
+                new = mapping[lab]
+                i["label"] = new
+                i["props"] = re.sub(rf"\blab={re.escape(lab)}\b", f"lab={new}", i["props"])
+                if i["name"] == f"p_{lab}":
+                    i["name"] = f"p_{new}"; i["props"] = i["props"].replace(f"name=p_{lab} ", f"name=p_{new} ")
+            m = re.search(r"\bbody=(\S+)", i["props"])
+            if m and m.group(1) in mapping:
+                new = mapping[m.group(1)]
+                i["props"] = i["props"][:m.start(1)] + new + i["props"][m.end(1):]
+                if "tboxes" in i:
+                    i["tboxes"][-1] = (24, -16, 24 + cw*len(new), -4)
+        self.pins = [(mapping.get(n, n), d) for n, d in self.pins]
+        return self
+
     # ---- checks
     def check(self):
         errs = []
@@ -174,6 +195,17 @@ class Sch:
         for A, Bx in itertools.combinations(boxes, 2):
             if A[0] < Bx[2] and Bx[0] < A[2] and A[1] < Bx[3] and Bx[1] < A[3]:
                 errs.append(f"text overlap: {A[4]} / {Bx[4]}")
+        # net labels (lab_pin): text to the right of the point when flipped, to the left otherwise; two labels must not
+        # overlap (added 24 Nov 2026: two ground labels 40 units apart under a symbol ran into each other unnoticed)
+        lab = []
+        for i in self.inst:
+            if i["sym"] == "devices/lab_pin.sym":
+                n = len(i["label"]); x, y = i["x"], i["y"]
+                x0, x1 = (x + 4, x + 4 + 12*n) if i["flip"] else (x - 4 - 12*n, x - 4)   # ~12 units per character (measured on renders)
+                lab.append((x0, y - 16, x1, y + 2, i["label"]))
+        for A, Bx in itertools.combinations(lab, 2):
+            if A[0] < Bx[2] and Bx[0] < A[2] and A[1] < Bx[3] and Bx[1] < A[3]:
+                errs.append(f"net label overlap: {A[4]} at {A[:2]} / {Bx[4]} at {Bx[:2]}")
         for bx in boxes:
             for s in segs:
                 x1, y1, x2, y2 = s[:4]

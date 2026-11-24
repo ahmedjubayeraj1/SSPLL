@@ -20,7 +20,7 @@ U1, UO = ld("supply_1v"), ld("supply_via_vddd")
 T = 20e-9
 net = (f"* w\n.lib {K.LIB} tt\n.temp 27\n{K.cells()}vddd VDDD 0 1.8\nvdda VDDA 0 3.3\n"
        f"vrh refhv 0 pulse(0 3.3 5n 0.3n 0.3n 9.7n 20n)\nvin refclk 0 pulse(0 1.8 5.2n 0.3n 0.3n 9.7n 20n)\n"
-       "x1 refclk refhv cks cksb ckg ckgb ckh ckhb VDDD VDDA 0 sspll_clkgen_hv\n" +
+       "x1 refclk refhv cks cksb ckg ckgb ckh ckhb VDDD VDDA 0 0 sspll_clkgen_hv\n" +
        "".join(f"c{k} {k} 0 {v}\n" for k, v in K.LOADS.items()) +
        ".control\ntran 2p 50n\nwrdata w.txt v(refclk) v(cks) v(cksb) v(ckg) v(ckgb) v(ckh) v(ckhb)\n.endc\n.end\n")
 _, d = K.run(net, ["w.txt"]); z = d["w.txt"]; t = z[:, 0]; w = (t > 44.6e-9) & (t < 51.5e-9)

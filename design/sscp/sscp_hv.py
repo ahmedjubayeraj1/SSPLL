@@ -60,50 +60,51 @@ G_TARGET = 18.43e-6                   # three slices: beta 0.790 uA/rad with A 0
 
 
 def cells(p=D):
+    """The Gm core: every device in the VDDA domain, ground VSSA (ground split, 24 Nov 2026)."""
     rm, rw, rl = p["RS"]
-    c = f".subckt sspll_sscp_hv_rs a b VSS\n* degeneration resistor: {p['NSEG']} x {rm} L = {rl} um in series\n"
+    c = f".subckt sspll_sscp_hv_rs a b VSSA\n* degeneration resistor: {p['NSEG']} x {rm} L = {rl} um in series\n"
     nodes = ["a"] + [f"n{i}" for i in range(1, p["NSEG"])] + ["b"]
     for i in range(p["NSEG"]):
-        c += f"xr{i} {nodes[i]} {nodes[i+1]} VSS sky130_fd_pr__{rm} l={rl} mult=1 m=1\n"
+        c += f"xr{i} {nodes[i]} {nodes[i+1]} VSSA sky130_fd_pr__{rm} l={rl} mult=1 m=1\n"
     c += ".ends\n"
     m = p["MTM"]
-    c += (".subckt sspll_sscp_hv_slice v1p v1m x xc nb pb en enb VDDA VSS\n"
+    c += (".subckt sspll_sscp_hv_slice v1p v1m x xc nb pb en enb VDDA VSSA\n"
           "* degenerated pair; each drain has its own pMOS current source equal to its tail (no mirror);\n"
           "* x = MN2 drain (output), xc = MN1 drain (complement, to the dump node); en / enb switch both\n" +
-          _m("n1", "xc", "v1p", "s1", "VSS", p["MN"]) + _m("n2", "x", "v1m", "s2", "VSS", p["MN"]) +
-          "xrs s1 s2 VSS sspll_sscp_hv_rs\n" +
-          _m("t1", "t1", "nb", "VSS", "VSS", p["MT"], m=m) + _m("t2", "t2", "nb", "VSS", "VSS", p["MT"], m=m) +
-          _m("e1", "s1", "en", "t1", "VSS", p["MTS"], m=m) + _m("e2", "s2", "en", "t2", "VSS", p["MTS"], m=m) +
+          _m("n1", "xc", "v1p", "s1", "VSSA", p["MN"]) + _m("n2", "x", "v1m", "s2", "VSSA", p["MN"]) +
+          "xrs s1 s2 VSSA sspll_sscp_hv_rs\n" +
+          _m("t1", "t1", "nb", "VSSA", "VSSA", p["MT"], m=m) + _m("t2", "t2", "nb", "VSSA", "VSSA", p["MT"], m=m) +
+          _m("e1", "s1", "en", "t1", "VSSA", p["MTS"], m=m) + _m("e2", "s2", "en", "t2", "VSSA", p["MTS"], m=m) +
           _m("pe1", "q1", "enb", "VDDA", "VDDA", p["MPE"], m=m) + _m("pc", "xc", "pb", "q1", "VDDA", p["MP"], m=m) +
           _m("pe2", "q2", "enb", "VDDA", "VDDA", p["MPE"], m=m) + _m("px", "x", "pb", "q2", "VDDA", p["MP"], m=m) +
           ".ends\n")
     bn, bp, bt = p["BN"], p["BP"], p["BT"]
-    c += (".subckt sspll_sscp_hv_buf inp out nb en VDDA VSS\n* dump buffer: nMOS-input OTA, unity gain (out -> inm)\n" +
-          _m("a1", "o1", "inp", "bs", "VSS", bn) + _m("a2", "out", "out", "bs", "VSS", bn) +
+    c += (".subckt sspll_sscp_hv_buf inp out nb en VDDA VSSA\n* dump buffer: nMOS-input OTA, unity gain (out -> inm)\n" +
+          _m("a1", "o1", "inp", "bs", "VSSA", bn) + _m("a2", "out", "out", "bs", "VSSA", bn) +
           _m("l1", "o1", "o1", "VDDA", "VDDA", bp) + _m("l2", "out", "o1", "VDDA", "VDDA", bp) +
-          _m("bt", "bt", "nb", "VSS", "VSS", bt, m=int(round(p["BIT"]/p["IT"]))) +
-          _m("be", "bs", "en", "bt", "VSS", p["MTS"], m=int(round(p["BIT"]/p["IT"]))) + ".ends\n")
+          _m("bt", "bt", "nb", "VSSA", "VSSA", bt, m=int(round(p["BIT"]/p["IT"]))) +
+          _m("be", "bs", "en", "bt", "VSSA", p["MTS"], m=int(round(p["BIT"]/p["IT"]))) + ".ends\n")
     tn, tp = p["TGN"], p["TGP"]
-    c += (".subckt sspll_sscp_hv_tg a b g gb VDDA VSS\n" + _m("n", "a", "g", "b", "VSS", tn) +
+    c += (".subckt sspll_sscp_hv_tg a b g gb VDDA VSSA\n" + _m("n", "a", "g", "b", "VSSA", tn) +
           _m("p", "a", "gb", "b", "VDDA", tp) + ".ends\n")
     c += (".subckt sspll_sscp_hv v1p v1m vctl ckg ckgb ib " + " ".join(f"e{k+1}" for k in range(NSL)) + " " +
-          " ".join(f"eb{k+1}" for k in range(NSL)) + " pll_en VDDA VSS\n")
-    c += _m("nb", "ib", "ib", "VSS", "VSS", p["MT"]) + "* bias diode: IBIAS-derived unit current into ib\n"
+          " ".join(f"eb{k+1}" for k in range(NSL)) + " pll_en VDDA VSSA\n")
+    c += _m("nb", "ib", "ib", "VSSA", "VSSA", p["MT"]) + "* bias diode: IBIAS-derived unit current into ib\n"
     m = p["MTM"]; rm = p.get("RM", 1); rcm, rcw, rcl = p["RCM"]
     c += ("* pMOS bias pb: a replica of one half-slice (source units as a diode, input device, tail units, always-on copies\n"
           "* of the switches); the replica's input sits at VDDA/2 (the SSPD's sampled common mode is 0.48-0.53 VDDA), so its\n"
           "* tail sees the same V_DS as the slices' tails and I(pMOS) = I(tail) without a systematic offset\n" +
-          f"xrc1 VDDA vcmr VSS sky130_fd_pr__{rcm} l={rcl} mult=1 m=1\nxrc2 vcmr VSS VSS sky130_fd_pr__{rcm} l={rcl} mult=1 m=1\n" +
-          _m("rt", "rt", "ib", "VSS", "VSS", p["MT"], m=m*rm) + _m("re", "rs", "pll_en", "rt", "VSS", p["MTS"], m=m*rm) +
-          _m("rd", "pb", "vcmr", "rs", "VSS", p["MN"], m=rm) +
-          _m("rpe", "rq", "VSS", "VDDA", "VDDA", p["MPE"], m=m*rm) + _m("rp", "pb", "pb", "rq", "VDDA", p["MP"], m=m*rm))
+          f"xrc1 VDDA vcmr VSSA sky130_fd_pr__{rcm} l={rcl} mult=1 m=1\nxrc2 vcmr VSSA VSSA sky130_fd_pr__{rcm} l={rcl} mult=1 m=1\n" +
+          _m("rt", "rt", "ib", "VSSA", "VSSA", p["MT"], m=m*rm) + _m("re", "rs", "pll_en", "rt", "VSSA", p["MTS"], m=m*rm) +
+          _m("rd", "pb", "vcmr", "rs", "VSSA", p["MN"], m=rm) +
+          _m("rpe", "rq", "VSSA", "VDDA", "VDDA", p["MPE"], m=m*rm) + _m("rp", "pb", "pb", "rq", "VDDA", p["MP"], m=m*rm))
     for k in range(NSL):
-        c += f"xs{k+1} v1p v1m x vdump ib pb e{k+1} eb{k+1} VDDA VSS sspll_sscp_hv_slice\n"   # xc on the dump node
-    c += "xtf x vctl ckg ckgb VDDA VSS sspll_sscp_hv_tg\nxtd x vdump ckgb ckg VDDA VSS sspll_sscp_hv_tg\n"
-    c += "xbuf vctl vdump ib pll_en VDDA VSS sspll_sscp_hv_buf\n"
-    if p.get("CDUMP"):                                   # decoupling of the dump node (MIM tiles to VSS)
+        c += f"xs{k+1} v1p v1m x vdump ib pb e{k+1} eb{k+1} VDDA VSSA sspll_sscp_hv_slice\n"   # xc on the dump node
+    c += "xtf x vctl ckg ckgb VDDA VSSA sspll_sscp_hv_tg\nxtd x vdump ckgb ckg VDDA VSSA sspll_sscp_hv_tg\n"
+    c += "xbuf vctl vdump ib pll_en VDDA VSSA sspll_sscp_hv_buf\n"
+    if p.get("CDUMP"):                                   # decoupling of the dump node (MIM tiles to VSSA)
         cm, w, n, l = p["CDUMP"]
-        c += f"xcdump vdump VSS sky130_fd_pr__{cm} w={w} l={l} m={n}\n"
+        c += f"xcdump vdump VSSA sky130_fd_pr__{cm} w={w} l={l} m={n}\n"
     return c + ".ends\n"
 
 
@@ -140,32 +141,33 @@ DL = dict(INV=((N18, 0.42, 1, 0.15), (P18, 0.84, 1, 0.15)), NAND=((N18, 0.84, 1,
 
 def _inv18(nm, a, y):
     n, p = DL["INV"]
-    return _m(nm + "n", y, a, "VSS", "VSS", n) + _m(nm + "p", y, a, "VDDD", "VDDD", p)
+    return _m(nm + "n", y, a, "VSSD", "VSSD", n) + _m(nm + "p", y, a, "VDDD", "VDDD", p)
 
 
 def _nand18(nm, a, b, y):
     n, p = DL["NAND"]
-    return (_m(nm + "na", y, a, nm + "_x", "VSS", n) + _m(nm + "nb", nm + "_x", b, "VSS", "VSS", n) +
+    return (_m(nm + "na", y, a, nm + "_x", "VSSD", n) + _m(nm + "nb", nm + "_x", b, "VSSD", "VSSD", n) +
             _m(nm + "pa", y, a, "VDDD", "VDDD", p) + _m(nm + "pb", y, b, "VDDD", "VDDD", p))
 
 
 def full(p=D):
     """Drawn cell with the trim decoder: icp_trim (icp1 icp0) 00 -> 3 slices, 01 -> 4, 10 -> 2, 11 -> 5; pll_en = 0
     turns every slice and the dump buffer off. Decoder in 1.8 V logic on VDDD, four level shifters (step 75 HV) to the
-    5 V enable gates. Ports: v1p v1m vctl ckg ckgb ib icp0 icp1 pll_en VDDA VDDD VSS."""
+    5 V enable gates. Ports: v1p v1m vctl ckg ckgb ib icp0 icp1 pll_en VDDA VDDD VSSA VSSD. Ground split (24 Nov 2026):
+    the decoder logic returns to VSSD, the Gm core to VSSA, the level shifters have both."""
     c = K.CC.LS + cells(p)
-    c += ".subckt sspll_sscp_hv_dec icp0 icp1 pll_en e12 e3 e4 e5 e12_b e3_b e4_b e5_b VDDD VDDA VSS\n"
+    c += ".subckt sspll_sscp_hv_dec icp0 icp1 pll_en e12 e3 e4 e5 e12_b e3_b e4_b e5_b VDDD VDDA VSSA VSSD\n"
     c += "* e12 = en; e3 = en AND NOT(icp1 AND NOT icp0); e4 = en AND icp0; e5 = en AND icp1 AND icp0\n"
     c += _inv18("xi0", "icp0", "c0b") + _nand18("xa", "icp1", "c0b", "a3") + _nand18("xb", "pll_en", "a3", "e3b")
     c += _inv18("xi3", "e3b", "e3l") + _nand18("xc", "pll_en", "icp0", "e4b") + _inv18("xi4", "e4b", "e4l")
     c += _nand18("xd", "icp1", "icp0", "a5b") + _inv18("xi5", "a5b", "a5") + _nand18("xe", "pll_en", "a5", "e5b")
     c += _inv18("xi6", "e5b", "e5l")
     for nm, i in (("e12", "pll_en"), ("e3", "e3l"), ("e4", "e4l"), ("e5", "e5l")):
-        c += f"xls{nm} {i} {nm} {nm}_b VDDD VDDA VSS sspll_ls_1v8_3v3\n"
+        c += f"xls{nm} {i} {nm} {nm}_b VDDD VDDA VSSA VSSD sspll_ls_1v8_3v3\n"
     c += ".ends\n"
-    c += ".subckt sspll_sscp_hv_top v1p v1m vctl ckg ckgb ib icp0 icp1 pll_en VDDA VDDD VSS\n"
-    c += "xdec icp0 icp1 pll_en e12 e3 e4 e5 e12_b e3_b e4_b e5_b VDDD VDDA VSS sspll_sscp_hv_dec\n"
-    c += "xgm v1p v1m vctl ckg ckgb ib e12 e12 e3 e4 e5 e12_b e12_b e3_b e4_b e5_b e12 VDDA VSS sspll_sscp_hv\n.ends\n"
+    c += ".subckt sspll_sscp_hv_top v1p v1m vctl ckg ckgb ib icp0 icp1 pll_en VDDA VDDD VSSA VSSD\n"
+    c += "xdec icp0 icp1 pll_en e12 e3 e4 e5 e12_b e3_b e4_b e5_b VDDD VDDA VSSA VSSD sspll_sscp_hv_dec\n"
+    c += "xgm v1p v1m vctl ckg ckgb ib e12 e12 e3 e4 e5 e12_b e12_b e3_b e4_b e5_b e12 VDDA VSSA sspll_sscp_hv\n.ends\n"
     return c
 
 
