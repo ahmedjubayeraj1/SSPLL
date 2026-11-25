@@ -28,3 +28,9 @@ __pycache__/
 xschem/netlist/
 design/vco/data/log_*.txt
 tb/out/
+
+# private material (kept in the SSPLL_Personal repo, same paths)
+learn/
+design/log/
+design/SSPLL_design_log.xlsx
+docs/methods.md
