@@ -6,7 +6,7 @@
 - 50 MHz × 16 = 800 MHz.
 - Every analog device is 5 V-rated (`nfet/pfet_g5v0d10v5`) on VDDA 3.3 V, so the loop-filter MOS capacitor is now thick-oxide.
 - Budget from `step72_hv_budget.md`.
-- The 1.6 GHz design sheet (`step73_loop.md`, `design/loop/step73_loop.py`) is kept unchanged for the record.
+- The 1.6 GHz design sheet (archived) is kept unchanged for the record.
 
 Reproduce:
 
@@ -245,7 +245,7 @@ The proposal does not mention the loop-filter devices or the V_cont window.
 
 ## Interview questions (step 73 redo)
 
-The answers are in `learn/phase7_design.ipynb`, step 73.
+The answers are in the learning notebook (phase 7), step 73.
 
 1. Why does the 5 V MOS capacitor give 2.6× less capacitance per area, and why is its flat region higher?
 2. If C1 has to shrink, why does lowering β keep the loop identical, and what does it cost?

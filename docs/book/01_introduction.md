@@ -29,6 +29,4 @@
 ## Existing material
 
 - [../chipalooza4-constraints.md](../chipalooza4-constraints.md)
-- [../architecture_decision.md](../architecture_decision.md)
-- [../../proposal/DECISION.md](../../proposal/DECISION.md)
-- [../../proposal/README.md](../../proposal/README.md)
+- [../design/proposal_final_spec.md](../design/proposal_final_spec.md)

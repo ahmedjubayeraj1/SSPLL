@@ -18,9 +18,9 @@ Run from the repo root:  python3 design/budget/step72_hv_budget.py  -> design/bu
 import os, sys, csv, json
 import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(ROOT, "models")); sys.path.insert(0, os.path.join(ROOT, "learn"))
+sys.path.insert(0, os.path.join(ROOT, "models"))
 import pllmodel as pm
-from sspll_learn import loop_design_type2
+from loop_type2 import loop_design_type2      # same directory
 
 kT = 1.380649e-23*300
 FREF, N = 50e6, 16

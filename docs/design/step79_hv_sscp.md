@@ -3,7 +3,7 @@
 *Phase 7, roadmap step 79 (19–20 Nov 2026).* Deliverable: schematic (xschem, hierarchical, LVS-clean), sizing table,
 verification over PVT — and, because the charge pump only makes sense with its detector, a whole-detector bench
 (SSPD + Gm + clock generator). Design files `design/sscp/sscp_hv.py`, `step79hv_*.py`; schematics `xschem/sscp_hv/`;
-data `design/sscp/data/`; methods M10, M11, M16, M18 (`docs/methods.md`).
+data `design/sscp/data/`; methods M10, M11, M16, M18 (explained in `docs/testbench_guide.md`).
 
 Reproduce (in `design/sscp`):
 
@@ -328,7 +328,7 @@ Set-up, method and pitfalls: `docs/testbench_guide.md`, section "5 V pulsed-Gm c
 
 ## Interview questions (step 79)
 
-The answers are in `learn/phase7_design.ipynb` (v2), step 79.
+The answers are in the learning notebook (phase 7), step 79.
 
 1. What is a pulsed-Gm charge pump and why does a sub-sampling PLL use one?
 2. Derive β = 2A·G·τ/T.

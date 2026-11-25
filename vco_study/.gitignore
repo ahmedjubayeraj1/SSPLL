@@ -1,7 +1,0 @@
-isf_*/
-*.sp
-!ringgen.py
-pw_*.txt
-fsx_*.txt
-ref_waves.txt
-startup3.txt

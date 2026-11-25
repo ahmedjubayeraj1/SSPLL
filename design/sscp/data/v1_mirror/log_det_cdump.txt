@@ -1,2 +1,0 @@
-CDUMP 1 pF tt      27 C 3.3 V V_cont 1.8: beta_eff 0.273 uA/rad, q(lock) +3.03 fC -> phase offset -556.0 mrad, |vdump - vctl| before the pulse <= 36.7 mV
-CDUMP 2 pF tt      27 C 3.3 V V_cont 1.8: beta_eff 0.282 uA/rad, q(lock) +2.80 fC -> phase offset -496.6 mrad, |vdump - vctl| before the pulse <= 44.0 mV

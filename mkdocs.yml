@@ -26,7 +26,8 @@ nav:
       - "Appendix D. References and glossary": book/D_references.md
   - Project files:
       - Constraints: chipalooza4-constraints.md
-      - Architecture decision (step 8): architecture_decision.md
+      - Testbench guide: testbench_guide.md
+      - Proposal specification: design/proposal_final_spec.md
       - SKY130 cheat sheet: sky130_cheatsheet.md
 markdown_extensions:
   - tables

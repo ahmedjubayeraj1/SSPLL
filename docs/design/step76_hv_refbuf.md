@@ -3,7 +3,7 @@
 *Phase 7, roadmap step 76, redone for the device-rule migration (19 Nov 2026).*
 
 **Basis**
-- The 13 Nov receiver (`step76_refbuf.md`, `design/refbuf/refbuf.py`). Its analog part (S1, S2, bias, R_B, C_AC, C_H) was already built from 5 V devices on VDDA, and it is kept unchanged.
+- The 13 Nov receiver (archived note, `design/refbuf/refbuf.py`). Its analog part (S1, S2, bias, R_B, C_AC, C_H) was already built from 5 V devices on VDDA, and it is kept unchanged.
 - The device-rule migration removed the LDO and its 1.8 V output VDDL. The receiver's 1.8 V side (level-shift inverter, output NOR, pll_en inverter) now runs on **VDDD**, the harness digital supply.
 - Step-72 HV budget: the whole REF chain (receiver + clock generator + level shifters + SSPD buffers) ≤ **−155 dBc/Hz** at 50 MHz typ, −151 pess; receiver power 0.20 mW.
 - N = 16 now: reference noise reaches 800 MHz with +24 dB (was +30 dB at 1.6 GHz).
@@ -281,7 +281,7 @@ Yes. Two points came out of this step, and both were settled on 19 Nov after a c
 
 ## Interview questions (step 76 redo)
 
-The answers are in `learn/phase7_design.ipynb` (v2), step 76.
+The answers are in the learning notebook (phase 7), step 76.
 
 1. What changed in the REF receiver for the 800 MHz / 5 V redo, and what did not?
 2. Why is a 5 V inverter on a 1.8 V supply a correct 3.3 V → 1.8 V level shifter?

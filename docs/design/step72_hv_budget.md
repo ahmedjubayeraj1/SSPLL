@@ -9,7 +9,7 @@
 - No LDO: the NCB and the buffers sit on VDDA.
 - Loop: f_c = 2.5 MHz, PM 50°.
 
-The 1.6 GHz budget (`step72_budget.md`, `step72_budget.py`) is kept unchanged for the record.
+The 1.6 GHz budget (archived note, `step72_budget.py`) is kept unchanged for the record.
 
 Reproduce everything on this page:
 
@@ -248,7 +248,7 @@ As before, the ring is the whole budget. The FFNC exists to cancel it.
 
    The "Budget" column is typical / pessimistic. The typical targets hold even if the 5 V ring misses the step-74 FoM by 2 dB (1.62 / 2.56 ps). The maxima hold at a 6 dB miss (2.40 / 3.86 ps) and leave room for PVT corners beyond the pessimistic case.
 
-## Interview questions (answers in `learn/phase7_design.ipynb`, step 72)
+## Interview questions (answers in the learning notebook (phase 7), step 72)
 
 1. Why is a ring's timing jitter independent of its frequency at fixed power and FoM, while its phase noise in dBc/Hz is not?
 2. Why does the reference-side noise get 6 dB less N² amplification at N = 16, but contribute the same jitter in seconds?

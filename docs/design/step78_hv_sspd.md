@@ -3,7 +3,7 @@
 *Phase 7, roadmap step 78, redone for the device-rule migration (19 Nov 2026).* Deliverable: schematic (xschem,
 hierarchical, LVS-clean), sizing table, verification over PVT. Design files `design/sspd/sspd_hv.py`,
 `step78hv_*.py`; schematics `xschem/sspd_hv/`; data `design/sspd/data/step78hv_*.json`; methods M17, M18, M19, M21
-(`docs/methods.md`). The 1.8 V version (`step78_sspd.md`) is kept for the record.
+(explained in `docs/testbench_guide.md`). The 1.8 V version is archived.
 
 Reproduce (in `design/sspd`):
 
@@ -259,7 +259,7 @@ Set-up, method and pitfalls of every bench: `docs/testbench_guide.md`, section "
 
 ## Interview questions (step 78 redo)
 
-The answers are in `learn/phase7_design.ipynb` (v2), step 78.
+The answers are in the learning notebook (phase 7), step 78.
 
 1. Why does A need a longer τ_s at 800 MHz on 3.3 V than at 1.6 GHz on 1.8 V?
 2. Why is there no low-V_T sampling switch any more, and what replaces it?

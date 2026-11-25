@@ -29,5 +29,5 @@
 ## Existing material
 
 - [../../models/](../../models/)
-- [../../proposal/jitter_budget.py](../../proposal/jitter_budget.py)
-- [../../proposal/final_budget.py](../../proposal/final_budget.py)
+- [../design/step72_hv_budget.md](../design/step72_hv_budget.md)
+- [../design/step73_hv_loop.md](../design/step73_hv_loop.md)

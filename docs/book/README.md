@@ -28,7 +28,7 @@ Each topic is written as: **What happens** (the observation), **How it happens**
 | [Appendix C. ngspice vs Spectre correlation](C_correlation.md) | Phase 0 (step 7) | outline |
 | [Appendix D. References and glossary](D_references.md) | all phases | outline |
 
-Chapters 2–7 are taught in the interactive notebooks of `learn/` (Phases 1–6); the chapters will be written from them.
+Chapters 2–7 will be written from the project's theory notebooks (Phases 1–6).
 
 Status values: outline -> draft -> reviewed -> final. Update the table when a chapter changes state.
 

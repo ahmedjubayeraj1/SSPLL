@@ -67,5 +67,4 @@
 ## Existing material
 
 - [../../xschem/](../../xschem/)
-- [../../audit/AUDIT.md](../../audit/AUDIT.md)
 - [../sky130_cheatsheet.md](../sky130_cheatsheet.md)

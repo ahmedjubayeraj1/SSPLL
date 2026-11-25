@@ -6,7 +6,7 @@
 - The step-72 HV budget: ring L(1 MHz) ≤ −104.4 dBc/Hz at 800 MHz, 1/f³ corner ≤ 0.6 MHz, at most 1.31 mA from the CCO.
 - The step-73 HV loop: K_VCO ≈ 150 MHz/V assumed, V_cont 1.0–2.3 V.
 - The feasibility study (`docs/design/hv_vco_feasibility.md`), which chose a 3-stage pseudo-differential ring (ring B).
-- The 1.6 GHz design (`step74_vco.md`, `design/vco/vco.py`) is kept unchanged for the record.
+- The 1.6 GHz design (archived note, `design/vco/vco.py`) is kept unchanged for the record.
 
 Reproduce (in `design/vco`):
 
@@ -283,7 +283,7 @@ Not for correctness. Every target is met with margin:
 
 ## Interview questions (step 74 redo)
 
-The answers are in `learn/phase7_design.ipynb`, step 74.
+The answers are in the learning notebook (phase 7), step 74.
 
 1. Why three stages now, when the 1.8 V design had to use five?
 2. The first 5 V ring had a 1/f³ corner of 1.5 MHz. What did the ISF say, and what fixed it?

@@ -23,7 +23,3 @@ Each topic is written as: **What happens** (the observation), **How it happens**
 ## 6.5 Programmable gain with a 4-bit capacitor bank
 
 *To be written.*
-
-## Existing material
-
-- [../architecture_decision.md](../architecture_decision.md)

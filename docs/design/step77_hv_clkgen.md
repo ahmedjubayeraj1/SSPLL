@@ -3,7 +3,7 @@
 *Phase 7, roadmap step 77, redone for the device-rule migration (19 Nov 2026).*
 
 **Basis**
-- The 13/17 Nov clock generator (`step77_clkgen.md`, `design/clkgen/clkgen.py`): 1.8 V logic on VDDL, three complementary pairs: cks/cksb (sample), ckg/ckgb (Gm pulse, τ = 200 ps), ckh/ckhb (hold), in the order sample → Gm → hold.
+- The 13/17 Nov clock generator (archived note, `design/clkgen/clkgen.py`): 1.8 V logic on VDDL, three complementary pairs: cks/cksb (sample), ckg/ckgb (Gm pulse, τ = 200 ps), ckh/ckhb (hold), in the order sample → Gm → hold.
 - Now VDDL is gone, and the SSPD (step 78 HV) and the Gm (step 79) use 5 V switches on VDDA, whose gates need 0 / 3.3 V.
 - The step list keeps the clock generator in 1.8 V logic (on VDDD) and adds level shifters to 3.3 V.
 - Step 76 HV: the receiver gives refclk (1.8 V, VDDD) and, since this step, refhv (3.3 V, VDDA).
@@ -326,7 +326,7 @@ The 1.8 V core (RC edge generators, gap inverters, hold latch) keeps the 13 Nov 
 
 ## Interview questions (step 77 redo)
 
-The answers are in `learn/phase7_design.ipynb` (v2), step 77.
+The answers are in the learning notebook (phase 7), step 77.
 
 1. Why does the clock generator stay in 1.8 V logic when its outputs must swing 0–3.3 V?
 2. Why can't a short pulse simply be passed through one level shifter?

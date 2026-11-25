@@ -86,6 +86,7 @@ All results of steps 74–79 therefore stand unchanged.
 
 ![level shifter](../img/ground_split_ls.png)
 ![receiver](../img/ground_split_refbuf.png)
+![clock generator](../img/ground_split_clkgen.png)
 
 ## Reproduce
 

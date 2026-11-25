@@ -9,7 +9,7 @@
   - CCO noise allocation: L = −110.2 dBc/Hz at 1 MHz, which is **7.05 pA/√Hz** of output current;
   - supply pushing K_vdd = K_I·|dI/dVDDA| ≤ **5 MHz/V** typ, 20 pess, with VDDA noise ≤ 100 nV/√Hz.
 - Device rule: every analog device is nfet/pfet_g5v0d10v5 on VDDA = 3.3 V; only the control logic is 1.8 V.
-- The 1.6 GHz CCO (`step75_cco.md`, `design/cco/cco.py`) stays unchanged for the record.
+- The 1.6 GHz CCO (archived note, `design/cco/cco.py`) stays unchanged for the record.
 
 Reproduce (in `design/cco`):
 
@@ -303,7 +303,7 @@ No. The proposal verifies over VDDA ±10 %, and the worst case (ss/110 °C, VDDA
 
 ## Interview questions (step 75 redo)
 
-The answers are in `learn/phase7_design.ipynb` (v2), step 75.
+The answers are in the learning notebook (phase 7), step 75.
 
 1. Without an LDO, what number tells you how much VDDA noise reaches the ring's frequency, and how do you measure it?
 2. Why can a plain pMOS mirror not meet 5 MHz/V, even with its gate filtered to VDDA?

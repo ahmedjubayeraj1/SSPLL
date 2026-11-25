@@ -42,5 +42,4 @@ Each topic is written as: **What happens** (the observation), **How it happens**
 
 ## Existing material
 
-- [../architecture_decision.md](../architecture_decision.md)
 - [../../models/step8_variants.py](../../models/step8_variants.py)
