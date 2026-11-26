@@ -8,7 +8,7 @@
 What changed from the 1.6 GHz design (refbuf.py, kept for the record):
   * the level-shifter inverter and the 1.8 V output NOR were on VDDL (the LDO output); they are now on VDDD, the
     harness 1.8 V digital supply. VDDD is noisier than an LDO output, so the edge's VDDD sensitivity is now measured
-    and turned into a VDDD noise requirement (step76hv_supply.py);
+    and turned into a VDDD noise requirement (refbuf_hv_supply.py);
   * the pll_en inverter is on VDDD; the enable level shifter is the step-75 HV cell sspll_ls_1v8_3v3;
   * the loop now has N = 16, so reference noise reaches the output with +24 dB instead of +30 dB.
 S1, S2, the bias, R_B, C_AC and C_H are unchanged: they were already 5 V devices on VDDA (step 76, 13 Nov)."""

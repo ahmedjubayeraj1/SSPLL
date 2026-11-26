@@ -29,24 +29,24 @@ N5, P5 = "nfet_g5v0d10v5", "pfet_g5v0d10v5"
 D = dict(
     # Gm v2 (19 Nov 2026): no current mirror. The first version folded the pair's left current through a pMOS mirror
     # (5 x 2/4 um); with 6 uA in it, its gate node had a pole near 30 MHz, far too slow for a 0.5 ns pulse: with the real
-    # SSPD in front (v1 tracks the 800 MHz ring for half of every period) the loop gain collapsed (step79hv_det.py,
+    # SSPD in front (v1 tracks the 800 MHz ring for half of every period) the loop gain collapsed (sscp_hv_det.py,
     # beta_eff 0.17 instead of 0.79 uA/rad). Now each drain has its own pMOS current source equal to its tail:
     #   x  = MN2 drain: I(MPX) - I(MN2) = the output, steered to vctl (pulse) or vdump
     #   xc = MN1 drain: I(MPC) - I(MN1), always on vdump, so the dump node sees x + xc = 0 AC current while v1 tracks
     MN=(N5, 4.0, 1, 1.0),            # input pair (per slice), L = 1 um: flicker
     MT=(N5, 1.0, 1, 8.0),            # tail sink unit (2 uA, mirror of the 2 uA unit at ib); MTM units per side per slice;
-                                     # L = 8 um: less gm (noise) per uA (step79hv_noisesize.py)
+                                     # L = 8 um: less gm (noise) per uA (sscp_hv_noisesize.py)
     MTS=(N5, 1.0, 1, 0.5),           # tail enable switch (one per unit)
     MTM=2,                           # tail units per side per slice: I_T = 4 uA per side
     MP=(P5, 4.0, 1, 4.0),            # pMOS current source unit (2 uA); MTM units per side per slice; L = 4 um: less gm and flicker
     RM=6,                            # replica = RM half-slices: its noise on pb (74 % of the output noise with RM = 1) falls
     MPE=(P5, 2.0, 1, 0.5),           # pMOS enable switch in series (gate enb), one per unit; always-on copy in the bias diode
-    RS=("res_xhigh_po_0p35", 0.35, 17.2),   # degeneration R_S per slice (~98 kOhm): G = 18.43 uS with 3 slices (step79hv_noisesize.py)
+    RS=("res_xhigh_po_0p35", 0.35, 17.2),   # degeneration R_S per slice (~98 kOhm): G = 18.43 uS with 3 slices (sscp_hv_noisesize.py)
     RCM=("res_xhigh_po_0p35", 0.35, 150.0),  # replica common-mode divider, 2 x ~0.86 MOhm (1.9 uA from VDDA)
     NSEG=1,
     IT=2e-6,                          # unit current (the bias input ib)
     TGN=(N5, 1.0, 1, 0.5), TGP=(P5, 1.0, 1, 0.5),      # steering TGs: small and balanced (charge injection into vctl)
-    # dump buffer: nMOS-input 5 V OTA, mirror load, tail 20 uA; unity gain. Resized after the first run (step79hv_buf.py):
+    # dump buffer: nMOS-input 5 V OTA, mirror load, tail 20 uA; unity gain. Resized after the first run (sscp_hv_buf.py):
     # BN 4/1 + BP 4/2 lost tracking at ss 110 C, 2.97 V, V_cont 2.3 V (-92 mV: V_in,max = VDDA - V_SG(l1) + V_TN); the wider
     # pMOS lowers V_SG, the longer channels raise the gain against the V_DS mismatch of the two input devices:
     # |vdump - vctl| <= 9.4 mV over V_cont 1.3-2.3 V and the corners, peaking <= 1.2 dB, f_3dB >= 167 MHz

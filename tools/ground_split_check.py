@@ -22,7 +22,7 @@ for d in ("cco", "clkgen", "refbuf", "sspd", "sscp", "vco", "loop"):
 def netlists():
     """name -> netlist text, built without running a simulator."""
     import cco_hv, clkgen_hv, refbuf_hv, sspd_hv, sscp_hv, vco_hv
-    from step74hv_point import VARIANTS
+    from vco_hv_point import VARIANTS
     n = {}
     n["ref_cco_hv"] = cco_hv.full(cco_hv.D)
     n["ref_clkgen_hv"] = clkgen_hv.lvs_reference()

@@ -16,4 +16,4 @@ python models/selftest.py
 echo
 echo "Done. Use it with:   source .venv/bin/activate"
 echo "                     jupyter lab models/template.ipynb      (kernel: Python (sspll))"
-echo "                     python models/step8_variants.py"
+echo "                     python models/arch_variants.py"

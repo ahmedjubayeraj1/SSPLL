@@ -14,15 +14,15 @@ Chipalooza Challenge #4 (Chip Foundry Sky130) entry. A ring-oscillator sub-sampl
 | `versions.txt` | The frozen toolchain (IIC-OSIC-TOOLS 2026.10, open_pdks 1689ac3f) |
 | `docs/design/proposal_final_spec.md` | How each proposal value was set from the pre-layout results |
 | `docs/design/hv_*.md` | 5 V device characterisation, ring feasibility, output divider |
-| `docs/design/step72_hv_budget.md`, `design/budget/` | Step 72: phase-noise, jitter, power and area budget |
-| `docs/design/step73_hv_loop.md`, `design/loop/` | Step 73: loop design (f_c, PM, β, R, C) and the exact sampled-loop model |
-| `docs/design/step74_hv_vco.md`, `design/vco/`, `xschem/vco_hv/` | Step 74: 3-stage pseudo-differential ring VCO |
-| `docs/design/step75_hv_cco.md`, `design/cco/`, `xschem/cco_hv/` | Step 75: 5-bit current DAC and level shifter |
-| `docs/design/step76_hv_refbuf.md`, `design/refbuf/`, `xschem/refbuf_hv/` | Step 76: reference receiver |
-| `docs/design/step77_hv_clkgen.md`, `design/clkgen/`, `xschem/clkgen_hv/` | Step 77: clock generator (sample, Gm and hold pulses) |
-| `docs/design/step78_hv_sspd.md`, `design/sspd/`, `xschem/sspd_hv/` | Step 78: sub-sampling phase detector with hold |
-| `docs/design/step79_hv_sscp.md`, `design/sscp/`, `xschem/sscp_hv/` | Step 79: pulsed-Gm charge pump |
-| `docs/design/step80_hv_lf.md`, `design/loop/`, `xschem/lf_hv/` | Step 80: loop filter in real devices |
+| `docs/design/budget_hv.md`, `design/budget/` | Step 72: phase-noise, jitter, power and area budget |
+| `docs/design/loop_hv.md`, `design/loop/` | Step 73: loop design (f_c, PM, β, R, C) and the exact sampled-loop model |
+| `docs/design/vco_hv.md`, `design/vco/`, `xschem/vco_hv/` | Step 74: 3-stage pseudo-differential ring VCO |
+| `docs/design/cco_hv.md`, `design/cco/`, `xschem/cco_hv/` | Step 75: 5-bit current DAC and level shifter |
+| `docs/design/refbuf_hv.md`, `design/refbuf/`, `xschem/refbuf_hv/` | Step 76: reference receiver |
+| `docs/design/clkgen_hv.md`, `design/clkgen/`, `xschem/clkgen_hv/` | Step 77: clock generator (sample, Gm and hold pulses) |
+| `docs/design/sspd_hv.md`, `design/sspd/`, `xschem/sspd_hv/` | Step 78: sub-sampling phase detector with hold |
+| `docs/design/sscp_hv.md`, `design/sscp/`, `xschem/sscp_hv/` | Step 79: pulsed-Gm charge pump |
+| `docs/design/lf_hv.md`, `design/loop/`, `xschem/lf_hv/` | Step 80: loop filter in real devices |
 | `docs/design/ground_split.md` | VSSA / VSSD assignment, and the proof that it changed nothing simulated |
 | `docs/testbench_guide.md` | Every testbench: what it measures, why, how it is set up and run |
 | `tools/xsch.py`, `xschem/lvs.sh`, `xschem/render.sh`, `tools/lvs_hv_all.py` | Schematic builder with drawing checks, schematic-vs-simulation LVS of every cell, PNG rendering |
@@ -35,7 +35,7 @@ Chipalooza Challenge #4 (Chip Foundry Sky130) entry. A ring-oscillator sub-sampl
     ./tools/collect_versions.sh                           # compare with versions.txt
     for b in cco clkgen refbuf sspd sscp vco; do (cd design/$b && python3 schematics_hv.py); done
     python3 tools/lvs_hv_all.py                           # LVS of every 5 V cell
-    python3 design/sscp/step79hv_sim.py                   # each step's simulations: design/<block>/step7Xhv_*.py
+    python3 design/sscp/sscp_hv_sim.py                   # each step's simulations: design/<block>/<block>_hv_*.py
 
 Each step's note in `docs/design/` lists its scripts, run times and results, and `docs/testbench_guide.md` explains every bench.
 

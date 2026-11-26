@@ -90,7 +90,7 @@ def top(p, RXY, TXY):
 
 
 def drawn():
-    S = json.load(open(os.path.join(HERE, "data", "step80hv_size.json")))
+    S = json.load(open(os.path.join(HERE, "data", "lf_hv_size.json")))
     return dict(F.D, R1=tuple(S["R1"]), C2=tuple(S["C2"]))
 
 

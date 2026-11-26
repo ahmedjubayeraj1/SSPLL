@@ -164,7 +164,7 @@ def vco_top():
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    from step74hv_point import VARIANTS
+    from vco_hv_point import VARIANTS
     global DCELL_XY, BUF_XY, CORE_XY
     DCELL_XY = symbol(os.path.join(OUT, "sspll_vco_hv_dcell.sym"), "sspll_vco_hv_dcell", **DCELL_PINS,
                       title="pseudo-diff delay cell, 5 V")

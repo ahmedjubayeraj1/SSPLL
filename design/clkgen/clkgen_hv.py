@@ -32,7 +32,7 @@ N5, P5 = "nfet_g5v0d10v5", "pfet_g5v0d10v5"
 
 D = dict(C.D)
 D.update(
-    # 5 V gates sized for equal rise and fall delay: thick-oxide pMOS / nMOS = 2.5 (step77hv_size.py: 61 / 62 ps at
+    # 5 V gates sized for equal rise and fall delay: thick-oxide pMOS / nMOS = 2.5 (clkgen_hv_size.py: 61 / 62 ps at
     # fan-out 1); the drivers taper by about 3 per stage
     INV5S=((N5, 1.0, 1, 0.5), (P5, 2.5, 1, 0.5)),       # 5 V small inverter
     INV5M=((N5, 2.5, 1, 0.5), (P5, 6.25, 1, 0.5)),      # 5 V medium
@@ -50,7 +50,7 @@ D.update(
                                                         # resumes at the slowest corner with the longer gap 1)
     # gap-1 delay (added after step 79): the pulsed Gm needs about 2-3 ns after the sample to recover from the 800 MHz
     # tracking swing of the SSPD (its degeneration R_S x source capacitance); with the 0.6 ns gap the charge per period
-    # at lock was 4.4 fC and the gain 73 % of G tau, with 3 ns 0.7 fC and 102 % (step79hv_det.py / recovery runs)
+    # at lock was 4.4 fC and the gain 73 % of G tau, with 3 ns 0.7 fC and 102 % (sscp_hv_det.py / recovery runs)
     RDL=("res_xhigh_po_0p35", 0.35, 1, 6.0), CDL=("cap_mim_m3_1", 5.3, 1, 5.3),
 )
 # loads of the 3.3 V pairs: 5 V switch gates of the SSPD (step 78) and the Gm (step 79), estimated about 2x the
@@ -114,7 +114,7 @@ def cells(p=D):
     c += _d(inv("xi0", "refclk", "r1", p["INVM"]) + inv("xi1", "r1", "r2", p["INVM"]))
     # sampling edge: taken from refhv, the receiver's 3.3 V edge (S2 output, VDDA domain), straight into the 5 V
     # driver: no VDDD gate in the sampling path (through refclk, the level shifter and two VDDD inverters the edge
-    # moved 376 ps per volt of VDDD, step77hv_supply_via_vddd.json)
+    # moved 376 ps per volt of VDDD, clkgen_hv_supply_via_vddd.json)
     c += "xds refhv cksb cks VDDA VSSA sspll_ckg_drv5\n"
     # Gm pulse: gap 1 (RC delay, about 2.4 ns, then the edge pair), two level shifters, rebuild, driver
     c += "xdl r2 g2 VDDD VSSD sspll_ckg_dly\n"
@@ -124,7 +124,7 @@ def cells(p=D):
     # hold pulse: latch set by the 1.8 V Gm pulse, reset while refclk is low (r1 = 1); hin rises when the Gm pulse ends
     c += "xhl pg r1 hin VDDD VSSD sspll_ckg_hlatch\n"
     # gap 2: four 1.8 V inverters between the latch and the hold edges (gap 2 >= 100 ps at every corner; with two it
-    # was 79 ps at fs, step77hv_sim.py first run)
+    # was 79 ps at fs, clkgen_hv_sim.py first run)
     c += _d(inv("xi4", "hin", "h1", p["INVS"]) + inv("xi5", "h1", "h2", p["INVS"]) +
             inv("xi6", "h2", "h3", p["INVS"]) + inv("xi7", "h3", "h4", p["INVS"]))
     c += "xeh h4 hstop ph VDDD VSSD sspll_ckg_edges_h\n"
