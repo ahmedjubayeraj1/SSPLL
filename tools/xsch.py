@@ -57,7 +57,13 @@ class Sch:
         sym = f"sky130_fd_pr/{kind}.sym"; model = kind.replace("3_", "_")
         props = (f"name={name} L={l} W={w*nf:g} nf={nf} mult={mult} {MOS_PROPS} model={model} spiceprefix=X "
                  f"body={body}")
-        return self._add(sym, x, y, rot, flip, props, name)
+        P = self._add(sym, x, y, rot, flip, props, name)
+        cw = 7.2                                   # character width of the 0.2-size symbol text (measured)
+        wl = f"{mult} x {w*nf:g} / {l}"
+        self.inst[-1]["tboxes"] = [(-cw*len(name) + 6, -31, 8, -18), (28, -31, 28 + cw*len(model), -18),
+                                   (30, -3, 30 + cw*(3 + len(str(nf))), 8), (30, 9, 30 + cw*len(wl), 21),
+                                   (24, -16, 24 + cw*len(body), -4)]
+        return P
 
     def dev(self, sym, name, x, y, props="", rot=0, flip=0):
         return self._add(sym, x, y, rot, flip, f"name={name} {props}".strip(), name)
@@ -122,7 +128,7 @@ class Sch:
             for p in list(pts_all) + list(pinpts):
                 if on(p, s):
                     interior = p not in ((s[0], s[1]), (s[2], s[3]))
-                    if interior and p in pinpts and p not in pts_all:
+                    if interior and p in pinpts:
                         errs.append(f"wire {s[:4]} passes through pin {pinpts[p]} (connects it - draw to it instead)")
                     u(p, (s[0], s[1]))
         # collinear overlaps of different nets
@@ -131,6 +137,25 @@ class Sch:
                 errs.append(f"vertical wires overlap: {s[:4]} / {t[:4]}")
             if s[1] == s[3] == t[1] == t[3] and max(s[0], t[0]) < min(s[2], t[2]) and f((s[0], s[1])) != f((t[0], t[1])):
                 errs.append(f"horizontal wires overlap: {s[:4]} / {t[:4]}")
+        # 4-way junctions: a crossing drawn with a vertex on both wires becomes a connection (ambiguous drawing)
+        dirs = {}
+        for a, b, c, d, _ in self.wires:
+            for (px, py), (qx, qy) in (((a, b), (c, d)), ((c, d), (a, b))):
+                dirs.setdefault((px, py), set()).add(((qx > px) - (qx < px), (qy > py) - (qy < py)))
+        for s in segs:
+            for pt in dirs:
+                if pt not in ((s[0], s[1]), (s[2], s[3])) and on(pt, s):
+                    dirs[pt] |= ({(1, 0), (-1, 0)} if s[1] == s[3] else {(0, 1), (0, -1)})
+        for pt, dd in dirs.items():
+            if len(dd) >= 4:
+                errs.append(f"4-way junction at {pt}: draw a crossing as one straight wire, or offset the T-junctions")
+        # one straight wire touching two pins of the same instance shorts that device
+        for i in self.inst:
+            pp = list(i["pins"].items())
+            for sgm in segs:
+                hit = [k for k, q in pp if on(q, sgm)]
+                if len(hit) >= 2:
+                    errs.append(f"wire {sgm[:4]} touches pins {hit} of {i['name'] or i.get('label')} (shorts the device)")
         # floating pins
         for p, who in pinpts.items():
             if not any(on(p, s) for s in segs):
@@ -139,7 +164,7 @@ class Sch:
         boxes = []
         for i in self.inst:
             if i["sym"].startswith("sky130_fd_pr/") and "fet" in i["sym"] and i["rot"] == 0:
-                for (a, b, c, d) in MOS_TEXT + [MOS_BODY_TEXT]:
+                for (a, b, c, d) in i.get("tboxes", MOS_TEXT + [MOS_BODY_TEXT]):
                     if i["flip"]:
                         a, c = -c, -a
                     boxes.append((i["x"] + a, i["y"] + b, i["x"] + c, i["y"] + d, i["name"]))

@@ -1,0 +1,30 @@
+* tb_vco_startup - does the ring start by itself? (step 74)
+* Run:  tb/run.sh tb/vco/tb_vco_startup.spice ss 110
+* Everything starts at 0 V and the feed current ramps up in 2 ns (like the CCO turning on). A perfectly symmetric
+* netlist can stay in its metastable state forever in a simulator (no noise), so a 1 % capacitance mismatch on one
+* output (0.1 fF of 10 fF) stands for the real random mismatch.
+
+.lib __PDK__/libs.tech/ngspice/sky130.lib.spice __CORNER__
+.temp __TEMP__
+.include __DUT__/sspll_vco.spice
+.param cpar=10f
+vss VSS 0 0
+vbuf VDDBUF 0 1.8
+vtn vtune 0 0.9
+ivco 0 vring pwl(0 0 2n 1.437m)       ; current ramps from 0 to 1.437 mA in 2 ns
+cdec vring 0 0.5p
+cmis vop VSS 0.1f                       ; 1 % mismatch
+x1 vring vtune VDDBUF VSS vop vom clkp clkm sspll_vco
+.ic v(vring)=0 v(vop)=0 v(vom)=0
+
+.control
+option noinit
+tran 2p 20n 0 2p uic
+let vd = v(vop) - v(vom)
+meas tran tstart when vd=0.5 cross=1      ; first time the differential output exceeds 0.5 V
+meas tran ta when vd=0 rise=10
+meas tran tb when vd=0 rise=20
+let f = 10/(tb - ta)
+echo "RESULT oscillation established at $&tstart s, f = $&f Hz"
+.endc
+.end

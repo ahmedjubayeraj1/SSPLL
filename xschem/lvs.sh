@@ -1,7 +1,7 @@
 #!/bin/bash
 # lvs.sh cell.sch reference.spice cellname - netlist a schematic with xschem (LVS format, top level as .subckt) and
 # compare it with a reference SPICE netlist using netgen: proves the drawing is the circuit that was simulated.
-cd "$(dirname "$0")"
+cd "$(dirname "$0")"; export PDK_ROOT=${PDK_ROOT:-/home/claude/pdk} PDK=${PDK:-sky130A}
 sch=$1; ref=$2; cell=$3
 NETGEN=$(command -v netgen || command -v netgen-lvs)
 mkdir -p netlist

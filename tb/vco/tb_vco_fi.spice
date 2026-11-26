@@ -1,0 +1,32 @@
+* tb_vco_fi - method M1 repeated over the feed current: f(I) and K_I = df/dI (step 74)
+* Run:  tb/run.sh tb/vco/tb_vco_fi.spice ss 110
+* The same transient as tb_vco_tran, inside a .control loop: "alter" changes the current source between runs.
+
+.lib __PDK__/libs.tech/ngspice/sky130.lib.spice __CORNER__
+.temp __TEMP__
+.include __DUT__/sspll_vco.spice
+.param cpar=10f
+vss VSS 0 0
+vbuf VDDBUF 0 1.8
+vtn vtune 0 0.9
+ivco 0 vring dc 1.4m
+cdec vring 0 0.5p
+x1 vring vtune VDDBUF VSS vop vom clkp clkm sspll_vco
+.ic v(vring)=1.3 v(vop)=0 v(vom)=1.3
+
+.control
+option noinit
+echo "RESULT  I(A)  f(Hz)  vring(V)"
+foreach ii 1.0e-3 1.2e-3 1.4e-3 1.6e-3 1.8e-3 2.0e-3 2.2e-3
+  alter ivco dc = $ii                      ; new feed current
+  tran 2p 26n 0 2p uic
+  let vd = v(vop) - v(vom)
+  meas tran ta when vd=0 rise=12
+  meas tran tb when vd=0 rise=32
+  let f = 20/(tb - ta)
+  meas tran vr avg v(vring) from=ta to=tb
+  echo "RESULT $ii $&f $&vr"
+  destroy all                               ; free the memory of this run
+end
+.endc
+.end

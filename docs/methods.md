@@ -109,3 +109,87 @@ Generated from `design/log/log_data.py` (also in `design/SSPLL_design_log.xlsx`,
 **How to run it.** `design/budget/step72_budget.py`
 
 **Limits.** Uses allocations until block results replace them.
+
+## M10. DC operating point and compliance sweep (step 75)
+
+**What it gives.** Output current of a current source for each code / corner / supply / bias, and its dependence on the output voltage
+
+**Why this method.** A current source is a DC circuit: its job is a current at a voltage. An operating point per condition is exact (no approximation) and cheap, so all 90 corner combinations plus a full code sweep fit in minutes.
+
+**How it works.** The ring node is replaced by an ideal voltage source at the typical ring voltage (1.45 V); its current (vr#branch) is the CCO output. For compliance, the source is swept 0-2.4 V (.dc) at the least-headroom corner (VDDA 2.97 V, ss/110 C, max code): the current must stay flat over the ring's range (1.38-1.8 V).
+
+**How to run it.** `design/cco/step75_sim.py (sections A, B); xschem: tb_cco_dc`
+
+**Limits.** Ignores the ring's own I-V (load line); M12 closes that gap. Exact for the models used.
+
+## M11. Output-current noise (.noise) and supply rejection (.ac) (step 75)
+
+**What it gives.** Output current noise spectrum (A/rtHz) of the complete circuit incl. PDK resistors and MIM caps; |dI/dVDDA| vs frequency
+
+**Why this method.** Noise of a biased analog block is small-signal: .noise linearises every device at its operating point and adds their noise (thermal, flicker, resistor) through the exact transfer functions - faster and more accurate than a transient noise run. The same linearisation with an ac 1 V source on VDDA gives supply rejection.
+
+**How it works.** The ring node is an ideal source at 1.45 V through a 0 V ammeter; a CCVS (h1, 1 V/A) converts its current into a voltage 'o' so .noise reports A/rtHz. option sparse is needed (KLU fails on .noise). The spectrum feeds the budget (M9): S_f = K_I^2 S_i, shaped by |(1-Gc)(1-H)|^2, gives the CCO jitter and L(300 kHz).
+
+**How to run it.** `design/cco/step75_noise.py, step75_sim.py (section D); xschem: tb_cco_ac`
+
+**Limits.** Linear around the operating point; tt only (corners shift g_m by +/-15 %).
+
+## M12. Clamp check with the ring's measured I-V (load-line method) (step 75)
+
+**What it gives.** The ring-node voltage reached for each code when the CCO drives the real ring at the worst corner
+
+**Why this method.** The ring node is set by where the CCO output (a current source) meets the ring's I-V curve and the clamp. Simulating the whole ring for every code would take hours; a behavioural model of its I-V gives the same DC intersection in seconds.
+
+**How it works.** The ring's average I-V at ss/110 C, 10 fF/node (from step-74 transients, M1) is a pwl B-source current I_ring(V). The CCO plus clamp drive it at VDDA 3.63 V with IBIAS 4 and 6 uA; the .op solution is the ring node.
+
+**How to run it.** `design/cco/clamp_ring.py`
+
+**Limits.** The ring's average current replaces its switching current; good for DC, not for ripple.
+
+## M13. Level-shifter transient at the hardest supply corners (step 75)
+
+**What it gives.** Whether the 1.8 -> 3.3 V shifter switches, its output levels and edge times
+
+**Why this method.** A cross-coupled level shifter is a ratioed latch: it only flips if the nMOS pull-downs (driven from the low supply) win against the pMOS loads (on the high supply). The worst case is lowest VDDD with highest VDDA, slow and fast corners - a transient shows directly whether it flips.
+
+**How it works.** Pulse on 'in' (0-1.71 V), VDDA 3.63 V, 20 fF loads; .meas rise/fall at VDDA/2 and the high/low levels; ss/110 C and ff/-40 C.
+
+**How to run it.** `design/cco/step75_sim.py (section E)`
+
+**Limits.** Static control bits: speed hardly matters, only correct switching.
+
+## M14. Crossing-point noise analysis (.noise at the self-bias point) (step 76)
+
+**What it gives.** Gate-referred noise spectrum of a threshold circuit at the instant of its crossing, incl. flicker and bias-resistor noise
+
+**Why this method.** A self-biased inverter rests exactly at its trip point, i.e. at the operating point it passes through at every crossing. A small-signal .noise there is exact for the slow (quasi-static) noise that shifts the crossing, and it shows which device or resistor dominates. It is fast enough to be used for sizing.
+
+**How it works.** Output noise of S1 (.noise, source = the pad generator through 50 ohm) divided by the gain |v(s1)/v(vin)| gives the gate-referred PSD. Jitter PSD = S_gate/s_gate^2 with s_gate = pi f V_pp |v(vin)/v(pad)| at 50 MHz; L(f) = (2 pi f_ref)^2 S_t(f)/2 for f << f_ref.
+
+**How to run it.** `design/refbuf/refbuf.py: input_noise(); step76_noise.py`
+
+**Limits.** Valid for slow noise only; the white, fast noise of a switching comparator needs M15.
+
+## M15. Transient-noise jitter (trnoise injection, edge-time statistics) (step 76)
+
+**What it gives.** Per-edge jitter and its spectrum for the real, non-linear switching of the receiver
+
+**Why this method.** In a high-gain comparator the small-signal gain at DC (~190) is not the gain that applies while the input sweeps through the threshold (~30), so 'integrated output noise / output slope' is wrong by about 2x. Simulating the switching with noise present measures the jitter directly.
+
+**How it works.** The white plateau of the M14 noise, referred to the pad, is injected as a trnoise voltage (time step 10 ps, i.e. 50 GHz bandwidth) in series with the 50 ohm source of a noiseless circuit. 300 refclk rising-edge times are interpolated; a 4th-order polynomial removes the deterministic settling of the AC-coupling bias; the rms deviation is the per-edge jitter (period jitter / sqrt 2 agrees, so the jitter is white). L_floor = (2 pi f sigma)^2 / f.
+
+**How to run it.** `design/refbuf/tn_run.py (refbuf.tnoise, edge_stats)`
+
+**Limits.** Noise sources stationary at their crossing-point level; 300 edges give sigma to about +/-4 %; ~10 min per run.
+
+## M16. Large-signal transient: delay, duty, edge rate, supply current, supply sensitivity, start-up (step 76)
+
+**What it gives.** Delay pad->out, duty, 10-90 % rise time, average supply currents over corners, amplitudes, frequencies and supplies; edge-time sensitivity to VDDA / VDDL; start-up after enable; the disabled state
+
+**Why this method.** These are large-signal properties of a switching circuit; only a transient shows them. A finite difference of two transients (supply +10 mV) gives the supply sensitivity of the edge time directly in ps/mV.
+
+**How it works.** Sine (or square) source at the pad through 50 ohm; 14 cycles, the last 5 evaluated in numpy from the waveforms (interpolated crossings). Start-up: pll_en steps at 0.5 us, 25 us run, first edge after which all periods are within 2 % of 1/f.
+
+**How to run it.** `design/refbuf/step76_sim.py; xschem: tb_refin (to be drawn in phase 8)`
+
+**Limits.** Drawn netlist with PDK resistors and MIM capacitors; no layout parasitics yet.
