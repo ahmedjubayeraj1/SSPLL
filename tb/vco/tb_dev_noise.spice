@@ -1,0 +1,28 @@
+* tb_dev_noise - method M3: drain-current noise of one transistor at a fixed bias (step 72/74)
+* Run:  tb/run.sh tb/vco/tb_dev_noise.spice tt 27
+* The device is biased by ideal sources; a 0 V source (vm) measures its drain current and a current-controlled
+* voltage source (h1, 1 V per A) turns that current into a voltage, so .noise reports the drain current noise in A/rtHz.
+* At low frequency you see flicker (1/f), at high frequency the thermal floor 4kT*gamma*gm; their crossing is the
+* device's flicker corner. vco.py: noise_table() does this over many biases for each (model, L).
+
+.lib __PDK__/libs.tech/ngspice/sky130.lib.spice __CORNER__
+.temp __TEMP__
+vd  d  0 0.9                 ; drain at 0.9 V
+vm  d  dd 0                  ; ammeter
+vg  g  0 dc 0.75 ac 1        ; gate bias (the ac 1 only marks the noise "input" source)
+x1 dd g 0 0 sky130_fd_pr__nfet_01v8 w=4.5 l=0.3 nf=1
+h1 o 0 vm 1                  ; v(o) = drain current (A -> V)
+.control
+option sparse                ; .noise needs the sparse solver (KLU fails here)
+op
+print @m.x1.msky130_fd_pr__nfet_01v8[id] @m.x1.msky130_fd_pr__nfet_01v8[gm]
+noise v(o) vg dec 10 1e3 1e9
+setplot noise1
+wrdata noise_id.txt onoise_spectrum
+noise v(o) vg lin 1 1e3 1e3
+print onoise_spectrum
+noise v(o) vg lin 1 1e8 1e8
+print onoise_spectrum
+echo "RESULT the two values above: drain-current noise (A/rtHz) at 1 kHz and 100 MHz; full spectrum in noise_id.txt"
+.endc
+.end
