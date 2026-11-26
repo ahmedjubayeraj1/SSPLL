@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """hv_system.py - the budget phase-domain model (method M9) with every block measured so far in the 800 MHz / 5 V
-redo put in place of its allocation. Each design step from 76 on calls system() with its own block, so all steps
-report the same, cumulative system number.
+redo put in place of its allocation. Each block design from the reference receiver on calls system() with its own block, so all
+block designs report the same, cumulative system number.
 
-Measured blocks used (update this list when a step is finished):
+Measured blocks used (update this list when a block is finished):
   the loop design  loop filter R1, C1, C2                       design/loop/data/loop_hv_design.json
   the VCO design  ring thermal L and 1/f^3 corner (hl6)        design/vco/data/vco_hv_hl6.json
   the CCO design  CCO output-current noise, K_vdd(f)           design/cco/data/cco_hv_noise.json, cco_hv_sim.json

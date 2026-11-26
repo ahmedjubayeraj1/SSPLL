@@ -34,10 +34,12 @@ D = dict(
     # sscp_hv_cin.py; 24-29 fF over corners and codes), not the 8 fF placeholder. C1 = 2.69 x 2.69 um (16.2 fF) keeps
     # C1 + C_Gm = 42.7 fF, so the sampled node, A, alpha, kT/C and power stay where they were, and the dummy CD
     # (= C1 + C_Gm) stays 4.4 x 4.4 um. (The SSPD verification ran with 2.73 um + a 26.0 fF load: the same 42.7 fF.)
-    C1=("cap_mim_m3_1", 2.69, 1, 2.69), C2=("cap_mim_m3_1", 4.0, 1, 4.0),   # 16.2 / 34.6 fF
+    # C2 resized after the D2S design the same way: the D2S input is 5.5 fF at tt (pMOS pair, d2s_hv_sim.py B), not the
+    # 4 fF placeholder, so C2 = 3.91 x 3.91 um (33.1 fF) keeps C2 + C_D2S = 38.6 fF and alpha where it was.
+    C1=("cap_mim_m3_1", 2.69, 1, 2.69), C2=("cap_mim_m3_1", 3.91, 1, 3.91),   # 16.2 / 33.1 fF
     CD=("cap_mim_m3_1", 4.4, 1, 4.4),                  # 41.6 fF: dummy = C1 + the Gm input
 )
-LOAD = dict(gm=26.5e-15, ncb=4e-15)    # Gm input on v1 (measured in the Gm design: 26.5 fF at lock, tt) and the NCB input on v2 (placeholder)
+LOAD = dict(gm=26.5e-15, ncb=5.5e-15)  # Gm input on v1 (measured in the Gm design: 26.5 fF at lock, tt) and the D2S input on v2 (D2S design: 5.5 fF at tt)
 VCODRV = ((N5, 1.2, 1, 0.5), (P5, 3.0, 1, 0.5))      # the ring's AC-coupled buffer output stage (VCO design)
 
 

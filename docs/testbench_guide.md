@@ -461,6 +461,49 @@ Each entry gives: **purpose** · **set-up and why** · **what to look at** · **
   benches are `tran`, and the charge per period is `integ(i("/vvc/PLUS") t1 t2)`. The behavioural ring is easiest as
   Verilog-A (`V(clk) <+ 1.65*(1 + tanh(6*sin(2*`M_PI*phase)))` with `phase = idt(f(V(vctl)))`).
 
+#### Diff-to-SE amplifier benches (M28–M30, M18, M19, M21) — `design/d2s/d2s_hv_sim.py`
+- **Purpose.** Show that the D2S turns v2p − v2m into vff with a steady gain, fast enough, quiet enough and with a
+  supply-independent rest level, and that it does so with the real SSPD in front of it.
+- **M28 — amplifier characterisation (parts A, B, G).**
+  - **DUT.** `sspll_d2s_hv` with ideal sources: VDDA, ib = 2 µA (`iib VDDA ib`), en_b, 40 fF on vff (the NCB input).
+  - **DC transfer (A).** B-sources put inp = CM + v_d/2 and inm = CM − v_d/2; `dc vd -0.5 0.5 0.005`. CM is the SSPD's
+    measured sampled common mode at that condition (it tracks VDDA). From vff(v_d): V_0 (v_d = 0), G = dvff/dv_d at 0
+    and its minimum over the lock window (v_d = −0.10…+0.30 V), and the range where G stays within 10 %.
+  - **AC (B).** inp = AC +0.5, inm = AC −0.5 at the lock-window bias (v_d = 0.18 V): |G(f)|, f_3dB, phase at f_ref/7.8.
+  - **Input capacitance (B).** One input AC 1 V, the other AC 0, `ac lin 1 1e6 1e6`; C = Im(I)/(2π f). It includes the
+    Miller part from vff, which is why the two inputs differ.
+  - **Enable (G).** The DC sweep again with en_b = VDDA: vff must stay at V_0 whatever the input.
+  - **Why this way:** the D2S is used at DC-to-tens-of-MHz signals around a bias point, so DC and AC at that point
+    describe it; the sweep over the window shows what happens away from the point.
+- **M29 — noise to output timing (part C).**
+  - One differential source `vd` (AC 1) drives the inputs through two E-sources (±0.5), so `.noise v(vff) vd` refers
+    the noise to the differential input.
+  - **`option sparse`** (KLU does not support noise) and **every poly resistor replaced by an ideal R of the same value**
+    (`ideal_r()`: the value is measured with an `op` at that corner and temperature). The SKY130 poly resistors are
+    noiseless in ngspice; without this step R_DEG and R_L (about half of the white noise) would be missing. A second run
+    with the PDK resistors gives the transistor-only spectrum.
+  - **Conversion:** after calibration the chain makes 1/K_t seconds of NCB delay per volt at the D2S input, so
+    S_t(f) = S_v,in(f)/K_t², with K_t = 2·dv/dt of the SSPD at the same condition. The jitter is √∫S_t df from 10 kHz to
+    40 MHz; it adds at the output with transfer one.
+- **M21 — supply (part D).** `vdda` gets `ac 1`. Two cases: inputs at a fixed CM, and inputs as E-sources from VDDA
+  (CM/VDDA = the SSPD's ratio), because the real CM follows VDDA. A third run moves only the CM. K_s = max |vff/VDDA| up to
+  40 MHz divided by G·K_t: the output timing per volt of VDDA.
+- **M30 — mismatch Monte Carlo (part F).** `.param mc_mm_switch=1` after the `.lib` line switches on the per-device
+  mismatch of the SKY130 models; `setseed N` in the `.control` block gives each run its own draw. 60 runs of a short
+  DC sweep: V_0 and G. **Why:** the offset sets where the NCB sits, the gain spread what the calibration must cover.
+- **Whole path (part E, M18).** The SSPD bench (`sspd_hv.bench`: SSPD + clock generator, ring = squares at
+  (16 + 1/64)·f_ref, so the sampling phase walks 2π/64 per period) with the D2S core instead of the 4 fF placeholder on
+  v2. Per period: v2p − v2m and vff just before the next hold, against the phase. Slopes near the crossing give the gain of
+  the whole path. **Why:** it checks the D2S with the real hold waveform and with its own capacitance on C2.
+- **Lock ripple (part H, M19).** The same bench with the ring at exactly 16·f_ref (nb = 10¹⁵) and the sampling phase
+  set φ0 from the crossing, as the SSPD's kick-back bench. vff over the last periods: its f_ref component a1 becomes an
+  NCB delay modulation a1/(G·K_t) every period, i.e. a reference spur 20·log(π f_0 Δt_1).
+- **xschem.** `xschem/d2s_hv/sspll_d2s_hv.sym`; two `vsource` on the inputs (`value="dc 1.75 ac 0.5"` and
+  `"dc 1.57 ac -0.5"`), an `isource` for ib, a `capa` 40f on vff; `.dc`, `.ac`, `.noise` in a `code_shown` block; add
+  `.param mc_mm_switch=1` for Monte Carlo.
+- **Cadence.** Same benches with `vdc` / `idc`; Spectre `dc`, `ac`, `noise` (check whether the kit's poly resistors
+  carry thermal noise), `montecarlo` with mismatch only; the whole path is the SSPD testbench with the D2S symbol on v2.
+
 #### moscap_hv_cv — C-V of the 5 V loop-filter capacitor (M6)
 - **Purpose.** The loop design needs the capacitance per area of the thick-oxide MOS capacitor that now forms C1, and the
   V_cont range over which it is flat. It also needs MIM1 and MIM2 for comparison.

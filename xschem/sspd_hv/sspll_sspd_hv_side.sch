@@ -92,7 +92,7 @@ C {devices/lab_pin.sym} 1220 180 0 0 {name=l_VSSA_27 sig_type=std_logic lab=VSSA
 C {devices/opin.sym} 2200 -260 0 1 {name=p_v1 lab=v1}
 C {sky130_fd_pr/cap_mim_m3_1.sym} 1220 550 0 0 {name=XCD W=4.4 L=4.4 MF=1 model=cap_mim_m3_1 spiceprefix=X}
 C {devices/lab_pin.sym} 1220 600 0 0 {name=l_VSSA_30 sig_type=std_logic lab=VSSA}
-C {sky130_fd_pr/cap_mim_m3_1.sym} 1780 130 0 0 {name=XC2 W=4.0 L=4.0 MF=1 model=cap_mim_m3_1 spiceprefix=X}
+C {sky130_fd_pr/cap_mim_m3_1.sym} 1780 130 0 0 {name=XC2 W=3.91 L=3.91 MF=1 model=cap_mim_m3_1 spiceprefix=X}
 C {devices/lab_pin.sym} 1780 180 0 0 {name=l_VSSA_32 sig_type=std_logic lab=VSSA}
 C {devices/opin.sym} 2200 0 0 1 {name=p_v2 lab=v2}
 C {devices/ipin.sym} 60 700 0 0 {name=p_cks lab=cks}

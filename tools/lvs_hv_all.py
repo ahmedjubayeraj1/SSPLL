@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""lvs_hv_all.py - writes the LVS reference netlists of the eight blocks (5 V analog and the FLL) from the simulated netlists, then runs
+"""lvs_hv_all.py - writes the LVS reference netlists of the nine blocks (5 V analog and the FLL) from the simulated netlists, then runs
 xschem/lvs.sh on every drawn cell that has a matching .subckt in its block's reference (cell by cell, bottom up, so a
 mismatch points at the cell that has it). Prints one line per cell: match / mismatch and the property-error line."""
 import os, re, sys, subprocess
@@ -8,7 +8,8 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import ground_split_check as G
 
 BLOCKS = dict(cco_hv="ref_cco_hv", clkgen_hv="ref_clkgen_hv", refbuf_hv="ref_refbuf_hv", sspd_hv="ref_sspd_hv",
-              sscp_hv="ref_sscp_hv", vco_hv="ref_vco_hv", lf_hv="ref_lf_hv", fll_hv="ref_fll_hv")
+              sscp_hv="ref_sscp_hv", vco_hv="ref_vco_hv", lf_hv="ref_lf_hv", fll_hv="ref_fll_hv",
+              d2s_hv="ref_d2s_hv")
 
 if __name__ == "__main__":
     nets = G.netlists()
@@ -19,6 +20,9 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.join(ROOT, "design", "fll"))   # the FLL design FLL
     import fll_hv
     nets["ref_fll_hv"] = fll_hv.fll_top()
+    sys.path.insert(0, os.path.join(ROOT, "design", "d2s"))   # the diff-to-SE amplifier
+    import d2s_hv
+    nets["ref_d2s_hv"] = d2s_hv.lvs_reference()
     xs = os.path.join(ROOT, "xschem")
     bad = 0
     for blk, ref in BLOCKS.items():

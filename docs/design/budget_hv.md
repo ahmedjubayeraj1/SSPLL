@@ -51,7 +51,7 @@ Phase noise at 300 kHz is −116.2 dBc/Hz (FFNC off) and −125.8 dBc/Hz (on) ty
 
 ### What happens
 
-**Same method as the first the system budget.** Every block adds an independent timing error. The output jitter is the root-sum-square of all of them, each one shaped by its path to the output. The budget gives each block a number in its own units, which its design step must meet.
+**Same method as the first (1.6 GHz) budget.** Every block adds an independent timing error. The output jitter is the root-sum-square of all of them, each one shaped by its path to the output. The budget gives each block a number in its own units, which its design step must meet.
 
 **What changed is the technology under the blocks.**
 - 5 V (thick-oxide) transistors are about 5× slower (f_T 10.9 GHz vs 58 GHz at g_m/I_D = 10). Their noise is also different.
@@ -156,18 +156,18 @@ The filter capacitance scales with β·K_VCO; N cancels because the charge-pump 
 
 ![phase noise](../img/budget_hv_phase_noise.png)
 
-## C. Block targets that come out of the budget (each block's design step must meet these)
+## C. Block targets that come out of the budget (each block's design must meet these)
 
-| Block | Typical target | Pessimistic limit | Design step |
+| Block | Typical target | Pessimistic limit | Designed in |
 |---|---|---|---|
-| Ring VCO core (5 V, 3-stage) | L(1 MHz) ≤ −104.4 dBc/Hz at 800 MHz (FoM −155.6 dB with the 4.86 mW CCO supply power); 1/f³ corner ≤ 0.6 MHz | −101.4 dBc/Hz, 1.2 MHz | 74 |
-| CCO current DAC + mirror | L ≤ −110.2 dBc/Hz (i_n ≤ 7.2 pA/√Hz at 1 MHz, K_I = 0.61 GHz/A); flicker corner ≤ 0.3 MHz | −107.2 (10.1 pA/√Hz), 0.6 MHz | 75 |
-| CCO output impedance → VDDA pushing | K_vdd ≤ 5 MHz/V | 20 MHz/V | 74/75 |
-| REF receiver + clock gen + level shifters | floor ≤ −155 dBc/Hz at 50 MHz, corner ≤ 30 kHz | −151, 100 kHz | 76–78 |
-| NCB intrinsic | ≤ −156 dBc/Hz at 800 MHz, corner ≤ 1 MHz | −152, 3 MHz | 80 |
-| NCB VDDA sensitivity | K_s ≤ 104 ps/V | 120 ps/V | 80 |
+| Ring VCO core (5 V, 3-stage) | L(1 MHz) ≤ −104.4 dBc/Hz at 800 MHz (FoM −155.6 dB with the 4.86 mW CCO supply power); 1/f³ corner ≤ 0.6 MHz | −101.4 dBc/Hz, 1.2 MHz | VCO |
+| CCO current DAC + mirror | L ≤ −110.2 dBc/Hz (i_n ≤ 7.2 pA/√Hz at 1 MHz, K_I = 0.61 GHz/A); flicker corner ≤ 0.3 MHz | −107.2 (10.1 pA/√Hz), 0.6 MHz | CCO |
+| CCO output impedance → VDDA pushing | K_vdd ≤ 5 MHz/V | 20 MHz/V | VCO, CCO |
+| REF receiver + clock gen + level shifters | floor ≤ −155 dBc/Hz at 50 MHz, corner ≤ 30 kHz | −151, 100 kHz | receiver, clock generator, SSPD |
+| NCB intrinsic | ≤ −156 dBc/Hz at 800 MHz, corner ≤ 1 MHz | −152, 3 MHz | NCB |
+| NCB VDDA sensitivity | K_s ≤ 104 ps/V | 120 ps/V | NCB |
 | Board VDDA at the die | ≤ 100 nV/√Hz (10 kHz corner) | 300 nV/√Hz | test plan |
-| SSPD | A ≥ 0.5 V/rad, C_s ≥ 35 fF | — | 78 |
+| SSPD | A ≥ 0.5 V/rad, C_s ≥ 35 fF | — | SSPD |
 
 ## D. Power budget (mW, P worst = I × 1.3 at 3.63 V / 1.89 V; ring from the VCO CCO limit)
 

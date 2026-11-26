@@ -45,15 +45,15 @@ Every other row is equal or tighter.
 
 ## Typical power, block by block (FFNC on, tt)
 
-| Block | Step | mW |
-|---|---|---|
-| After the VCO design: ring 3.69 (instead of 4.86), two buffers 0.59 (instead of 0.99), other blocks as budgeted | 74 | 7.55 |
-| CCO overhead 0.23 (instead of 0.41) | 75 | −0.18 |
-| REF receiver 0.23 (instead of 0.20) | 76 | +0.03 |
-| Clock generator 0.72 (instead of 0.41 incl. level shifters) | 77 | +0.31 |
-| SSPD 1.03 (instead of 0.49) | 78 | +0.54 |
-| Pulsed-Gm charge pump 0.30 (instead of 0.17) | 79 | +0.13 |
-| **Total** | | **8.38** |
+| Block | mW |
+|---|---|
+| After the VCO design: ring 3.69 (instead of 4.86), two buffers 0.59 (instead of 0.99), other blocks as budgeted | 7.55 |
+| CCO overhead 0.23 (instead of 0.41) | −0.18 |
+| REF receiver 0.23 (instead of 0.20) | +0.03 |
+| Clock generator 0.72 (instead of 0.41 incl. level shifters) | +0.31 |
+| SSPD 1.03 (instead of 0.49) | +0.54 |
+| Pulsed-Gm charge pump 0.30 (instead of 0.17) | +0.13 |
+| **Total** | **8.38** |
 
 FFNC off removes the NCB (1.45 mW): 6.93 mW.
 
