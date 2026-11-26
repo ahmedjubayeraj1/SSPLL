@@ -13,4 +13,4 @@ Setup (once): `./tools/setup_python.sh` (creates `.venv`, installs, registers th
 Then `source .venv/bin/activate && jupyter lab models/template.ipynb`.
 Figures go to `models/out/` (not committed). Commit notebooks with cleared outputs.
 
-The equations are written out in `pllmodel/__init__.py` and derived in the documentation (docs/book, chapters 2-6).
+The equations are written out in `pllmodel/__init__.py` and derived in the documentation (the documentation book, chapters 2-6, in SSPLL_Personal).

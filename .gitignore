@@ -38,4 +38,5 @@ audit/
 vco_study/
 correlation/
 tools/cadence/
-docs/book/C_correlation.md
+docs/book/
+mkdocs.yml
