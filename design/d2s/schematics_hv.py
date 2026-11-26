@@ -99,7 +99,7 @@ def core(p, DXY, LXY):
     stub(s, M2["G"], "d1", 60, flip=1)
     stub(s, M1["S"], "VSSA", 0, 30); stub(s, M2["S"], "VSSA", 0, 30)
     # output level column
-    RP = M(s, "XRP", P5, XO, -820, p["MP"], "VDDA", mult=nr); RS = M(s, "XRS", P5, XO, -600, p["MPS"], "VDDA", mult=nr)
+    RP = M(s, "XRP", P5, XO, -820, p["MPR"] or p["MP"], "VDDA", mult=nr); RS = M(s, "XRS", P5, XO, -600, p["MPS"], "VDDA", mult=nr)
     stub(s, RP["S"], "VDDA", 0, -30); s.wire(RP["D"], RS["S"]); stub(s, RP["G"], "pg", -60); stub(s, RS["G"], "VSSA", -60)
     MR = M(s, "XR", N5, XO, 300, p["MR"], "VSSA")
     s.wire(RS["D"], MR["D"])

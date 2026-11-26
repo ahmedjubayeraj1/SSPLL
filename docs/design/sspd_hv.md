@@ -21,7 +21,7 @@ cd ../../xschem && ./lvs.sh sspd_hv/sspll_sspd_hv.sch netlist/ref_sspd_hv.spice 
 Each side (p from `clkp`, m from `clkm`, the ring's 3.3 V buffered outputs) has a two-inverter **isolation buffer**,
 a series resistor **R_s ≈ 3.4 kΩ** that rounds the square wave into a near-sine of defined slope, a 5 V **sampling TG**
 onto **C1** (16.2 fF MIM plus the Gm's 26.5 fF input = 42.7 fF), a **dummy sampler** on the opposite phase and a **hold TG**
-onto **C2 = 33.1 fF** (plus the 5.5 fF diff-to-SE amplifier input). Every device
+onto **C2 = 32.2 fF** (plus the 6.1 / 7.0 fF diff-to-SE amplifier input). Every device
 is a g5v0d10v5 on VDDA. The detector gain is **A = 0.811 V/rad** per side at tt (target 0.8),
 0.536–1.145 over 18 conditions (MOS × R/C corners, −40…110 °C, VDDA ±10 %, 45/55 MHz). The hold has
 **α = 0.451** and unity DC gain (1.004). The sampler moves the ring-buffer edge by
@@ -73,9 +73,9 @@ $$\mathcal{L}_{kT/C} = \frac{kT}{2\,C_s\,A^2 f_{ref}} = -148.6\ \text{dBc/Hz}\qu
 ### Why it happens this way
 - **Defined slope, wide linear range.** A raw 3.3 V square would give a slope set by the inverter edge and a linear range
   of picoseconds. The RC near-sine sets A by R·C and is linear over about ±0.6 rad.
-- **C2 was resized the same way after the diff-to-SE amplifier (D2S) design.** Its pMOS input is 5.5 fF at tt
-  (4.3–7.1 fF over corners), not the 4 fF placeholder, so C2 went from 4.0 × 4.0 to 3.91 × 3.91 µm (34.6 → 33.1 fF): the
-  hold node stays at 38.6 fF and α where it was. The whole-path bench of the D2S (SSPD + D2S in one run) measures α with
+- **C2 was resized the same way after the diff-to-SE amplifier (D2S) design.** Its pMOS input is 6.1 / 7.0 fF at tt
+  (4.9–8.4 fF over corners; the side driving the output sees more Miller capacitance), not the 4 fF placeholder, so C2
+  went from 4.0 × 4.0 to 3.85 × 3.85 µm (34.6 → 32.2 fF, for the mean): the hold node stays at 38.6 fF and α where it was. The whole-path bench of the D2S (SSPD + D2S in one run) measures α with
   the real input.
 - **Gm reads C1, not C2.** No charge-sharing pole z = α inside the loop (it would cost about 16° at f_c = f_ref/20).
 - **The sampled node is 45.7 fF, of which the MIM is only 16.2 fF.** The Gm design measured the Gm's input capacitance:
@@ -98,7 +98,7 @@ $$\mathcal{L}_{kT/C} = \frac{kT}{2\,C_s\,A^2 f_{ref}} = -148.6\ \text{dBc/Hz}\qu
 | Shaping | square, R_s + C | **R_s + C** | A set by R·C; linear range ±0.6 rad |
 | R_s | xhigh_po 0.35 µm × 0.8 / 0.6 / 0.5 µm | **0.6 µm** | A = 0.812 V/rad (table below) |
 | Sampling switch | nMOS, TG 3/6, TG 4/8 µm | **TG 3/6 µm** | the wider switch lowers A (more junction C) and costs 4 % more power |
-| C1, C2 | 35 / 16 fF MIM | **C1 16.2 fF (+ 26.5 fF Gm), C2 33.1 fF (+ 5.5 fF D2S)** | node kept at 45.7 fF (the system budget: ≥ 35 fF) after the Gm input was measured |
+| C1, C2 | 35 / 16 fF MIM | **C1 16.2 fF (+ 26.5 fF Gm), C2 32.2 fF (+ 6.5 fF D2S)** | node kept at 45.7 fF (the system budget: ≥ 35 fF) after the Gm input was measured |
 | What the Gm reads | C2, C1 | **C1** | no z = α pole in the loop |
 | Dummy | none, copy | **copy, CD = C1 + Gm input** | f_ref supply current −31 dB |
 
@@ -121,7 +121,7 @@ $$\mathcal{L}_{kT/C} = \frac{kT}{2\,C_s\,A^2 f_{ref}} = -148.6\ \text{dBc/Hz}\qu
 - v1p − v1m is read in the middle of the Gm pulse, v2p − v2m 0.5 ns after the hold; A = half the slope of a line fit
   within ±0.35 rad of the zero crossing; α and the hold DC gain from a least-squares fit of
   v2[k] = a·v1[k] + b·v2[k−1].
-- Loads: 26 fF on each v1 (the Gm input as first measured in the Gm design, at lock; the final Gm has 26.5 fF and C1 is 0.5 fF larger to match), 4 fF on each v2 (the placeholder for the D2S input; the D2S measures 5.5 fF and C2 is 1.5 fF smaller to match).
+- Loads: 26 fF on each v1 (the Gm input as first measured in the Gm design, at lock; the final Gm has 26.5 fF and C1 is 0.5 fF larger to match), 4 fF on each v2 (the placeholder for the D2S input; the D2S measures 6.1 / 7.0 fF and C2 is 2.4 fF smaller to match).
 
 ![corners](../img/sspd_hv_corners.png)
 
@@ -230,7 +230,7 @@ Proposal: typ 2.6 / 1.6 ps and −114 / −124 dBc/Hz; max 5.0 / 3.2 ps and −1
 | xs1, xsd: XN / XP | nfet_g5v0d10v5 / pfet_g5v0d10v5 | 3.0 / 6.0 × 1 | 0.5 µm | sampling and dummy TG |
 | xs2: XN / XP | nfet_g5v0d10v5 / pfet_g5v0d10v5 | 1.0 / 2.0 × 1 | 0.5 µm | hold TG |
 | XC1 | cap_mim_m3_1 | 2.69 × 2.69 µm | — | 16.2 fF, bottom plate on VSS; + 26.5 fF Gm input = the sampled node |
-| XC2 | cap_mim_m3_1 | 3.91 × 3.91 µm | — | 33.1 fF (+ 5.5 fF D2S input = 38.6 fF) |
+| XC2 | cap_mim_m3_1 | 3.85 × 3.85 µm | — | 32.2 fF (+ 6.5 fF D2S input = 38.7 fF) |
 | XCD | cap_mim_m3_1 | 4.4 × 4.4 µm | — | ≈ 41.6 fF = C1 + the Gm input |
 
 Gate load on each of cks / cksb: two 5 V TG gates per side (n 3 µm or p 6 µm, L 0.5 µm), about 25–30 fF from the gate
@@ -252,7 +252,7 @@ area — inside the 60 fF the clock generator was verified with. On ckh / ckhb: 
 1. **Pulsed Gm:** reads v1p − v1m during ckg; input capacitance 26.5 fF per side (measured; C1 and CD sized for it); input
    common mode 1.43–1.90 V; linear range ≥ ±0.1 V differential (±0.06 rad at A_tt; the locked phase error is about 6.5 mrad rms); β·K_VCO with A = 0.811 V/rad
    and the ×0.81–1.35 spread above.
-2. **Diff-to-SE amplifier (D2S) → NCB:** reads v2p − v2m, 5.5 fF per side (measured in the D2S design; C2 sized for it); first-order memory α = 0.451.
+2. **Diff-to-SE amplifier (D2S) → NCB:** reads v2p − v2m, 6.1 / 7.0 fF (measured in the D2S design; C2 sized for the mean); first-order memory α = 0.451.
 3. **Ring buffers (VCO design):** clkp/clkm drive XB1 only (≈ 3 fF each).
 4. **Layout:** p/m mirror symmetry; C1/C2/CD as matched MIM tiles; equal cks routes to both sides, away from v1; v1 and
    v2 shielded; R_s next to the switch.

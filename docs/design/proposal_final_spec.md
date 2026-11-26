@@ -43,6 +43,10 @@ Neither block moved toward worse noise; they loosened only because the margin is
 
 Every other row is equal or tighter.
 
+**Update after the diff-to-SE amplifier and NCB designs (26 Nov 2026):** typical power with FFNC on is now 8.72 mW
+(table below), still under the proposal's 9.6 mW. FFNC-on jitter with both blocks in the system model: 1.43 ps typ
+(budget cancellation model) / 1.28 ps (real hold), 2.33 / 2.18 ps pessimistic: under 1.6 / 3.0 ps.
+
 ## Typical power, block by block (FFNC on, tt)
 
 | Block | mW |
@@ -53,9 +57,10 @@ Every other row is equal or tighter.
 | Clock generator 0.72 (instead of 0.41 incl. level shifters) | +0.31 |
 | SSPD 1.03 (instead of 0.49) | +0.54 |
 | Pulsed-Gm charge pump 0.30 (instead of 0.17) | +0.13 |
-| **Total** | **8.38** |
+| Diff-to-SE amplifier 0.14 + NCB 1.65 at code 5 (instead of 1.45 for both) | +0.34 |
+| **Total** | **8.72** |
 
-FFNC off removes the NCB (1.45 mW): 6.93 mW.
+FFNC off removes the D2S and the NCB (1.79 mW): 6.93 mW.
 
 ## Worst-case power (block sums, ×1.3 current at 3.63 V where a block has no measured worst case)
 

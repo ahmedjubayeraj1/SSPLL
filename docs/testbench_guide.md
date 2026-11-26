@@ -489,7 +489,9 @@ Each entry gives: **purpose** · **set-up and why** · **what to look at** · **
   (CM/VDDA = the SSPD's ratio), because the real CM follows VDDA. A third run moves only the CM. K_s = max |vff/VDDA| up to
   40 MHz divided by G·K_t: the output timing per volt of VDDA.
 - **M30 — mismatch Monte Carlo (part F).** `.param mc_mm_switch=1` after the `.lib` line switches on the per-device
-  mismatch of the SKY130 models; `setseed N` in the `.control` block gives each run its own draw. 60 runs of a short
+  mismatch of the SKY130 models. The random values are drawn when ngspice parses the netlist, and each run is a new
+  ngspice process with its own seed (a `setseed` inside `.control` comes too late to change them). Whatever must see
+  the same mismatch therefore goes into one run: here one DC sweep gives both V_0 and G. 60 runs of a short
   DC sweep: V_0 and G. **Why:** the offset sets where the NCB sits, the gain spread what the calibration must cover.
 - **Whole path (part E, M18).** The SSPD bench (`sspd_hv.bench`: SSPD + clock generator, ring = squares at
   (16 + 1/64)·f_ref, so the sampling phase walks 2π/64 per period) with the D2S core instead of the 4 fF placeholder on
@@ -503,6 +505,37 @@ Each entry gives: **purpose** · **set-up and why** · **what to look at** · **
   `.param mc_mm_switch=1` for Monte Carlo.
 - **Cadence.** Same benches with `vdc` / `idc`; Spectre `dc`, `ac`, `noise` (check whether the kit's poly resistors
   carry thermal noise), `montecarlo` with mismatch only; the whole path is the SSPD testbench with the D2S symbol on v2.
+
+#### NCB benches (M31, M28–M30, M21, M18) — `design/ncb/ncb_hv_sim.py`
+- **Purpose.** Show that the delay line gives the K_d the chain needs at every corner after a one-time calibration,
+  with full swings, a fast control path, a light load on vff, and known supply sensitivity, noise and power.
+- **M31 — delay-line gain by transient differences (part A).**
+  - **DUT.** `sspll_ncb_hv` driven like the real one: two 0..VDDA squares at 800 MHz through the ring's buffer output
+    stage (5 V inverter 1.2/3.0 µm, as in the SSPD bench), 10 fF of other loads on the clock, 20 fF on out; code lines
+    from ideal sources; vff from a DC source.
+  - **Measurement.** 10 periods at 1 ps steps; the delay of every rising and falling edge from in to out at VDDA/2 over
+    the last four periods; the mean is t_d, rise minus fall the duty error, ∫i(VDDA) the power.
+  - **K_d.** Two runs at vff ± 20 mV around the lock point of that condition, vff = V_0 + G·2A·0.1 rad (V_0, G from the
+    D2S verification, A from the SSPD's): K_d = (t_d(−) − t_d(+))/40 mV.
+  - **Why a transient and not AC:** the delay of a switching line has no small-signal equivalent; the difference of two
+    large-signal runs is the slope.
+  - **Calibration check.** The required K_d is 1/(G·K_t) at each condition. The code is chosen at 27 °C, nominal VDDA
+    for each corner section (part P runs the SSPD beat bench, M18, and the D2S DC bench at those four conditions); the
+    gain error of that code is then read at −40 / 110 °C and VDDA ±10 % of the same section.
+- **Control path (B, M28).** Line idle (in = 0), `ac` from vff: |v(nb)| and |v(pd)| give the mirror's bandwidth;
+  Im(I(vvf))/2πf at 1 MHz the capacitance on vff.
+- **VDDA (C, M21).** The delay at VDDA ± 0.1 V with vff held (the D2S refers it to VSSA); the ring-buffer stage moves
+  with VDDA too, but the delay is measured from the line's own input.
+- **Bias noise (D, M29).** `.noise` with the output at nb and at pd, input vff (inoise = noise referred to vff);
+  `option sparse`. Times K_d it is the delay noise the bias adds.
+- **Mismatch (E, M30).** The K_d bench with `.param mc_mm_switch=1`, 24 runs at tt, code 8. Both vff values run in
+  the same ngspice session (`alter vvf = …` and a second `tran`): a second process would draw a different mismatch
+  and the difference of the two delays would be noise (the first attempt gave K_d from −126 to +400 ps/V).
+- **xschem.** `xschem/ncb_hv/sspll_ncb_hv.sym` (or `_top` with the level shifters and 1.8 V code inputs); a `vsource`
+  pulse for the clock through an inverter, `vsource` for vff and the code lines; `.tran 1p 12.5n` and `.meas` of the
+  crossing times (`.meas tran d1 trig v(in) val=1.65 rise=7 targ v(out) val=1.65 rise=7`).
+- **Cadence.** The same with `vpulse`/`vdc`; Spectre `tran` and the calculator's `delay()` function; `montecarlo` with
+  mismatch for E.
 
 #### moscap_hv_cv — C-V of the 5 V loop-filter capacitor (M6)
 - **Purpose.** The loop design needs the capacitance per area of the thick-oxide MOS capacitor that now forms C1, and the

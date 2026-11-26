@@ -8,7 +8,7 @@ C  noise: input-referred spectrum (resistors replaced by ideal ones of the same 
 D  VDDA -> vff (inputs at a fixed CM, and with the CM following VDDA as the SSPD's does), CM -> vff        (M21)
 E  whole path: SSPD + clock generator + D2S core in one beat run: vff per period vs phase, slope, alpha
    with the real input capacitance, settling after each hold update                                       (M18)
-F  mismatch Monte Carlo (mc_mm_switch = 1, 60 seeds): V_0 and G spread                                    (M30)
+F  mismatch Monte Carlo (mc_mm_switch = 1, 60 runs, each its own ngspice process and draw): V_0 and G spread                                    (M30)
 G  enable: en = 0 -> vff = V_0 independent of the input, current                                           (M28)
 H  at lock (ring at exactly 16 f_ref): vff ripple at f_ref -> NCB delay modulation -> reference spur       (M19)
 Usage: python3 d2s_hv_sim.py [A B C ...]   (default: all)"""

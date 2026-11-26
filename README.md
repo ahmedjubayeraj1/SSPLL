@@ -5,7 +5,7 @@ Chipalooza Challenge #4 (Chip Foundry Sky130) entry. A ring-oscillator sub-sampl
 - **Frequency plan:** 50 MHz reference × 16 = 800 MHz, divided into 400, 200, 100 and 50 MHz outputs.
 - **Devices:** every analog circuit uses only the 5 V-rated `g5v0d10v5` devices on VDDA 3.3 V (ground VSSA). The digital logic uses the 1.8 V devices on VDDD (ground VSSD).
 - **Target:** 1.6 ps rms jitter (10 kHz–40 MHz) at about 10 mW.
-- **Status:** block design done for the budget, loop, VCO, CCO, reference receiver, clock generator, SSPD, pulsed-Gm charge pump, loop filter, FLL and the diff-to-SE amplifier of the FFNC path (pre-layout).
+- **Status:** block design done for the budget, loop, VCO, CCO, reference receiver, clock generator, SSPD, pulsed-Gm charge pump, loop filter, FLL and the FFNC path (diff-to-SE amplifier and noise-cancellation block) (pre-layout).
 
 | Folder / file | Content |
 |---|---|
@@ -25,6 +25,7 @@ Chipalooza Challenge #4 (Chip Foundry Sky130) entry. A ring-oscillator sub-sampl
 | `docs/design/lf_hv.md`, `design/loop/`, `xschem/lf_hv/` | Loop filter in real devices |
 | `docs/design/fll_hv.md`, `design/fll/`, `xschem/fll_hv/` | Frequency-locked loop (÷16, PFD + dead zone, lock detector, 5 V pump) |
 | `docs/design/d2s_hv.md`, `design/d2s/`, `xschem/d2s_hv/` | Diff-to-SE amplifier: SSPD hold output → NCB control voltage (FFNC path) |
+| `docs/design/ncb_hv.md`, `design/ncb/`, `xschem/ncb_hv/` | Noise-cancellation block: current-starved delay line with a 4-bit capacitor bank |
 | `docs/design/ground_split.md` | VSSA / VSSD assignment, and the proof that it changed nothing simulated |
 | `docs/testbench_guide.md` | Every testbench: what it measures, why, how it is set up and run |
 | `tools/xsch.py`, `xschem/lvs.sh`, `xschem/render.sh`, `tools/lvs_hv_all.py` | Schematic builder with drawing checks, schematic-vs-simulation LVS of every cell, PNG rendering |

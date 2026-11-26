@@ -31,15 +31,16 @@ N5, P5 = "nfet_g5v0d10v5", "pfet_g5v0d10v5"
 
 D = dict(
     MN=(P5, 8.0, 1, 1.0),            # input pair (pMOS, own n-well tied to the source: no body effect); L = 1 um: flicker
-    MP=(P5, 8.0, 1, 2.0),            # pMOS bias unit (2 uA, near weak inversion: low V_SD,sat for the tails at ss -40 C)
+    MP=(P5, 16.0, 1, 2.0),           # pMOS bias unit (2 uA, weak inversion: low V_SD,sat for the tails at ss -40 C)
+    MPR=(P5, 8.0, 1, 1.0),           # level-source unit: same W/L as MP at half the area (less drain capacitance on r)
     MPS=(P5, 2.0, 1, 0.5),           # pMOS tail switch (gate enb), one per unit; always-on copy in the bias diode
-    MTM=3,                           # tail units per side: I_T = 6 uA
+    MTM=4,                           # tail units per side: I_T = 8 uA (gain raised to 1.5 for the NCB, see the doc)
     K0=2,                            # pMOS bias diode units (fed by K0 nMOS units from ib)
     MT=(N5, 1.0, 1, 8.0),            # nMOS unit at ib (2 uA, the Gm design's quiet unit)
     MNM=(N5, 2.0, 1, 2.0),           # nMOS mirror (diode + output), 6 uA each: short enough for a fast mirror pole
-    MR=(N5, 2.0, 1, 1.0), NR=10,     # output-level diode: nMOS fed by NR pMOS units (20 uA): vff rests at its V_GS (1.24 V)
+    MR=(N5, 2.0, 1, 1.0), NR=7,      # output-level diode: nMOS fed by NR level-source units (~22 uA): vff rests at its V_GS (1.23 V)
     RU=("res_xhigh_po_0p69", 0.69, 6.76),   # unit resistor (~20 kOhm); R_L = NL units, R_DEG = ND units, in series
-    NL=2, ND=3, NDUM=1,              # dummy unit at each end of each string
+    NL=2, ND=2, NDUM=1,              # R_L = 2 units, R_DEG = 2 units; a dummy unit at each end of each string
     CF=(P5, 10.0, 1, 10.0), NCF=0,   # optional bias-line capacitor (pMOS gate cap, pg to VDDA)
     CR=(N5, 10.0, 1, 10.0), NCR=0,   # optional decoupling of r (rejected: it removes the 1/g_m(MR) part of G above ~30 MHz)
     IT=2e-6,                         # unit current (the bias input ib)
@@ -76,7 +77,7 @@ def cells(p=D):
           _m("m1", "d1", "d1", "VSSA", "VSSA", p["MNM"]) + _m("m2", "vff", "d1", "VSSA", "VSSA", p["MNM"]) +
           "* load R_L from vff to the output-level node r: nMOS diode MR fed by NR pMOS units\n" +
           "xrl vff r VSSA sspll_d2s_hv_rl\n" +
-          _m("rs", "r", "VSSA", "rq", "VDDA", p["MPS"], m=nr) + _m("rp", "rq", "pg", "VDDA", "VDDA", p["MP"], m=nr) +
+          _m("rs", "r", "VSSA", "rq", "VDDA", p["MPS"], m=nr) + _m("rp", "rq", "pg", "VDDA", "VDDA", p["MPR"] or p["MP"], m=nr) +
           _m("r", "r", "r", "VSSA", "VSSA", p["MR"]) +
           (_m("cr", "VSSA", "r", "VSSA", "VSSA", p["CR"], m=p["NCR"]) if p["NCR"] else "") +
           ".ends\n")
