@@ -316,3 +316,113 @@ MARGIN = list(_m.values()) + [
  ("Ring supply node", "abuse: code 31, IBIAS +20 %, ss/110 C", "guaranteed", "max", 1.8, "V", 1.793, 0.005, 0.01,
   "step 75 active clamp (referenced to VDDL)", "118"),
 ]
+
+
+# ------------------------------------------------------------------------------------------------ step 76 (REF buffer)
+STEPS.append((76, "REF_IN receiver (reference buffer)", "done", "docs/design/step76_refbuf.md",
+              "AC-coupled (3.6 pF) self-biased (5 Mohm) current-reuse stage, 60 uA header + C_H, 3.3 -> 1.8 V, NOR enable: "
+              "per-edge jitter 0.23 / 0.61 / 1.15 ps at 3.3 / 1.0 / 0.4 V pp; system 1.95 / 1.26 ps at full swing; "
+              "0.25 mW typ, 0.39 mW worst; schematics LVS-clean"))
+METHODS += [
+ ("M14", "Crossing-point noise analysis (.noise at the self-bias point)", "76",
+  "Gate-referred noise spectrum of a threshold circuit at the instant of its crossing, incl. flicker and bias-resistor noise",
+  "A self-biased inverter rests exactly at its trip point, i.e. at the operating point it passes through at every "
+  "crossing. A small-signal .noise there is exact for the slow (quasi-static) noise that shifts the crossing, and it "
+  "shows which device or resistor dominates. It is fast enough to be used for sizing.",
+  "Output noise of S1 (.noise, source = the pad generator through 50 ohm) divided by the gain |v(s1)/v(vin)| gives the "
+  "gate-referred PSD. Jitter PSD = S_gate/s_gate^2 with s_gate = pi f V_pp |v(vin)/v(pad)| at 50 MHz; "
+  "L(f) = (2 pi f_ref)^2 S_t(f)/2 for f << f_ref.",
+  "design/refbuf/refbuf.py: input_noise(); step76_noise.py",
+  "Valid for slow noise only; the white, fast noise of a switching comparator needs M15."),
+ ("M15", "Transient-noise jitter (trnoise injection, edge-time statistics)", "76",
+  "Per-edge jitter and its spectrum for the real, non-linear switching of the receiver",
+  "In a high-gain comparator the small-signal gain at DC (~190) is not the gain that applies while the input sweeps "
+  "through the threshold (~30), so 'integrated output noise / output slope' is wrong by about 2x. Simulating the "
+  "switching with noise present measures the jitter directly.",
+  "The white plateau of the M14 noise, referred to the pad, is injected as a trnoise voltage (time step 10 ps, i.e. "
+  "50 GHz bandwidth) in series with the 50 ohm source of a noiseless circuit. 300 refclk rising-edge times are "
+  "interpolated; a 4th-order polynomial removes the deterministic settling of the AC-coupling bias; the rms "
+  "deviation is the per-edge jitter (period jitter / sqrt 2 agrees, so the jitter is white). L_floor = (2 pi f sigma)^2 / f.",
+  "design/refbuf/tn_run.py (refbuf.tnoise, edge_stats)",
+  "Noise sources stationary at their crossing-point level; 300 edges give sigma to about +/-4 %; ~10 min per run."),
+ ("M16", "Large-signal transient: delay, duty, edge rate, supply current, supply sensitivity, start-up", "76",
+  "Delay pad->out, duty, 10-90 % rise time, average supply currents over corners, amplitudes, frequencies and supplies; "
+  "edge-time sensitivity to VDDA / VDDL; start-up after enable; the disabled state",
+  "These are large-signal properties of a switching circuit; only a transient shows them. A finite difference of "
+  "two transients (supply +10 mV) gives the supply sensitivity of the edge time directly in ps/mV.",
+  "Sine (or square) source at the pad through 50 ohm; 14 cycles, the last 5 evaluated in numpy from the waveforms "
+  "(interpolated crossings). Start-up: pll_en steps at 0.5 us, 25 us run, first edge after which all periods are "
+  "within 2 % of 1/f.",
+  "design/refbuf/step76_sim.py; xschem: tb_refin (to be drawn in phase 8)",
+  "Drawn netlist with PDK resistors and MIM capacitors; no layout parasitics yet."),
+]
+DEVICES += [
+ ("REF receiver", "XRPU / XRPD", "res_xhigh_po_0p35", 0.35, 1, 87.48, "pad divider, 500 kOhm each"),
+ ("REF receiver", "XCAC", "cap_mim_m3_1", 30, 1, 30, "C_AC 3.6 pF, m=2, bottom plate on the pad"),
+ ("REF receiver", "xrb0..9", "res_xhigh_po_0p35", 0.35, 1, 87.48, "R_B = 5 Mohm (10 segments)"),
+ ("REF receiver S1", "XPD / XPH", "pfet_g5v0d10v5", 2, 1, 4.0, "bias diode / header m=24 (60 uA)"),
+ ("REF receiver S1", "XCH", "cap_mim_m3_1", 30, 1, 30, "C_H 1.8 pF"),
+ ("REF receiver S1", "XP1", "pfet_g5v0d10v5", 10, 12, 1.0, "input pMOS, body = source"),
+ ("REF receiver S1", "XN1", "nfet_g5v0d10v5", 10, 12, 1.0, "input nMOS"),
+ ("REF receiver S1", "XPEN / XNS1", "p/nfet_g5v0d10v5", 2, 1, 0.5, "enable"),
+ ("REF receiver", "XP2 / XN2", "p/nfet_g5v0d10v5", 2, 1, 0.5, "S2 on VDDA (W 2 / 1)"),
+ ("REF receiver", "XPL / XNL", "p/nfet_g5v0d10v5", 2, 1, 0.5, "3.3 -> 1.8 V inverter on VDDL (W 2 / 1)"),
+ ("REF receiver", "XPB,XPB2 / XNB,XNB2", "p/nfet_01v8", 4, 1, 0.15, "output NOR (pMOS W 4, nMOS W 1)"),
+]
+PROBLEMS += [
+ (76, "noise", "First stage too noisy: 0.84 ps per edge at 1 V pp", "transient-noise run (M15) of the first sizing",
+  "the header current source degenerated the pMOS (no current reuse) and had as much g_m as the input nMOS, so its "
+  "noise counted fully", "C_H = 1.8 pF from the header node to VDDA, header L 2 -> 4 um, input devices 120 um / 1 um in "
+  "moderate inversion, 40 -> 60 uA: 0.61 ps", "fixed"),
+ (76, "method", "Output noise / output slope overestimated the jitter",
+  "integrated .noise at s1 / slope gave 1.2 ps where the transient-noise run gave 0.6 ps",
+  "the comparator's DC small-signal gain is ~6x the gain that applies during a crossing",
+  "use M15 (transient noise) for the white per-edge jitter and M14 only for slow noise", "fixed (method)"),
+ (76, "method", "Pad-referred low-frequency noise blew up below the AC-coupling corner",
+  "the first phase-noise estimate showed -150 dBc/Hz at 300 kHz from the 'pad-referred' spectrum",
+  "slow noise must be referred to the gate and divided by the gate slope at 50 MHz, not by the pad-to-gate gain at "
+  "the noise frequency", "refer slow noise at the gate with the 50 MHz divider: no low-frequency excess remains", "fixed"),
+ (76, "spec", "Typical noise targets need a full-swing reference",
+  "1 V pp sine: FFNC-on L(300 kHz) -118.2 dBc/Hz (typ -120); 0.4 V pp: FFNC-off -109.7 (typ -110)",
+  "jitter per edge = noise / input slope: a 1 V pp sine is 3.3x less steep than 3.3 V pp, and on-chip noise costs current",
+  "state the typical specs for a full-swing (>= 2 V pp, e.g. 3.3 V CMOS) XO; guaranteed limits are met down to 0.4 V pp",
+  "open - proposal wording / test-plan reference source"),
+ (76, "duty", "Duty up to 65 % at VDDA 3.63 V with 0.4 V pp", "M16 corner runs (fs, ss at 3.63 V)",
+  "S2's threshold follows VDDA while s1's edges are slow at small inputs",
+  "accepted: >= 45 % is met (47-65 %) and the SSPD uses only the rising edge; a replica-biased S2 would centre it", "accepted"),
+ (76, "start-up", "Input bias settles slowly after pll_en", "periods within 2 % after 3.8 us, bias drifts for ~30 us",
+  "the AC-coupling bias is charged through R_B", "R_B 20 -> 5 Mohm (4x faster, also less in-band noise); FLL waits for the CCO (0.3 ms) anyway", "fixed"),
+]
+RESULTS += [
+ ("REF receiver per-edge jitter, 1 V pp sine", 0.609, 0.4, "ps", "max", 76, "M15; target from the step-72 allocation"),
+ ("REF receiver per-edge jitter, 3.3 V pp sine", 0.227, 0.4, "ps", "max", 76, "M15"),
+ ("REF receiver power, tt, 1 V pp", 0.254, 0.2, "mW", "max", 76, "allocation 0.2 mW"),
+ ("REF receiver duty, worst", 47.0, 45, "%", "min", 76, "min over corners and amplitudes (max 65 %)"),
+ ("Jitter FFNC on, typ, full-swing REF, step-76 receiver", 1.256, 1.4, "ps", "max", 76, "3.3 V pp; 1.329 ps at 1 V pp"),
+ ("L(300 kHz) FFNC on, typ, full-swing REF", -120.7, -120, "dBc/Hz", "max", 76, "3.3 V pp; -118.2 at 1 V pp"),
+]
+_m = {(r[0], r[1]): r for r in MARGIN}
+_set("RMS jitter, FFNC on", "typ, 10 kHz-40 MHz", 1.256, source="steps 74-76 simulated (REF 3.3 V pp); 1.33 ps at 1 V pp")
+_set("RMS jitter, FFNC off", "typ", 1.954, source="steps 74-76 simulated (REF 3.3 V pp)")
+_set("Phase noise 300 kHz, FFNC off", "typ", -111.0, source="steps 74-76 simulated (REF 3.3 V pp)")
+_set("Phase noise 300 kHz, FFNC on", "typ", -120.7, source="steps 74-76 simulated (REF 3.3 V pp); -118.2 at 1 V pp")
+_set("Power, FFNC on", "typ", 9.20, source="step-72 table with steps 74-76 (receiver 0.254 mW)")
+_set("Power, FFNC on", "max over PVT", 13.74, source="ring 2.02 mA ss/110 C, 1:25 CCO, receiver 0.39 mW; others typ x1.3")
+_set("Power, FFNC off", "typ", 7.75, source="as above minus NCB")
+_set("Power, FFNC off", "max over PVT", 11.66, source="as above minus NCB")
+_set("Jitter FoM", "typ", -228.3, source="1.256 ps, 9.20 mW")
+MARGIN = list(_m.values())
+
+
+# ------------------------------------------------------------------------------------------------ testbench guide (15 Nov)
+PROBLEMS += [
+ (74, "simulation setup", "VCO simulated without the PDK .spiceinit (ngbehavior=hsa)",
+  "stand-alone deck tb_vco_tran: 1.676 GHz at 1.437 mA instead of 1.602 GHz; ring node 1.40 V instead of 1.45 V",
+  "design/vco/vco.py ran ngspice without copying the PDK spinit; the CCO, REF buffer and tb/ decks load it",
+  "always run through tb/run.sh or copy spinit to .spiceinit; re-run the step-74 characterisation (f(I), K_VCO, ISF "
+  "phase noise, corners) and update the CCO clamp model and the budget. Corrected: tt 1.6 GHz at ~1.35 mA, ss/110 C "
+  "1.76 GHz at ~1.93 mA (ring 1.70 V), K_VCO ~ -366 MHz/V", "open - re-run step 74"),
+ (76, "testbench", "Wrong trnoise amplitude in the stand-alone deck", "deck gave 1.8 ps instead of 0.6 ps",
+  "NA = sqrt(S/(2 NT)) mis-computed by hand (2.64 instead of 0.836 mV)",
+  "corrected; habit: noiseless baseline run + comparison with the ideal circuit before trusting a noise result", "fixed"),
+]
