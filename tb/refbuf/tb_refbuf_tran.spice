@@ -1,0 +1,33 @@
+* tb_refbuf_tran - method M16: delay, duty, edge rate and supply current with a sine input (step 76)
+* Run:  tb/run.sh tb/refbuf/tb_refbuf_tran.spice tt 27     (change .param vpp / fin, vdda, vddl for other cases)
+* The XO is a sine of amplitude vpp around VDDA/2 through 50 ohm. 14 cycles; the measurements use cycles 10-13,
+* after the AC-coupling bias has settled. .ic starts the bias near its final value to shorten the settling.
+.param vpp=1.0 fin=50meg
+.lib __PDK__/libs.tech/ngspice/sky130.lib.spice __CORNER__
+.temp __TEMP__
+.include __DUT__/sspll_refbuf.spice
+vdda VDDA 0 3.3            ; 3.3 V analog supply
+vddl VDDL 0 1.8            ; regulated 1.8 V rail (output stages)
+vddd VDDD 0 1.8            ; 1.8 V digital supply (level shifter input side)
+iib  ib 0 2.5u             ; bias generator: pulls 2.5 uA OUT of the bias diode (current from node ib to 0)
+ven  pll_en 0 1.8          ; enabled
+vsrc padx 0 sin(1.65 {vpp/2} {fin})
+rs   padx pad0 50
+x1 pad0 refclk ib pll_en VDDA VDDL VDDD 0 sspll_refbuf
+cl refclk 0 50f            ; load: input of the clock generator (step 77)
+.ic v(x1.vin)=0.862 v(x1.s1)=0.862
+.control
+tran 2p 280n 0 2p
+meas tran tdel trig v(pad0) val=1.65 rise=10 targ v(refclk) val=0.9 rise=10    ; pad crossing -> output edge
+meas tran thi  trig v(refclk) val=0.9 rise=10 targ v(refclk) val=0.9 fall=10   ; high time
+meas tran tper trig v(refclk) val=0.9 rise=10 targ v(refclk) val=0.9 rise=11   ; period
+meas tran trise trig v(refclk) val=0.18 rise=10 targ v(refclk) val=1.62 rise=10 ; 10-90 %
+meas tran ia avg i(vdda) from=200n to=280n
+meas tran il avg i(vddl) from=200n to=280n
+* the n-th output edge need not belong to the n-th input edge: fold delay and high time into one period
+let dly = tdel - floor(tdel/tper)*tper
+let duty = (thi - floor(thi/tper)*tper)/tper
+let p = -3.3*ia - 1.8*il
+echo "RESULT delay $&dly s, duty $&duty, rise $&trise s, power $&p W"
+.endc
+.end

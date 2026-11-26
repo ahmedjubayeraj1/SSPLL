@@ -1,0 +1,47 @@
+* sspll_vco (step 74): ports VDD vtune VDDBUF VSS vop vom clkp clkm
+.subckt sspll_vco_dcell inp inm outp outm vtune VDD VSS
+cpp outp VSS {cpar}
+cpm outm VSS {cpar}
+xp1 outm inp VDD VDD sky130_fd_pr__pfet_01v8 w=12.000 l=0.15 nf=4 ad=1.7400 as=2.6100 pd=13.160 ps=19.740
+xn1 outm inp VSS VSS sky130_fd_pr__nfet_01v8 w=6.000 l=0.15 nf=2 ad=0.8700 as=1.7400 pd=6.580 ps=13.160
+xp2 outp inm VDD VDD sky130_fd_pr__pfet_01v8 w=12.000 l=0.15 nf=4 ad=1.7400 as=2.6100 pd=13.160 ps=19.740
+xn2 outp inm VSS VSS sky130_fd_pr__nfet_01v8 w=6.000 l=0.15 nf=2 ad=0.8700 as=1.7400 pd=6.580 ps=13.160
+xs1 outm vtune c1n VSS sky130_fd_pr__nfet_01v8 w=4.500 l=0.3 nf=1 ad=1.3050 as=1.3050 pd=9.580 ps=9.580
+xc1 VSS c1n VSS VSS sky130_fd_pr__nfet_01v8 w=4.500 l=0.5 nf=1 ad=1.3050 as=1.3050 pd=9.580 ps=9.580
+xs2 outp vtune c2n VSS sky130_fd_pr__nfet_01v8 w=4.500 l=0.3 nf=1 ad=1.3050 as=1.3050 pd=9.580 ps=9.580
+xc2 VSS c2n VSS VSS sky130_fd_pr__nfet_01v8 w=4.500 l=0.5 nf=1 ad=1.3050 as=1.3050 pd=9.580 ps=9.580
+xt1n inp VDD outp VSS sky130_fd_pr__nfet_01v8 w=0.840 l=0.3 nf=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
+xt1p inp VSS outp VDD sky130_fd_pr__pfet_01v8 w=0.630 l=0.15 nf=1 ad=0.1827 as=0.1827 pd=1.840 ps=1.840
+xt2n inm VDD outm VSS sky130_fd_pr__nfet_01v8 w=0.840 l=0.3 nf=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
+xt2p inm VSS outm VDD sky130_fd_pr__pfet_01v8 w=0.630 l=0.15 nf=1 ad=0.1827 as=0.1827 pd=1.840 ps=1.840
+.ends
+
+.subckt sspll_vco_acbuf in out VDD VSS
+* MIM: c0 (top plate, capm) on the buffer gate g, c1 (bottom plate, met3) on the strongly driven ring node
+xcc g in sky130_fd_pr__cap_mim_m3_1 w=4.2 l=4.2 m=1
+xrf g x VSS sky130_fd_pr__res_xhigh_po_0p35 l=39.8 mult=1 m=1
+xp1 x g VDD VDD sky130_fd_pr__pfet_01v8 w=2 l=0.15 nf=1 ad=0.58 as=0.58 pd=4.58 ps=4.58
+xn1 x g VSS VSS sky130_fd_pr__nfet_01v8 w=1 l=0.15 nf=1 ad=0.29 as=0.29 pd=2.58 ps=2.58
+xp2 out x VDD VDD sky130_fd_pr__pfet_01v8 w=4 l=0.15 nf=1 ad=1.16 as=1.16 pd=8.58 ps=8.58
+xn2 out x VSS VSS sky130_fd_pr__nfet_01v8 w=2 l=0.15 nf=1 ad=0.58 as=0.58 pd=4.58 ps=4.58
+.ends
+.subckt sspll_vco_core vop p1 p2 p3 p4 vom m1 m2 m3 m4 VDD vtune VSS
+x1 vop vom p1 m1 vtune VDD VSS sspll_vco_dcell
+x2 p1 m1 p2 m2 vtune VDD VSS sspll_vco_dcell
+x3 p2 m2 p3 m3 vtune VDD VSS sspll_vco_dcell
+x4 p3 m3 p4 m4 vtune VDD VSS sspll_vco_dcell
+x5 p4 m4 vom vop vtune VDD VSS sspll_vco_dcell
+.ends
+.subckt sspll_vco VDD vtune VDDBUF VSS vop vom clkp clkm
+xcore vop p1 p2 p3 p4 vom m1 m2 m3 m4 VDD vtune VSS sspll_vco_core
+xb_vop vop clkp VDDBUF VSS sspll_vco_acbuf
+xb_p1 p1 nc_p1 VDDBUF VSS sspll_vco_acbuf
+xb_p2 p2 nc_p2 VDDBUF VSS sspll_vco_acbuf
+xb_p3 p3 nc_p3 VDDBUF VSS sspll_vco_acbuf
+xb_p4 p4 nc_p4 VDDBUF VSS sspll_vco_acbuf
+xb_vom vom clkm VDDBUF VSS sspll_vco_acbuf
+xb_m1 m1 nc_m1 VDDBUF VSS sspll_vco_acbuf
+xb_m2 m2 nc_m2 VDDBUF VSS sspll_vco_acbuf
+xb_m3 m3 nc_m3 VDDBUF VSS sspll_vco_acbuf
+xb_m4 m4 nc_m4 VDDBUF VSS sspll_vco_acbuf
+.ends

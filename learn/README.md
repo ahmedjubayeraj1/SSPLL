@@ -8,7 +8,7 @@
 | `phase4_sspll.ipynb` | 46–58 sub-sampling PLL (incl. FLL acquisition simulation) | 112 |
 | `phase5_vcdl.ipynb` | 59–64 voltage-controlled delay line / NCB (SKY130 ngspice lab) | 50 |
 | `phase6_ffnc.ipynb` | 65–71 feedforward noise cancellation and calibration | 58 |
-| `phase7_design.ipynb` | 72 noise/power/area budget (`design/budget/`); 73 loop parameters from the out2 model, exact sampled loop (`design/loop/`) | 78 |
+| `phase7_design.ipynb` | 72 budget (`design/budget/`); 73 loop parameters, exact sampled loop (`design/loop/`); 74 VCO redesign, ISF noise, schematics (`design/vco/`, `xschem/vco/`) | 109 |
 
 Every step: what happens → how (equations, Razavi notation) → why → interactive figure (slider inside the plot) → try it →
 interview questions (click to open the answer). Design numbers follow the submitted proposal (50 MHz × 32 = 1.6 GHz, f_c ≈ 2.5 MHz).

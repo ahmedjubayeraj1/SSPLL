@@ -25,3 +25,6 @@ learn/html/
 learn/spice/.spiceinit
 design/loop/spice/.spiceinit
 __pycache__/
+xschem/netlist/
+design/vco/data/log_*.txt
+tb/out/
