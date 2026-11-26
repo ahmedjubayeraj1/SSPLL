@@ -4,9 +4,9 @@ They are generated from the same Python that the design scripts simulate, so the
 current design. Run again after any design change:  python3 tb/make_dut.py"""
 import os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for d in ("vco", "cco", "refbuf"):
+for d in ("vco", "cco", "refbuf", "clkgen", "sspd"):
     sys.path.insert(0, os.path.join(ROOT, "design", d))
-import vco, cco, refbuf
+import vco, cco, refbuf, clkgen, sspd
 OUT = os.path.join(ROOT, "tb", "dut")
 os.makedirs(OUT, exist_ok=True)
 
@@ -24,7 +24,9 @@ files = {"sspll_vco.spice": vco_sim(),
          "sspll_cco.spice": "* sspll_cco (step 75): ports VDDA VDDD VDDL VSS vring ibias vtest code0..code4 pll_en vtest_en\n"
                             + cco.full(cco.D),
          "sspll_refbuf.spice": "* sspll_refbuf (step 76): ports REF_IN refclk ib pll_en VDDA VDDL VDDD VSS\n"
-                               + refbuf.full()}
+                               + refbuf.full(),
+         "sspll_clkgen.spice": "* sspll_clkgen (step 77): ports refclk cks cksb ckh ckhb ckg ckgb VDD VSS\n" + clkgen.cells(),
+         "sspll_sspd.spice": "* sspll_sspd (step 78): ports clkp clkm v1p v1m v2p v2m cks cksb ckh ckhb VDD VSS\n" + sspd.cells()}
 for n, txt in files.items():
     open(os.path.join(OUT, n), "w").write(txt)
     print("->", os.path.join("tb", "dut", n))

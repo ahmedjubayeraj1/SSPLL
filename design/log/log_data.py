@@ -461,3 +461,147 @@ _set("Ring supply node", "absolute limit, any code/corner", 1.649, source="step 
 _set("Ring supply node", "abuse: code 31, IBIAS +20 %, ss/110 C", 1.785, source="step 75 clamp, NBASE 11, corrected ring I-V")
 _set("Output frequency range", "1.44-1.76 GHz reachable", 2.02, source="step 74 corrected: ss/110 C at 2.4 mA, 10 fF")
 MARGIN = list(_m.values())
+
+
+# ------------------------------------------------------------------------------------------------ step 77 (clock generator)
+STEPS.append((77, "Clock generator: sampling clocks, hold pulse, Gm pulse", "done", "docs/design/step77_clkgen.md",
+              "t_s 226 ps, gaps 186/182 ps (>= 115), W_H 2.15 ns (>= 1.51), tau 202 ps (106-408, tau*K_VCO x0.86-1.21), "
+              "t_p 2.63 ns (<= 4.30), jitter 0.15 ps (-163.4 dBc/Hz), 78 uW; 4 cells LVS-clean"))
+METHODS += [
+ ("M17", "Transient-noise jitter of a logic path with per-node noise currents", "77",
+  "rms jitter added by a chain of CMOS gates to an edge (the sampling edge cks), and its phase-noise floor at f_ref",
+  "ngspice has no device noise in transient; a gate is noisy only while it switches (around its trip point), so a "
+  "white current of the trip-point density at every node gives a simple, slightly pessimistic estimate",
+  ".noise on each inverter size at V_M -> S_i; flat netlist with trnoise(NA 1p 0 0) at every node, NA = sqrt(S_i/(2 NT)); "
+  "noiseless 500 MHz input, 120+ edges, edges paired within 0.6 ns, 4th-order detrend; baseline with NA x 1e-6",
+  "ONLY_JITTER=1 design/clkgen/step77_sim.py; tb/clkgen/tb_clkgen_jitter.spice + tb/edges.py --fall --col 3",
+  "white only; trip-point density during the whole run is pessimistic; 120 edges -> +-7 %; cross-check: Spectre "
+  "transient noise or pss + pnoise"),
+]
+DEVICES += [
+ ("Clock generator", "INVS n / p", "nfet_01v8 / pfet_01v8", "0.42 / 0.84", 1, 0.15, "gap and pulser inverters"),
+ ("Clock generator", "INVM n / p", "nfet_01v8 / pfet_01v8", "1 / 2", 1, 0.15, "refclk buffer, driver middle stage"),
+ ("Clock generator", "INVL n / p", "nfet_01v8 / pfet_01v8", "2 / 4", 2, 0.15, "driver outputs (4 / 8 um)"),
+ ("Clock generator", "NOR2 n / p", "nfet_01v8 / pfet_01v8", "0.84 / 1.68", 1, 0.15, "pulser gate"),
+ ("Clock generator", "R_H", "res_xhigh_po_0p35", 0.35, 1, 6.0, "34.9 kOhm, hold pulse"),
+ ("Clock generator", "C_H", "cap_mim_m3_1", 6, 1, 6, "76 fF, hold pulse"),
+ ("Clock generator", "R_G", "res_xhigh_po_0p35", 0.35, 1, 0.5, "3.48 kOhm (minimum length), Gm pulse"),
+ ("Clock generator", "C_G", "cap_mim_m3_1", 3.5, 1, 3.5, "27 fF, Gm pulse"),
+]
+PROBLEMS += [
+ (77, "timing", "Gm pulse width tau far outside +-25 % over PVT", "first RC-dominated pulser: xhigh_po TC -19 % over "
+  "-40..110 C plus R/C corners; final tau 106 (ff_ll 110 C) - 408 ps (ss_hh -40 C)",
+  "tau = ln2 RC + gate delays; both depend on process and temperature",
+  "R at minimum length so gates set most of tau; gate delay tracks the ring VCO, so tau*K_VCO stays x0.86-1.21; "
+  "requirement re-allocated to beta*K_VCO, final check in step 79", "accepted (requirement moved to step 79)"),
+ (77, "corners", "Plain ss/ff corners miss the RC extremes", "tau worst cases appeared only in ss_hh / ff_ll / hl / lh",
+  "the ss/ff library sections keep R and C typical", "use the combined MOS + R/C corners for every RC-timed block "
+  "(also to revisit for the REF buffer and CCO passives)", "fixed (method)"),
+ (77, "method", "Jitter first came out 1.17 ps", "transient-noise run of the sampling path",
+  "edge mis-pairing plus a slow numerical drift of the edge times (~1.2 ps, also with noise x 1e-6)",
+  "pair each output edge with its input edge within 0.6 ns, 4th-order detrend, noiseless baseline: 0.152 ps", "fixed"),
+ (77, "timing", "Hold-pulse width depends on refclk duty", "W_H 2.22 ns at 35 %, 1.95 ns at 65 % duty",
+  "the RC node is not fully reset during a short low phase", "accepted (>= 1.5 ns); a reset nMOS on the RC node would remove it",
+  "accepted"),
+ (77, "testbench", "Jitter deck stops with 'timestep too small' near 251 ns (seed 1)", "tb_clkgen_jitter.spice",
+  "random 1 ps noise steps on the source branch", "run 248 ns (122 edges) or change the seed", "fixed"),
+]
+RESULTS += [
+ ("Clock gen t_p (sample -> Gm pulse centre), worst", 4.30, 5.0, "ns", "max", 77, "ss_hh -40 C 1.71 V; tt 2.63 ns"),
+ ("Clock gen hold pulse W_H, worst", 1.51, 1.5, "ns", "min", 77, "ff_ll 110 C; tt 2.15 ns"),
+ ("Clock gen non-overlap gap, worst", 115, 100, "ps", "min", 77, "ff -40 C; tt 186 / 182 ps"),
+ ("Clock gen Gm pulse tau, tt", 202, 200, "ps", "info", 77, "106-408 ps over PVT; tau*K_VCO x0.86-1.21"),
+ ("Clock gen sampling-edge jitter", 0.152, None, "ps", "info", 77, "M17; floor -163.4 dBc/Hz"),
+ ("Clock gen phase-noise floor at 50 MHz", -163.4, -160, "dBc/Hz", "max", 77, "allocation -160"),
+ ("Clock gen power, worst", 0.108, 0.216, "mW", "max", 77, "tt 78 uW; allocation SSPD + clock gen 0.12 mA x 1.8 V"),
+]
+_set("RMS jitter, FFNC on", "typ, 10 kHz-40 MHz", 1.254, source="steps 74-77 simulated (REF 3.3 V pp); 1.327 ps at 1 V pp")
+_set("RMS jitter, FFNC off", "typ", 1.963, source="steps 74-77 simulated (REF 3.3 V pp)")
+_set("Phase noise 300 kHz, FFNC off", "typ", -110.9, source="steps 74-77 simulated (REF 3.3 V pp)")
+_set("Phase noise 300 kHz, FFNC on", "typ", -121.0, source="steps 74-77 simulated (REF 3.3 V pp); -118.4 at 1 V pp")
+_set("Jitter FoM", "typ", -228.5, source="1.254 ps, 8.91 mW")
+MARGIN = list(_m.values())
+
+
+# ------------------------------------------------------------------------------------------------ step 78 (SSPD) + step-77 revision
+STEPS = [s if s[0] != 77 else (77, s[1], "done (revised in step 78)", s[3],
+         "order sample -> Gm -> hold (hold-trigger latch); t_s 228 ps, gaps 171/318 ps (>= 110), tau 200 ps (106-405), "
+         "W_H 2.16 ns (>= 1.51), t_p 0.28 ns (<= 0.50), jitter 0.15 ps (-163.4 dBc/Hz), 82 uW; 5 cells LVS-clean") for s in STEPS]
+STEPS.append((78, "SSPD with hold: sampler, dummy sampler, isolation buffers", "done", "docs/design/step78_sspd.md",
+              "A 0.514 V/rad (0.35-0.77 over MOS+R/C corners, +-1.5 % over temperature), alpha 0.473, kick <= 2.3 fs "
+              "(spur <= -134 dBc), dummy: f_ref supply current 0.76 vs 42 uA, buffer jitter 0.080 ps, 0.47 mW; LVS-clean"))
+METHODS += [
+ ("M18", "Beat-frequency characteristic of a sampling phase detector", "78",
+  "the sampled characteristic v1(phi) over a whole VCO cycle, the detector gain A at the lock point, the hold memory "
+  "alpha, the sample common mode and the power, in one transient",
+  "a phase sweep would need one run per phase; with the VCO at (32 + 1/nb) f_ref the sampling phase slides by 2 pi/nb "
+  "each reference period, so nb + 2 periods cover the characteristic with the real clock generator and switches",
+  "VCO = ideal squares behind an acbuf-like inverter, starting at t = 0; each cks falling edge is a sample with phase "
+  "2 pi f_vco t mod 2 pi; v1 read mid-Gm-pulse, v2 after the hold; line fit within +-0.35 rad of the rising zero "
+  "crossing (taken modulo 2 pi) gives 2A; least squares v2[k] = a v1[k] + b v2[k-1] gives alpha = b",
+  "design/sspd/sspd.py characteristic(), step78_sim.py; tb/sspd/tb_sspd_char.spice + tb/sspd_char.py",
+  "32 points per cycle (+-0.1 rad resolution); the ideal VCO has no noise; the Gm and NCB inputs are capacitor "
+  "placeholders until steps 79/82"),
+ ("M19", "Kick-back by differential transient (switching vs not switching)", "78",
+  "the disturbance the sampler puts on the VCO output: clkp edge shift, a reference-spur estimate, the voltage "
+  "glitch, and the supply-current component at f_ref (with and without the dummy sampler)",
+  "the effect is femtoseconds, far below any absolute accuracy of a transient; the difference of two runs on the same "
+  "time grid that differ only in the switching cancels everything else",
+  "locked frequency 32 f_ref, VCO phase near the lock point; run a: clock generator on; run b: refclk = 0 (sampler "
+  "tracks); clkp edge times a - b -> phase 2 pi f0 dt -> Fourier component at f_ref -> 20 log(a1/2) dBc",
+  "design/sspd/sspd.py kick(), step78_extra.py; tb/sspd/tb_sspd_kick.spice + tb/sspd_kick.py",
+  "VCO output modelled by an ideal source behind a driver (the ring and acbuf would attenuate it further); one "
+  "operating point"),
+]
+DEVICES += [
+ ("SSPD side", "XB1 n / p", "nfet_01v8 / pfet_01v8", "0.42 / 0.84", 1, 0.15, "isolation buffer input"),
+ ("SSPD side", "XB2 n / p", "nfet_01v8 / pfet_01v8", "2 / 4", 1, 0.15, "drives R_s + C"),
+ ("SSPD side", "XRS", "res_xhigh_po_0p69", 0.69, 1, 0.6, "R_s 2.16 kOhm"),
+ ("SSPD tg", "XN / XP", "nfet_01v8_lvt / pfet_01v8", "3 / 1.5", 1, 0.15, "sampling and dummy TG"),
+ ("SSPD tgh", "XN / XP", "nfet_01v8_lvt / pfet_01v8", "1 / 1", 1, 0.15, "hold TG"),
+ ("SSPD side", "XC1, XC2", "cap_mim_m3_1", 4, 1, 4, "34.7 fF each"),
+ ("SSPD side", "XCD", "cap_mim_m3_1", 4.35, 1, 4.35, "40.7 fF dummy = C1 + Gm input"),
+ ("Clock generator", "hlatch NOR x3", "nfet_01v8 / pfet_01v8", "0.84 / 1.68", 1, 0.15, "hold trigger latch (step 78)"),
+]
+PROBLEMS += [
+ (78, "loop", "Charge-sharing pole inside the loop", "the Gm read C2 (after the hold transfer) in the step-77 order",
+  "v2[k] = (1 - alpha) v1[k] + alpha v2[k-1], alpha ~ 0.5: pole z = 0.5, 16 deg lag at f_c = f_ref/20; not in step 73",
+  "clock order changed to sample -> Gm (reads C1) -> hold; t_p 2.63 -> 0.28 ns (+~1.5 deg PM)", "fixed (step 77 revised)"),
+ (77, "timing", "Hold pulser did not fire after the reorder", "no ckh pulse when triggered by the end of the 200 ps Gm pulse",
+  "the 2.6 ns RC node is reset only while the pulser input is low: 200 ps is not enough",
+  "NOR latch set by ckg, reset while cks = 1: its output stays high until refclk falls, RC reset ~10 ns", "fixed"),
+ (77, "simulation", "ngspice aborted (timestep too small) with tr = 410 ps", "refclk source breakpoint at exactly 15 ns",
+  "PWL/pulse corner coinciding with the KLU solver step control", "retry with tran 2p when the run ends early", "fixed"),
+ (78, "power", "SSPD power above the step-72 allocation", "0.47 mW (0.26 mA) vs 0.12 mA for SSPD + clock generator",
+  "the buffer must swing ~46 fF per side at 1.6 GHz (C dV f) plus its own capacitance; dummy keeps it constant",
+  "C1 100 -> 35 fF (0.70 -> 0.47 mW, kT/C still negligible); further options: 20 fF, re-balance with measured acbuf "
+  "currents, NCB current", "open - power review after step 82"),
+ (78, "method", "Negative A at the ss corners", "fit gave A = -0.34 at ss/110 C",
+  "the rising zero crossing straddled 2 pi in the sorted phases", "phase difference taken modulo 2 pi", "fixed"),
+ (78, "budget", "Renamed budget key double-counted the reference", "jitter 1.254 -> 1.293 ps after adding the SSPD term",
+  "system() overwrites the step-72 allocation by its key; a new name kept the placeholder too",
+  "keep the allocation key; SSPD buffer term added inside it", "fixed"),
+ (78, "spread", "A follows the R/C corner", "0.352 (ss_hh) to 0.771 V (ff_ll)", "A = VDD/(2 w0 R_s C1)",
+  "within icp_trim (A tau K_VCO x0.69-1.41); temperature drift only +-1.5 %", "accepted (trim)"),
+]
+RESULTS = [r for r in RESULTS if not r[0].startswith("Clock gen t_p")]
+RESULTS += [
+ ("Clock gen t_p (sample -> Gm pulse centre), worst (revised order)", 0.50, 5.0, "ns", "max", 77, "tt 0.28 ns"),
+ ("SSPD gain A, tt", 0.514, 0.5, "V/rad", "info", 78, "target 0.5"),
+ ("SSPD gain A, worst (ss_hh -40 C)", 0.352, 0.35, "V/rad", "min", 78, "ff_ll 110 C: 0.771"),
+ ("SSPD hold memory alpha", 0.473, None, "-", "info", 78, "C2/(C1 + C2)"),
+ ("SSPD kick-back, clkp edge shift", 2.3, None, "fs", "info", 78, "spur estimate <= -134 dBc"),
+ ("SSPD supply current at f_ref (with dummy)", 0.76, None, "uA", "info", 78, "42 uA without"),
+ ("SSPD isolation-buffer jitter (differential)", 0.080, None, "ps", "info", 78, "-169.0 dBc/Hz at 50 MHz"),
+ ("SSPD power, tt", 0.47, 0.216, "mW", "max", 78, "allocation (SSPD + clkgen 0.12 mA x 1.8 V); over - see power review"),
+]
+_set("RMS jitter, FFNC on", "typ, 10 kHz-40 MHz", 1.256, source="steps 74-78 simulated (REF 3.3 V pp); 1.329 ps at 1 V pp")
+_set("RMS jitter, FFNC off", "typ", 1.964, source="steps 74-78 simulated (REF 3.3 V pp)")
+_set("Phase noise 300 kHz, FFNC off", "typ", -110.9, source="steps 74-78 simulated (REF 3.3 V pp)")
+_set("Phase noise 300 kHz, FFNC on", "typ", -120.9, source="steps 74-78 simulated (REF 3.3 V pp); -118.4 at 1 V pp")
+_set("Power, FFNC on", "typ", 9.53, source="as before + SSPD 0.26 mA and clock gen 0.05 mA instead of 0.12 mA allocated (x 3.3 V)")
+_set("Power, FFNC on", "max over PVT", 14.23, source="as before + SSPD 0.32 mA (ff_ll 110 C) and clock gen 0.06 mA (x 3.63 V)")
+_set("Power, FFNC off", "typ", 8.08, source="as above minus NCB")
+_set("Power, FFNC off", "max over PVT", 12.15, source="as above minus NCB")
+_set("Jitter FoM", "typ", -228.2, source="1.256 ps, 9.53 mW")
+MARGIN = list(_m.values())

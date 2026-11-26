@@ -1,0 +1,41 @@
+v {xschem version=3.4.4 file_version=1.2}
+G {type=subcircuit
+format="@name @pinlist @symname"
+template="name=x1"
+}
+V {}
+S {}
+E {}
+L 4 -80 -130 80 -130 {}
+L 4 80 -130 80 130 {}
+L 4 80 130 -80 130 {}
+L 4 -80 130 -80 -130 {}
+T {@symname} 0 -7 0 0 0.2 0.2 {hcenter=true}
+T {@name} -86 -154 0 1 0.25 0.25 {}
+L 7 -100 0 -80 0 {}
+B 5 -102.5 -2.5 -97.5 2.5 {name=refclk dir=in}
+T {refclk} -75 -6 0 0 0.2 0.2 {}
+L 7 80 -100 100 -100 {}
+B 5 97.5 -102.5 102.5 -97.5 {name=cks dir=out}
+T {cks} 75 -106 0 1 0.2 0.2 {}
+L 7 80 -60 100 -60 {}
+B 5 97.5 -62.5 102.5 -57.5 {name=cksb dir=out}
+T {cksb} 75 -66 0 1 0.2 0.2 {}
+L 7 80 -20 100 -20 {}
+B 5 97.5 -22.5 102.5 -17.5 {name=ckh dir=out}
+T {ckh} 75 -26 0 1 0.2 0.2 {}
+L 7 80 20 100 20 {}
+B 5 97.5 17.5 102.5 22.5 {name=ckhb dir=out}
+T {ckhb} 75 14 0 1 0.2 0.2 {}
+L 7 80 60 100 60 {}
+B 5 97.5 57.5 102.5 62.5 {name=ckg dir=out}
+T {ckg} 75 54 0 1 0.2 0.2 {}
+L 7 80 100 100 100 {}
+B 5 97.5 97.5 102.5 102.5 {name=ckgb dir=out}
+T {ckgb} 75 94 0 1 0.2 0.2 {}
+L 7 -40 -150 -40 -130 {}
+B 5 -42.5 -152.5 -37.5 -147.5 {name=VDD dir=inout}
+T {VDD} -36 -126 0 0 0.2 0.2 {}
+L 7 -40 130 -40 150 {}
+B 5 -42.5 147.5 -37.5 152.5 {name=VSS dir=inout}
+T {VSS} -36 114 0 0 0.2 0.2 {}

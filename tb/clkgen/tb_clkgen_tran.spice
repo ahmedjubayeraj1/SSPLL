@@ -1,0 +1,43 @@
+* tb_clkgen_tran - method M16: timing of the clock generator (step 77)
+* Run:  tb/run.sh tb/clkgen/tb_clkgen_tran.spice tt 27        try also: ss_hh 110 (with vdd 1.71), ff_ll -40 (vdd 1.89)
+* refclk is an ideal 50 MHz square wave with 300 ps edges (the reference buffer gives 230-410 ps). The six outputs
+* drive the gate capacitance of the switches they will control (estimates for steps 78/79: 30 fF for the sampling
+* pair, 20 fF for the hold and Gm pairs). One cycle after start-up is measured:
+* Order (revised in step 78): sample -> Gm pulse (the Gm reads C1) -> hold pulse (C1 shared onto C2 for the NCB).
+*   t_s   refclk rise -> cks fall (sampling instant)          gap1  sampling edge -> ckg rise (non-overlap)
+*   tau   Gm pulse width (sets the loop gain beta)            gap2  ckg fall -> ckh rise (non-overlap)
+*   W_H   hold pulse width                                    t_p   sampling edge -> middle of the Gm pulse
+* The R/C corners matter here: use the combined corners ss_hh / ff_ll (MOS and R/C together) for the extremes.
+.param vdd=1.8
+.lib __PDK__/libs.tech/ngspice/sky130.lib.spice __CORNER__
+.temp __TEMP__
+.include __DUT__/sspll_clkgen.spice
+vdd VDD 0 {vdd}
+vin refclk 0 pulse(0 {vdd} 5n 375p 375p 9.625n 20n)       ; 0-100 % in 375 ps = 300 ps between 10 % and 90 %
+x1 refclk cks cksb ckh ckhb ckg ckgb VDD 0 sspll_clkgen
+ccks cks 0 30f
+ccksb cksb 0 30f
+cckh ckh 0 20f
+cckhb ckhb 0 20f
+cckg ckg 0 20f
+cckgb ckgb 0 20f
+.control
+tran 1p 80n
+* everything measured on the 4th reference edge (65 ns), after start-up
+meas tran tref when v(refclk)=0.9 rise=4
+meas tran ts   when v(cks)=0.9 fall=4
+meas tran th1  when v(ckh)=0.9 rise=4
+meas tran th2  when v(ckh)=0.9 fall=4
+meas tran tg1  when v(ckg)=0.9 rise=4
+meas tran tg2  when v(ckg)=0.9 fall=4
+meas tran pavg avg i(vdd) from=60n to=80n
+let t_s = ts - tref
+let gap1 = tg1 - ts
+let w_h = th2 - th1
+let gap2 = th1 - tg2
+let tau = tg2 - tg1
+let t_p = (tg1 + tg2)/2 - ts
+let p = -1.8*pavg
+echo "RESULT t_s $&t_s, gap1 $&gap1, W_H $&w_h, gap2 $&gap2, tau $&tau, t_p $&t_p (s); power $&p W"
+.endc
+.end

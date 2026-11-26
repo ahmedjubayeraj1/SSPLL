@@ -1,0 +1,43 @@
+* tb_sspd_char - method M18: sampled characteristic of the SSPD (step 78) by a beat run
+* Run:  tb/run.sh tb/sspd/tb_sspd_char.spice tt 27
+*       python3 tb/sspd_char.py tb/out/tb_sspd_char/w.txt            (prints A, alpha, CM, power; plots if asked)
+* Idea: the "VCO" runs at f = (32 + 1/32) x 50 MHz instead of exactly 32 x 50 MHz. Every reference period the
+* sampling instant then lands 1/32 of a VCO cycle later on the VCO waveform, so 32 periods sweep the whole
+* characteristic v1(phi) in one transient: no phase sweep, no 32 separate runs. Lock means v1p - v1m = 0 on the
+* rising slope; the slope there, d(v1p - v1m)/dphi = 2A, is the phase-detector gain used in beta = 2 A g_m tau / T.
+* The VCO is modelled by ideal squares behind an inverter like the acbuf output stage (2 / 4 um), so clkp / clkm have
+* realistic edges and source resistance. The real clock generator (step 77) makes cks, ckg, ckh from refclk.
+* Loads: 6 fF on v1p / v1m (Gm input, step 79 placeholder), 4 fF on v2p / v2m (diff-to-SE amplifier placeholder).
+.lib __PDK__/libs.tech/ngspice/sky130.lib.spice __CORNER__
+.temp __TEMP__
+.include __DUT__/sspll_clkgen.spice
+.include __DUT__/sspll_sspd.spice
+.param fref=50e6 nb=32
+.param fv={(32 + 1/nb)*fref} tv={1/fv} tref={1/fref}
+vdd VDD 0 1.8                  ; SSPD supply (VDDL) - its current is the SSPD power
+vck VCK 0 1.8                  ; clock generator supply
+vdrv VDRV 0 1.8                ; VCO output drivers
+vvp vp 0 pulse(0 1.8 0 40p 40p {tv/2 - 40p} {tv})
+vvm vm 0 pulse(1.8 0 0 40p 40p {tv/2 - 40p} {tv})
+xdpn clkp vp 0 0 sky130_fd_pr__nfet_01v8 w=2 l=0.15 nf=1
+xdpp clkp vp VDRV VDRV sky130_fd_pr__pfet_01v8 w=4 l=0.15 nf=1
+xdmn clkm vm 0 0 sky130_fd_pr__nfet_01v8 w=2 l=0.15 nf=1
+xdmp clkm vm VDRV VDRV sky130_fd_pr__pfet_01v8 w=4 l=0.15 nf=1
+cclp clkp 0 10f                ; other loads on the VCO outputs (NCB, divider)
+cclm clkm 0 10f
+vin refclk 0 pulse(0 1.8 {tref/4} 375p 375p {tref/2 - 375p} {tref})
+xcg refclk cks cksb ckh ckhb ckg ckgb VCK 0 sspll_clkgen
+xpd clkp clkm v1p v1m v2p v2m cks cksb ckh ckhb VDD 0 sspll_sspd
+cg1 v1p 0 6f
+cg2 v1m 0 6f
+cn1 v2p 0 4f
+cn2 v2m 0 4f
+cckg ckg 0 20f
+cckgb ckgb 0 20f
+.control
+option interp
+tran 2p 680n
+wrdata w.txt v(cks) v(ckg) v(ckh) v(v1p) v(v1m) v(v2p) v(v2m) i(vdd) v(clkp)
+echo "RESULT now run: python3 tb/sspd_char.py tb/out/tb_sspd_char/w.txt"
+.endc
+.end

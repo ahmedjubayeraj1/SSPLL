@@ -193,3 +193,39 @@ Generated from `design/log/log_data.py` (also in `design/SSPLL_design_log.xlsx`,
 **How to run it.** `design/refbuf/step76_sim.py; xschem: tb_refin (to be drawn in phase 8)`
 
 **Limits.** Drawn netlist with PDK resistors and MIM capacitors; no layout parasitics yet.
+
+## M17. Transient-noise jitter of a logic path with per-node noise currents (step 77)
+
+**What it gives.** rms jitter added by a chain of CMOS gates to an edge (the sampling edge cks), and its phase-noise floor at f_ref
+
+**Why this method.** ngspice has no device noise in transient; a gate is noisy only while it switches (around its trip point), so a white current of the trip-point density at every node gives a simple, slightly pessimistic estimate
+
+**How it works.** .noise on each inverter size at V_M -> S_i; flat netlist with trnoise(NA 1p 0 0) at every node, NA = sqrt(S_i/(2 NT)); noiseless 500 MHz input, 120+ edges, edges paired within 0.6 ns, 4th-order detrend; baseline with NA x 1e-6
+
+**How to run it.** `ONLY_JITTER=1 design/clkgen/step77_sim.py; tb/clkgen/tb_clkgen_jitter.spice + tb/edges.py --fall --col 3`
+
+**Limits.** white only; trip-point density during the whole run is pessimistic; 120 edges -> +-7 %; cross-check: Spectre transient noise or pss + pnoise
+
+## M18. Beat-frequency characteristic of a sampling phase detector (step 78)
+
+**What it gives.** the sampled characteristic v1(phi) over a whole VCO cycle, the detector gain A at the lock point, the hold memory alpha, the sample common mode and the power, in one transient
+
+**Why this method.** a phase sweep would need one run per phase; with the VCO at (32 + 1/nb) f_ref the sampling phase slides by 2 pi/nb each reference period, so nb + 2 periods cover the characteristic with the real clock generator and switches
+
+**How it works.** VCO = ideal squares behind an acbuf-like inverter, starting at t = 0; each cks falling edge is a sample with phase 2 pi f_vco t mod 2 pi; v1 read mid-Gm-pulse, v2 after the hold; line fit within +-0.35 rad of the rising zero crossing (taken modulo 2 pi) gives 2A; least squares v2[k] = a v1[k] + b v2[k-1] gives alpha = b
+
+**How to run it.** `design/sspd/sspd.py characteristic(), step78_sim.py; tb/sspd/tb_sspd_char.spice + tb/sspd_char.py`
+
+**Limits.** 32 points per cycle (+-0.1 rad resolution); the ideal VCO has no noise; the Gm and NCB inputs are capacitor placeholders until steps 79/82
+
+## M19. Kick-back by differential transient (switching vs not switching) (step 78)
+
+**What it gives.** the disturbance the sampler puts on the VCO output: clkp edge shift, a reference-spur estimate, the voltage glitch, and the supply-current component at f_ref (with and without the dummy sampler)
+
+**Why this method.** the effect is femtoseconds, far below any absolute accuracy of a transient; the difference of two runs on the same time grid that differ only in the switching cancels everything else
+
+**How it works.** locked frequency 32 f_ref, VCO phase near the lock point; run a: clock generator on; run b: refclk = 0 (sampler tracks); clkp edge times a - b -> phase 2 pi f0 dt -> Fourier component at f_ref -> 20 log(a1/2) dBc
+
+**How to run it.** `design/sspd/sspd.py kick(), step78_extra.py; tb/sspd/tb_sspd_kick.spice + tb/sspd_kick.py`
+
+**Limits.** VCO output modelled by an ideal source behind a driver (the ring and acbuf would attenuate it further); one operating point

@@ -1,0 +1,47 @@
+* tb_clkgen_jitter - method M17: jitter of the sampling edge (cks falling) added by the clock generator (step 77)
+* Run:  tb/run.sh tb/clkgen/tb_clkgen_jitter.spice tt 27
+*       python3 tb/edges.py tb/out/tb_clkgen_jitter/edges.txt 50e6 --fall --col 3
+* ngspice has no device noise in a transient, so every node of the sampling path gets a white noise current
+* trnoise(NA NT 0 0) of the size the driving inverter makes at its trip point (where both devices conduct and the
+* node is sensitive). That density S_i comes from .noise on one inverter held at V_M (clkgen.inv_noise):
+*   INVS 2.43 pA/rtHz, INVM 3.57 pA/rtHz, INVL 7.20 pA/rtHz.  NA = sqrt(S_i / (2 NT)), NT = 1 ps (500 GHz bandwidth).
+* The input is an ideal, noiseless clock at 500 MHz (the path forgets each edge within ~1 ns, so more edges per
+* microsecond give the same per-edge statistics faster). edges.py removes a slow 4th-order trend: the same drift
+* appears with the noise switched off (a numerical artefact of the time grid), the noise does not cause it.
+* Result: about 0.15 ps per edge -> floor (2 pi 50 MHz sigma)^2 / 50 MHz = -163 dBc/Hz at the reference.
+.lib __PDK__/libs.tech/ngspice/sky130.lib.spice __CORNER__
+.temp __TEMP__
+vdd VDD 0 1.8
+* flat copy of the sampling path: input buffer xi0, xi1 and the driver of cks / cksb (as in sspll_clkgen)
+xi0n r1 refclk 0 0 sky130_fd_pr__nfet_01v8 w=1 l=0.15 nf=1
+xi0p r1 refclk VDD VDD sky130_fd_pr__pfet_01v8 w=2 l=0.15 nf=1
+xi1n r2 r1 0 0 sky130_fd_pr__nfet_01v8 w=1 l=0.15 nf=1
+xi1p r2 r1 VDD VDD sky130_fd_pr__pfet_01v8 w=2 l=0.15 nf=1
+xan a1 r2 0 0 sky130_fd_pr__nfet_01v8 w=0.42 l=0.15 nf=1
+xap a1 r2 VDD VDD sky130_fd_pr__pfet_01v8 w=0.84 l=0.15 nf=1
+xbn cksb a1 0 0 sky130_fd_pr__nfet_01v8 w=4 l=0.15 nf=2
+xbp cksb a1 VDD VDD sky130_fd_pr__pfet_01v8 w=8 l=0.15 nf=2
+xcn c1 r2 0 0 sky130_fd_pr__nfet_01v8 w=0.42 l=0.15 nf=1
+xcp c1 r2 VDD VDD sky130_fd_pr__pfet_01v8 w=0.84 l=0.15 nf=1
+xdn c2 c1 0 0 sky130_fd_pr__nfet_01v8 w=1 l=0.15 nf=1
+xdp c2 c1 VDD VDD sky130_fd_pr__pfet_01v8 w=2 l=0.15 nf=1
+xen cks c2 0 0 sky130_fd_pr__nfet_01v8 w=4 l=0.15 nf=2
+xep cks c2 VDD VDD sky130_fd_pr__pfet_01v8 w=8 l=0.15 nf=2
+ccks cks 0 30f
+ccksb cksb 0 30f
+vin refclk 0 pulse(0 1.8 0.2n 375p 375p 0.625n 2n)
+* noise currents (A rms per 1 ps sample)
+inr1 0 r1 dc 0 trnoise(2.527u 1p 0 0)
+inr2 0 r2 dc 0 trnoise(2.527u 1p 0 0)
+ina1 0 a1 dc 0 trnoise(1.719u 1p 0 0)
+incb 0 cksb dc 0 trnoise(5.088u 1p 0 0)
+inc1 0 c1 dc 0 trnoise(1.719u 1p 0 0)
+inc2 0 c2 dc 0 trnoise(2.527u 1p 0 0)
+inck 0 cks dc 0 trnoise(5.088u 1p 0 0)
+.options seed=1
+.control
+tran 1p 248n 4n 1p                     ; ~120 edges (longer runs hit a time-step failure near 251 ns with seed 1)
+wrdata edges.txt v(refclk) v(cks)
+echo "RESULT now run: python3 tb/edges.py tb/out/tb_clkgen_jitter/edges.txt 50e6 --fall --col 3"
+.endc
+.end

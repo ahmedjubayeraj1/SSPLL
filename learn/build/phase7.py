@@ -7,8 +7,10 @@ from qa73 import QA73
 from qa74 import QA74
 from qa75 import QA75
 from qa76 import QA76
+from qa77 import QA77
+from qa78 import QA78
 
-b = Book("Phase 7 — Block design (steps 72–76)",
+b = Book("Phase 7 — Block design (steps 72–78)",
          "Phases 1–6 explained *why* each block exists. Phase 7 designs them — and the first design step is to decide how "
          "much each block is allowed to cost: jitter, power and area (step 72); the second is the loop itself (step 73). "
          "This notebook splits the proposal's targets "
@@ -614,4 +616,233 @@ Per-edge jitter 0.23 / 0.61 / 1.15 ps at 3.3 / 1.0 / 0.4 V pp; system at 3.3 V p
 −111.0 / −120.7 dBc/Hz (FFNC off / on). Full report: `docs/design/step76_refbuf.md`.
 """)
 b.qa(QA76, 76)
+
+# ------------------------------------------------------------------------------------------------ step 77
+V77 = r"""
+import json
+import numpy as np
+from IPython.display import Image, display
+D = lambda n: json.load(open("../design/clkgen/data/" + n))
+sim, wv = D("step77_sim.json"), D("step77_wave.json")
+"""
+b.step(77, "Clock generator: sampling clocks, hold pulse, Gm pulse", "schematic")
+b.md(r"""
+### What happens
+Every reference period the sub-sampling phase detector does three things in a fixed order: it **samples** the VCO on
+C1 (the sampling switch opens), **converts** the sample into charge with a short Gm current pulse of width $\tau$ (the Gm
+reads C1), and then **transfers** the sample to C2 for the NCB (the hold switch closes for $W_H$). *(Order revised in
+step 78: reading C2 after the C1–C2 charge sharing would have put a pole z = 0.5 into the loop.)* The clock generator turns the single `refclk` edge into
+these three phases — three complementary pairs cks/cksb, ckh/ckhb, ckg/ckgb — and guarantees that they never overlap.
+
+### How it happens
+Inverter chains make the small delays (the non-overlap gaps); an **RC pulser** makes each pulse. Its output is the
+input AND its own R-C-delayed copy, so a rising edge gives one pulse as long as the RC delay plus the gates:
+$$\text{out} = \overline{\overline{\text{in}} + \overline{\text{in}_{RC}}} = \text{in}\cdot\text{in}_{RC},\qquad
+\tau \approx \ln 2\,R\,C + t_{gates}$$
+The hold pulse is fired by the *end* of the Gm pulse through a small NOR latch (set by ckg, reset while refclk is
+low), so the order can never break and the hold pulser's RC is reset for ~10 ns every period. The loop sees the delay from the
+sampling instant to the middle of the Gm pulse and the phase-detector gain set by the pulse width:
+$$t_p = t_{gap1} + \frac{\tau}{2},\qquad \beta = 2A\,g_m\frac{\tau}{T}$$
+Only the sampling edge carries noise into the loop (the later edges act on a sample already taken). Its per-edge
+jitter makes a white floor at the reference; in a transient we reproduce each inverter's noise with a trnoise current
+of amplitude NA:
+$$\mathcal{L}_{floor} = \frac{(2\pi f_{ref}\,\sigma_t)^2}{f_{ref}},\qquad NA = \sqrt{\frac{S_i}{2\,NT}}$$
+
+### Why it happens this way
+The sampling path is the shortest (5 stages) with the strongest drivers because it is the only one whose noise reaches
+the output. $\tau$ is set mostly by gates, not by the resistor: gate delay grows when transistors are slow — exactly
+when the ring VCO's gain $K_{VCO}$ falls — so $\beta K_{VCO}$ is compensated (×0.86–1.21) although $\tau$ alone spreads
+106–408 ps. When `pll_en` = 0 refclk is held low: cks = 1 (track), no pulses — the block needs no enable pin.
+
+**Methods used:** M16 (large-signal transient over 21 conditions incl. the combined MOS + R/C corners), M17 (transient
+noise with per-node noise currents at the trip level), M9 (system budget), M4/M5 (LVS, drawing checks). `docs/methods.md`.
+""")
+b.md("**Figure 77.1 — the three phases at tt, 27 °C.** Zoom on the first nanoseconds to see the gaps.")
+b.code(V77 + r"""
+t = np.array(wv["t"])*1e9
+fig = make_subplots(rows=4, cols=1, shared_xaxes=True, vertical_spacing=0.03)
+for i, (k, c) in enumerate((("refclk", "#59636e"), ("cks", "#2a78d6"), ("ckh", "#1baf7a"), ("ckg", "#eb6834"))):
+    fig.add_trace(go.Scatter(x=t, y=wv[k], name=k, line=dict(color=c, width=1.6)), row=i + 1, col=1)
+    fig.update_yaxes(title_text=k + " (V)", row=i + 1, col=1)
+fig.update_xaxes(title_text="time (ns)", row=4, col=1); fig.update_layout(height=560)
+show(fig)
+""")
+b.md("**Figure 77.2 — timing over 21 conditions** (corners, temperature, VDDL, f_ref, duty, refclk edge). Dashed lines: requirements. Hover for the condition.")
+b.code(V77 + r"""
+T = sim["timing"]
+lab = [f"{a['corner']} {a['temp']}°C {a['vdd']} V {a['f']/1e6:.0f} MHz duty {a['duty']} tr {a['tr']*1e12:.0f} ps" for a in T]
+fig = make_subplots(rows=1, cols=4, subplot_titles=("τ (ps)", "W_H (ns)", "t_p (ns)", "min gap (ps)"))
+for i, (f, req) in enumerate(((lambda a: a["tau"]*1e12, None), (lambda a: a["W_H"]*1e9, 1.5),
+                              (lambda a: a["t_p"]*1e9, 5), (lambda a: min(a["gap1"], a["gap2"])*1e12, 100))):
+    fig.add_trace(go.Scatter(x=list(range(len(T))), y=[f(a) for a in T], mode="markers", text=lab,
+                             marker=dict(color="#2a78d6", size=7), showlegend=False), row=1, col=i + 1)
+    if req: fig.add_hline(y=req, line_dash="dot", line_color="#eb6834", row=1, col=i + 1)
+fig.update_xaxes(title_text="condition #"); fig.update_layout(height=380)
+show(fig)
+""")
+b.md("**Figure 77.3 — τ·K_VCO compensation.** τ from this step, K_VCO from step 74 (relative to tt). The loop needs the product, not τ alone. Hover the bars.")
+b.code(V77 + r"""
+T = {f"{a['corner']} {a['temp']}": a["tau"] for a in sim["timing"] if a["f"] == 5e7 and a["duty"] == 0.5 and a["tr"] == 3e-10}
+tn = sim["timing"][0]["tau"]
+rows = [("ss 110", 0.684), ("ss_hh 110", 0.684), ("tt 27", 1.0), ("ff -40", 1.485), ("ff_ll -40", 1.485)]
+x = [r[0] + " °C" for r in rows]; tr = [T[r[0]]/tn for r in rows]; kr = [r[1] for r in rows]
+fig = go.Figure([go.Bar(x=x, y=tr, name="τ / τ_tt", marker_color="#59636e"),
+                 go.Bar(x=x, y=kr, name="K_VCO / K_tt", marker_color="#1baf7a"),
+                 go.Bar(x=x, y=[a*b for a, b in zip(tr, kr)], name="product", marker_color="#2a78d6")])
+fig.add_hrect(y0=0.75, y1=1.25, fillcolor="#2a78d6", opacity=0.07, line_width=0)
+fig.update_layout(barmode="group", height=400, yaxis_title="relative to tt", bargap=0.25)
+show(fig)
+""")
+b.md(r"""**Figure 77.4 — jitter of the sampling edge (method M17).** Each inverter's trip-point noise current, the
+measured σ and the floor it makes at 50 MHz.""")
+b.code(V77 + r"""
+j = sim["jitter"]
+print("noise current at the trip point:", {k: f"{np.sqrt(v)*1e12:.2f} pA/rtHz" for k, v in j["S"].items()})
+print(f"edges {j['n']}: sigma raw {j['sigma_raw']*1e12:.2f} ps (numerical drift), detrended {j['sigma']*1e12:.3f} ps, "
+      f"noiseless baseline {j['baseline']*1e12:.4f} ps")
+print(f"floor at 50 MHz: {j['L_floor']:.1f} dBc/Hz (allocation -160)")
+s = np.logspace(-14, -11.5, 60); L = 10*np.log10((2*np.pi*5e7*s)**2/5e7)
+fig = go.Figure([go.Scatter(x=s*1e12, y=L, name="L = (2π f σ)² / f", line=dict(color="#2a78d6")),
+                 go.Scatter(x=[j["sigma"]*1e12], y=[j["L_floor"]], mode="markers", name="clock generator",
+                            marker=dict(size=11, color="#eb6834"))])
+fig.add_hline(y=-160, line_dash="dot", line_color="#e87ba4")
+fig.update_xaxes(type="log", title_text="per-edge jitter σ (ps)"); fig.update_yaxes(title_text="floor (dBc/Hz)")
+fig.update_layout(height=380); show(fig)
+""")
+b.md("**The schematics** (top → RC pulser → complementary driver; LVS-clean against the simulated netlist).")
+b.code(r"""
+from IPython.display import Image, display
+for n in ("clkgen", "ckg_pulse_h", "ckg_hlatch", "ckg_drv"):
+    print("sspll_" + n); display(Image(filename=f"../docs/img/step77_sch_{n}.png", width=900))
+""")
+b.md(r"""
+### Sizing table and results
+| Device | Model | W per finger × nf | L | Role |
+|---|---|---|---|---|
+| INVS (n / p) | nfet_01v8 / pfet_01v8 | 0.42 / 0.84 × 1 | 0.15 µm | gap and pulser inverters |
+| INVM (n / p) | nfet_01v8 / pfet_01v8 | 1 / 2 × 1 | 0.15 µm | refclk buffer, driver middle stage |
+| INVL (n / p) | nfet_01v8 / pfet_01v8 | 2 / 4 × 2 | 0.15 µm | driver outputs |
+| NOR2 (n / p) | nfet_01v8 / pfet_01v8 | 0.84 / 1.68 × 1 | 0.15 µm | pulser gates, 3-NOR hold latch |
+| R_H / C_H | res_xhigh_po_0p35 / cap_mim_m3_1 | 0.35 × 6 µm / 6 × 6 µm | — | 34.9 kΩ, 76 fF: hold pulse 2.15 ns |
+| R_G / C_G | res_xhigh_po_0p35 / cap_mim_m3_1 | 0.35 × 0.5 µm / 3.5 × 3.5 µm | — | 3.48 kΩ, 27 fF: Gm pulse 202 ps |
+
+tt: $t_s$ 228 ps, gaps 171 / 318 ps, $\tau$ 200 ps, $W_H$ 2.16 ns, $t_p$ 0.28 ns, 82 µW, jitter 0.15 ps (−163.4 dBc/Hz).
+Worst: $t_p$ 0.50 ns, $W_H$ 1.51 ns, gap 110 ps. (Revised in step 78; the first version had $t_p$ = 2.63 ns.) System (3.3 V pp): 1.963 / 1.254 ps, L(300 kHz) −110.9 / −121.0 dBc/Hz.
+Full report: `docs/design/step77_clkgen.md`; testbenches: `docs/testbench_guide.md`, step 77.
+""")
+b.qa(QA77, 77)
+
+# ------------------------------------------------------------------------------------------------ step 78
+V78 = r"""
+import json
+import numpy as np
+from IPython.display import Image, display
+D = lambda n: json.load(open("../design/sspd/data/" + n))
+ch, kk, jj = D("step78_char.json"), D("step78_kick.json"), D("step78_jitter.json")
+"""
+b.step(78, "SSPD with hold: sampler, dummy sampler, isolation buffers", "schematic")
+b.md(r"""
+### What happens
+At every reference edge the sub-sampling phase detector freezes the VCO waveform on a capacitor C1. Near lock the
+frozen voltage is proportional to the time between the VCO zero crossing and the reference edge — that is the phase
+error, measured with no divider. Right after the sample the pulsed Gm (step 79) reads v1p − v1m; then the sample is
+shared onto C2, which holds it for a whole period for the NCB.
+
+### How it happens
+Per side: the VCO output (clkp) → two **isolation inverters** → a series resistor $R_s$ → node f → the **sampling
+switch** onto C1 (35 fF) and, on the opposite phase, a **dummy sampler** onto CD. $R_s$ and C1 round the square into
+a near-sine whose slope at the crossing is exactly $(V_{DD}/2)/\tau_s$, so the gain per side in volts per radian is
+$$A = \frac{1}{\omega_0}\left.\frac{dv}{dt}\right|_{cross} = \frac{V_{DD}}{2\,\omega_0\,\tau_s},\qquad
+\tau_s = (R_s + R_{buf} + R_{sw})\,C_{1,tot}$$
+After the Gm pulse, the hold switch shares C1 with C2, which keeps a memory of the previous value:
+$$v_2[k] = (1-\alpha)\,v_1[k] + \alpha\,v_2[k-1],\qquad \alpha = \frac{C_{2,tot}}{C_{1,tot} + C_{2,tot}}$$
+The sampled kT/C noise, divided by the gain, is a white phase floor that is **not** multiplied by N²:
+$$\mathcal{L}_{kT/C} = \frac{kT}{2\,C\,A^2 f_{ref}}$$
+
+### Why it happens this way
+- The RC near-sine gives a gain set by R·C with a linear range of ±0.7 rad; a raw square would give an
+  inverter-dependent slope linear over picoseconds. kT/C does not depend on R.
+- **The Gm reads C1, not C2.** Reading after the sharing would put the pole z = α ≈ 0.5 inside the PLL loop
+  (16° of phase lag at f_c = f_ref/20). Step 77's clock order was changed for this.
+- The dummy keeps the buffer's load — and its supply current — the same in every phase: no ripple at f_ref on the LDO.
+- 35 fF instead of 100 fF saves a third of the power; kT/C stays 15 dB under the reference at the output.
+
+**Methods used:** M18 (beat-frequency characteristic), M19 (kick-back by difference of two transients), M17 (isolation
+buffer jitter), M9 (system budget), M4/M5 (LVS, drawing checks). `docs/methods.md`.
+""")
+b.md("**Figure 78.1 — the sampled characteristic** (beat run, tt). Slider: how far from the lock point the line fit reaches; the slope of the fit is 2A.")
+b.code(V78 + r"""
+tt = ch[0]; r = np.array(tt["rows"]); d = (r[:, 1] - tt["phi0"] + np.pi) % (2*np.pi) - np.pi; o = np.argsort(d)
+def frame(w):
+    m = np.abs(d) < w; s = np.polyfit(d[m], r[m, 2], 1)[0]
+    x = np.linspace(-w, w, 2)
+    return ([dict(x=d[o], y=r[o, 2], name="v1p − v1m (Gm reads this)", mode="lines+markers", line=dict(color="#2a78d6")),
+             dict(x=d[o], y=r[o, 3], name="v2p − v2m (held for the NCB)", mode="markers", marker=dict(color="#eb6834", size=6)),
+             dict(x=x, y=s*x, name="line fit", line=dict(color="#1f2328", dash="dash"))],
+            f"fit over ±{w} rad: 2A = {s:.3f} V/rad → A = {s/2:.3f} V (the gain falls as the fit leaves the linear part)")
+def lay(fig):
+    fig.update_xaxes(title_text="VCO phase at the sample, relative to lock (rad)"); fig.update_yaxes(title_text="V")
+show(sweep([0.2, 0.35, 0.7, 1.0, 1.5], frame, "fit half-width (rad)", fmt="{}", active=1, layout=lay))
+""")
+b.md("**Figure 78.2 — A, common mode and power over 17 conditions** (combined MOS + R/C corners). Hover for the condition.")
+b.code(V78 + r"""
+lab = [f"{c['corner']} {c['temp']}°C {c['vdd']} V {c['fref']/1e6:.0f} MHz" for c in ch]
+fig = make_subplots(rows=1, cols=3, subplot_titles=("A (V/rad); floor 0.35", "common mode of v1 (V)", "power (mW)"))
+for i, (k, sc) in enumerate((("A", 1), ("cm", 1), ("power", 1e3))):
+    fig.add_trace(go.Scatter(x=list(range(len(ch))), y=[c[k]*sc for c in ch], mode="markers", text=lab,
+                             marker=dict(color="#2a78d6", size=8), showlegend=False), row=1, col=i + 1)
+fig.add_hline(y=0.35, line_dash="dot", line_color="#eb6834", row=1, col=1)
+fig.add_hline(y=0.5, line_dash="dot", line_color="#59636e", row=1, col=1)
+fig.update_xaxes(title_text="condition #"); fig.update_layout(height=380)
+show(fig)
+""")
+b.md("**Figure 78.3 — kick-back and the dummy sampler (method M19).** Left: how much the sampler moves each clkp edge. Right: SSPD supply current at f_ref.")
+b.code(V78 + r"""
+fig = make_subplots(rows=1, cols=2, column_widths=[0.65, 0.35],
+                    subplot_titles=(f"clkp edge shift: max {kk['dt_max']*1e15:.1f} fs, spur ≈ {kk['spur_dbc']:.0f} dBc", "f_ref current (µA)"))
+fig.add_trace(go.Scatter(x=kk["wave"]["dt_edges"], y=kk["wave"]["dt"], mode="markers", marker=dict(color="#2a78d6", size=6),
+                         showlegend=False), row=1, col=1)
+fig.add_trace(go.Bar(x=["with dummy", "without dummy"], y=[kk["I_fref"]*1e6, kk["I_fref_nodummy"]*1e6],
+                     marker_color=["#1baf7a", "#eb6834"], showlegend=False), row=1, col=2)
+fig.update_yaxes(type="log", row=1, col=2); fig.update_xaxes(title_text="time (ns)", row=1, col=1)
+fig.update_yaxes(title_text="fs", row=1, col=1); fig.update_layout(height=360)
+show(fig)
+print(f"isolation-buffer jitter (M17): {jj['sigma']*1e12:.3f} ps per side, {jj['sigma']/np.sqrt(2)*1e12:.3f} ps differential, "
+      f"baseline {jj['baseline']*1e12:.4f} ps")
+""")
+b.md("**Figure 78.4 — what kT/C costs.** Slider: the sampling capacitance. The floor is far below the reference contribution (×N²) at the output.")
+b.code(V78 + r"""
+kT = 1.380649e-23*300; A = ch[0]["A"]
+def frame(C):
+    C = C*1e-15; L = 10*np.log10(kT/(2*C*A**2*50e6)); f = np.logspace(4, 7.4, 50)
+    return ([dict(x=f, y=[L]*len(f), name="SSPD kT/C (not ×N²)", line=dict(color="#2a78d6")),
+             dict(x=f, y=[-163.4 + 30.1]*len(f), name="clock-generator edge ×N²", line=dict(color="#eb6834", dash="dot"))],
+            f"C = {C*1e15:.0f} fF: kT/C floor {L:.1f} dBc/Hz, {(-133.3) - L:.1f} dB under the clock generator alone")
+def lay(fig):
+    fig.update_xaxes(type="log", title_text="offset (Hz)"); fig.update_yaxes(title_text="dBc/Hz at the output", range=[-155, -125])
+show(sweep([20, 35, 46, 70, 100], frame, "C (fF)", fmt="{}", active=2, layout=lay))
+""")
+b.md("**The schematics** (top → one side → transmission gate; LVS-clean against the simulated netlist).")
+b.code(r"""
+from IPython.display import Image, display
+for n in ("sspd", "sspd_side", "sspd_tg"):
+    print("sspll_" + n); display(Image(filename=f"../docs/img/step78_sch_{n}.png", width=900))
+""")
+b.md(r"""
+### Sizing table and results
+| Device | Model | W per finger × nf | L | Role |
+|---|---|---|---|---|
+| XB1 (n / p) | nfet_01v8 / pfet_01v8 | 0.42 / 0.84 × 1 | 0.15 µm | isolation buffer input (~2 fF on clkp) |
+| XB2 (n / p) | nfet_01v8 / pfet_01v8 | 2 / 4 × 1 | 0.15 µm | drives $R_s$ + C |
+| XRS | res_xhigh_po_0p69 | 0.69 | 0.6 µm | $R_s$ = 2.16 kΩ |
+| sampling / dummy TG | nfet_01v8_lvt / pfet_01v8 | 3 / 1.5 × 1 | 0.15 µm | lvt nMOS: the signal sits mid-rail |
+| hold TG | nfet_01v8_lvt / pfet_01v8 | 1 / 1 × 1 | 0.15 µm | C1 → C2 |
+| XC1, XC2 / XCD | cap_mim_m3_1 | 4 × 4 / 4.35 × 4.35 µm | — | 34.7 fF / 40.7 fF (= C1 + Gm input) |
+
+A = 0.514 V/rad (0.35–0.77 over corners, ±1.5 % over temperature), α = 0.473, kick-back ≤ 2.3 fs (spur ≤ −134 dBc),
+supply current at f_ref 0.76 µA (42 µA without the dummy), buffer jitter 0.080 ps (−169 dBc/Hz), 0.47 mW. System:
+1.964 / 1.256 ps, L(300 kHz) −110.9 / −120.9 dBc/Hz. Power is above the step-72 allocation (power review after step 82).
+Full report: `docs/design/step78_sspd.md`; testbenches: `docs/testbench_guide.md`, step 78.
+""")
+b.qa(QA78, 78)
 b.save(os.path.join(os.path.dirname(__file__), "..", "phase7_design.ipynb"))
