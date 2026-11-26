@@ -1,4 +1,4 @@
-# Ground split: VSSA and VSSD (24 Nov 2026, before step 80)
+# Ground split: VSSA and VSSD (24 Nov 2026, before the loop-filter design)
 
 ## What changed
 
@@ -18,10 +18,10 @@ Every cell now uses the ground of its own domain. Nothing else changed: no devic
 
 | Block | Cells | Ground(s) |
 |---|---|---|
-| SSPD (step 78) | `sspll_sspd_hv*` | VSSA |
-| Ring VCO (step 74) | `sspll_vco_hv*` | VSSA |
-| Pulsed-Gm core (step 79) | `sspll_sscp_hv`, `_slice`, `_rs`, `_buf`, `_tg` | VSSA |
-| Clock generator 1.8 V cells (step 77) | `sspll_ckg_edges_g/h`, `_dly`, `_hlatch` | VSSD |
+| SSPD | `sspll_sspd_hv*` | VSSA |
+| Ring VCO | `sspll_vco_hv*` | VSSA |
+| Pulsed-Gm core (Gm design) | `sspll_sscp_hv`, `_slice`, `_rs`, `_buf`, `_tg` | VSSA |
+| Clock generator 1.8 V cells (clock-generator design) | `sspll_ckg_edges_g/h`, `_dly`, `_hlatch` | VSSD |
 | Clock generator 5 V cells | `sspll_ckg_drv5`, `_drv5t`, `_pout5` | VSSA |
 | Mixed cells | `sspll_ls_1v8_3v3`, `sspll_refbuf_hv`, `sspll_clkgen_hv`, `sspll_cco_hv`, `sspll_sscp_hv_dec`, `sspll_sscp_hv_top` | VSSA and VSSD |
 
@@ -76,7 +76,7 @@ instance lines checked: 49; node-count mismatches: 0
 - `clkgen_hv_sim.py`
 - `clkgen_hv_size.py`
 
-All results of steps 74–79 therefore stand unchanged.
+All results of the block designs therefore stand unchanged.
 
 **Schematics and LVS** (`tools/lvs_hv_all.py`):
 - All six schematic generators were updated. Mixed cells have separate VSSA and VSSD rails and pins; the level shifter's input inverter has its own short VSSD rail.
@@ -99,7 +99,7 @@ python3 tools/lvs_hv_all.py                              # writes xschem/netlist
 
 ## What is deferred (post-layout)
 
-Ground bounce is not modelled before layout. A pre-layout model would be a guess: the ground resistance, how the ground current divides and the package are not known yet. The VDDD-noise benches (steps 76, 77) already show how sensitive the 1.8 V switching points are; VSSD bounce moves the same switching points.
+Ground bounce is not modelled before layout. A pre-layout model would be a guess: the ground resistance, how the ground current divides and the package are not known yet. The VDDD-noise benches of the reference receiver and the clock generator already show how sensitive the 1.8 V switching points are; VSSD bounce moves the same switching points.
 
 After layout, the top-level bench gets:
 - the extracted VSSA and VSSD;

@@ -1,11 +1,11 @@
-# Step 75 (redo): CCO — current-fed supply of the 5 V ring, without the LDO
+# CCO — current-fed supply of the 5 V ring, without the LDO
 
-*Phase 7, roadmap step 75, redone for the device-rule migration (19 Nov 2026).*
+*Phase 7, redone for the device-rule migration (19 Nov 2026).*
 
 **Basis**
-- Step 74 HV ring: 0.994 mA for 800 MHz (tt, ring node 1.89 V), K_I ≈ 0.62 GHz/mA (tt), 0.41 (ss/110 °C), 0.85 (ff/−40 °C).
+- The VCO design ring: 0.994 mA for 800 MHz (tt, ring node 1.89 V), K_I ≈ 0.62 GHz/mA (tt), 0.41 (ss/110 °C), 0.85 (ff/−40 °C).
 - Range needed: **0.704 mA** (ff/−40 °C, 720 MHz) to **1.462 mA** (ss/110 °C, 880 MHz, ring node **2.37 V**), plus IBIAS ±20 %.
-- Step 72 HV budget, now without the LDO:
+- The system budget, now without the LDO:
   - CCO noise allocation: L = −110.2 dBc/Hz at 1 MHz, which is **7.05 pA/√Hz** of output current;
   - supply pushing K_vdd = K_I·|dI/dVDDA| ≤ **5 MHz/V** typ, 20 pess, with VDDA noise ≤ 100 nV/√Hz.
 - Device rule: every analog device is nfet/pfet_g5v0d10v5 on VDDA = 3.3 V; only the control logic is 1.8 V.
@@ -34,7 +34,7 @@ $$I_{out} = 17\cdot\frac{I_{BIAS}}{2}\,(14 + \text{code}) \approx 42.5\ \mu\text
 - **Range:** 0.58–1.83 mA at tt (LSB 40.4 µA). Over 5 corners × VDDA ±10 % × IBIAS ±20 %, code 31 gives ≥ 1.440 mA and code 0 ≤ 0.706 mA. Both edges miss the need by less than 22 µA (≈ 9 MHz), well inside the ±55 MHz fine-tune range.
 - **Noise:** **7.10 pA/√Hz** at 1 MHz (allocation 7.05): on budget.
 - **Supply pushing:** **4.8 MHz/V** at tt (allocation 5). At ss/110 °C it stays ≤ 8.5 MHz/V for VDDA ≥ 3.13 V and rises to 40 MHz/V at 2.97 V, where MOUT and MC run out of headroom.
-- **System** (step-72 HV model, measured ring, CCO and K_vdd(f)):
+- **System** (budget model, measured ring, CCO and K_vdd(f)):
 
 | Case | FFNC off | FFNC on | Proposal typ / max |
 |---|---|---|---|
@@ -67,7 +67,7 @@ Every case meets the proposal's max. No clamp and no 1.8 V rail are needed: the 
 
 ### What happens
 
-The ring has no supply of its own. The CCO pushes a current I_out into the ring's supply node, and the ring settles at the voltage where its own average current equals I_out. The current sets the frequency (f ≈ I/(N·C·V)), so the 5-bit code is the coarse frequency knob and vtune (step 74) the fine knob.
+The ring has no supply of its own. The CCO pushes a current I_out into the ring's supply node, and the ring settles at the voltage where its own average current equals I_out. The current sets the frequency (f ≈ I/(N·C·V)), so the 5-bit code is the coarse frequency knob and vtune (VCO design) the fine knob.
 
 Without an LDO, VDDA reaches the CCO directly. Whatever part of a VDDA ripple turns into output current becomes a frequency ripple of K_I per ampere. Making the CCO a good current source *against VDDA* is therefore the main job of this step.
 
@@ -143,7 +143,7 @@ $$V_{DDA} - V_{ring} \ \ge\ V_{SD,sat}(\text{MOUT}) + V_{SD,sat}(\text{MC}).$$
 
 - **Upper edge.** Code 31 at IBIAS −20 % gives ≥ 1.440 mA; 880 MHz at ss/110 °C needs 1.462 mA. The 22 µA gap is 9 MHz at K_I = 0.41 GHz/mA. The fine tune covers ±55 MHz at ss, so 880 MHz is reached.
 - **Lower edge.** Code 0 at IBIAS +20 % gives ≤ 0.706 mA; 720 MHz at ff/−40 °C needs ≤ 0.704 mA. The 2 µA excess is 1.7 MHz; the fine range at ff is 245 MHz.
-- **LSB** 40.4 µA ≈ 25 MHz at tt. The FLL (step 81) needs one LSB inside the fine range (±87 MHz at tt): it is.
+- **LSB** 40.4 µA ≈ 25 MHz at tt. The FLL needs one LSB inside the fine range (±87 MHz at tt): it is.
 
 ## C. Compliance, supply rejection and headroom (methods M10, M11)
 
@@ -195,7 +195,7 @@ $$V_{DDA} - V_{ring} \ \ge\ V_{SD,sat}(\text{MOUT}) + V_{SD,sat}(\text{MC}).$$
 | i_n (pA/√Hz) | 85.5 | 10.7 | 8.06 | **7.10** | 6.59 |
 
 - Above 1 MHz the floor is MOUT's and MC's channel noise. Below 100 kHz MOUT's flicker rises with 1/f, but there the loop (f_c 2.5 MHz) suppresses VCO-type noise.
-- **System** (`cco_hv_noise.py`): the measured noise and K_vdd(f) are put into the step-72 HV model with the step-74 HV ring and the step-73 HV loop filter.
+- **System** (`cco_hv_noise.py`): the measured noise and K_vdd(f) are put into the budget model with the VCO ring and the loop-design loop filter.
 
 | | typ off | typ on | pess off | pess on | worst off | worst on |
 |---|---|---|---|---|---|---|
@@ -205,9 +205,9 @@ $$V_{DDA} - V_{ring} \ \ge\ V_{SD,sat}(\text{MOUT}) + V_{SD,sat}(\text{MC}).$$
 | L(300 kHz) dBc/Hz | −117.0 | −124.5 | −112.4 | −118.1 | −111.5 | −117.8 |
 
 - typ: tt, VDDA noise 100 nV/√Hz, K_vdd 4.8 MHz/V flat up to 1 MHz, the measured rise above.
-- pess: ring +3 dB and corner ×2 (step 74), VDDA noise 300 nV/√Hz, K_vdd 8.5 MHz/V (ss/110 °C, 800 MHz, VDDA 3.13 V).
+- pess: ring +3 dB and corner ×2 (VCO design), VDDA noise 300 nV/√Hz, K_vdd 8.5 MHz/V (ss/110 °C, 800 MHz, VDDA 3.13 V).
 - worst: as pess with VDDA at 2.97 V: K_vdd 40 MHz/V.
-- **Why FFNC on hardly helps the VDDA term:** above ~2 MHz K_vdd rises (capacitive path), and with FFNC on that wide-band ring noise aliases back through the 50 MHz sampling of the NCB control. This is also why L(300 kHz) FFNC on is 1.5 dB worse than in step 74 (−124.5 vs −126.0).
+- **Why FFNC on hardly helps the VDDA term:** above ~2 MHz K_vdd rises (capacitive path), and with FFNC on that wide-band ring noise aliases back through the 50 MHz sampling of the NCB control. This is also why L(300 kHz) FFNC on is 1.5 dB worse than in −124.5 vs −126.0.
 
 ## E. Disable, VTEST and level shifters (methods M10, M13)
 
@@ -222,7 +222,7 @@ $$V_{DDA} - V_{ring} \ \ge\ V_{SD,sat}(\text{MOUT}) + V_{SD,sat}(\text{MC}).$$
 | ff −40 °C | 3.63 / 1.71 V | 0.26 ns | 0.38 ns | full rail |
 | ff −40 °C | 2.97 / 1.89 V | 0.22 ns | 0.35 ns | full rail |
 
-The code bits are static, so only correct levels matter here; the timing-critical clock level shifters are step 77.
+The code bits are static, so only correct levels matter here; the timing-critical clock level shifters are the clock-generator design.
 
 ## F. Schematics (hierarchical, real wiring, LVS-clean)
 
@@ -273,17 +273,17 @@ The code bits are static, so only correct levels matter here; the timing-critica
 | ls | XN1, XN2 | nfet_g5v0d10v5 | 3 µm | 0.5 µm | 1 | pull-downs |
 | ls | XPO/XNO, XPB/XNB | pfet / nfet_g5v0d10v5 | 2 / 1 µm | 0.5 µm | 1 | output inverters |
 
-**Area estimate:** pMOS array ≈ 4 400 µm², DAC ≈ 900 µm², R_F + R_CAS ≈ 3 900 µm², level shifters ≈ 400 µm²: about **10 000 µm²**, with the MIM on top. The step-72 HV area table gave 6 000 µm²; the total becomes 64 000 µm², still far inside the 0.10 mm² of the proposal.
+**Area estimate:** pMOS array ≈ 4 400 µm², DAC ≈ 900 µm², R_F + R_CAS ≈ 3 900 µm², level shifters ≈ 400 µm²: about **10 000 µm²**, with the MIM on top. The budget area table gave 6 000 µm²; the total becomes 64 000 µm², still far inside the 0.10 mm² of the proposal.
 
 ## H. Requirements handed on
 
 | To | Requirement |
 |---|---|
-| Step 76 REF receiver, step 78 SSPD, step 79 Gm | Every analog block now sees VDDA unregulated: each must state its own VDDA sensitivity, with the same method (AC on VDDA, 100 nV/√Hz typ, 300 pess). |
-| Step 81 FLL | 5-bit code, LSB ≈ 25 MHz at tt; code ≈ 10 for 800 MHz at tt, ≈ 17 at ss/110 °C, ≈ 5 at ff/−40 °C. |
+| REF receiver, the SSPD design SSPD, the Gm design Gm | Every analog block now sees VDDA unregulated: each must state its own VDDA sensitivity, with the same method (AC on VDDA, 100 nV/√Hz typ, 300 pess). |
+| FLL | 5-bit code, LSB ≈ 25 MHz at tt; code ≈ 10 for 800 MHz at tt, ≈ 17 at ss/110 °C, ≈ 5 at ff/−40 °C. |
 | Bias distribution | IBIAS 5 µA ±20 % into a 2-unit 5 V nMOS diode (V_GS ≈ 1.0 V); the input node is noisy: no other circuit should share it unfiltered. |
-| Step 95 layout | R_F and R_CAS over VDDA n-well; MIM over the arrays; vgo/vcas shielded with VDDA. |
-| Step 100 testbenches | CCO benches hold the ring node with an ideal source; the system test must still be run with the real ring (transient, VDDA noise source). |
+| Layout | R_F and R_CAS over VDDA n-well; MIM over the arrays; vgo/vcas shielded with VDDA. |
+| Testbenches | CCO benches hold the ring node with an ideal source; the system test must still be run with the real ring (transient, VDDA noise source). |
 | Datasheet | Full jitter spec meets the proposal's max over VDDA ±10 % at every corner; best performance for VDDA ≥ 3.13 V. |
 
 ## I. Problems met and how they were solved
@@ -301,9 +301,9 @@ The code bits are static, so only correct levels matter here; the timing-critica
 
 No. The proposal verifies over VDDA ±10 %, and the worst case (ss/110 °C, VDDA 2.97 V, 300 nV/√Hz) gives 2.53 ps with FFNC on and 3.71 ps off, inside the 3.2 / 5.0 ps max. The typical values (1.34 / 1.98 ps) stay inside 1.6 / 2.6 ps. Power falls slightly (CCO overhead 0.23 mW instead of 0.41 budgeted), and the area grows by 4 000 µm² inside the 0.10 mm².
 
-## Interview questions (step 75 redo)
+## Interview questions (CCO design)
 
-The answers are in the learning notebook (phase 7), step 75.
+The answers are in the learning notebook (phase 7).
 
 1. Without an LDO, what number tells you how much VDDA noise reaches the ring's frequency, and how do you measure it?
 2. Why can a plain pMOS mirror not meet 5 MHz/V, even with its gate filtered to VDDA?

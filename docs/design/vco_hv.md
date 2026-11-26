@@ -1,10 +1,10 @@
-# Step 74 (redo): ring VCO for 800 MHz in 5 V devices
+# Ring VCO for 800 MHz in 5 V devices
 
-*Phase 7, roadmap step 74, redone for the device-rule migration (18–19 Nov 2026).*
+*Phase 7, redone for the device-rule migration (18–19 Nov 2026).*
 
 **Basis**
-- The step-72 HV budget: ring L(1 MHz) ≤ −104.4 dBc/Hz at 800 MHz, 1/f³ corner ≤ 0.6 MHz, at most 1.31 mA from the CCO.
-- The step-73 HV loop: K_VCO ≈ 150 MHz/V assumed, V_cont 1.0–2.3 V.
+- The budget: ring L(1 MHz) ≤ −104.4 dBc/Hz at 800 MHz, 1/f³ corner ≤ 0.6 MHz, at most 1.31 mA from the CCO.
+- The loop-design loop: K_VCO ≈ 150 MHz/V assumed, V_cont 1.0–2.3 V.
 - The feasibility study (`docs/design/hv_vco_feasibility.md`), which chose a 3-stage pseudo-differential ring (ring B).
 - The 1.6 GHz design (archived note, `design/vco/vco.py`) is kept unchanged for the record.
 
@@ -37,9 +37,9 @@ The ring is a 3-stage pseudo-differential ring of 5 V devices, current-fed by th
 **Range and tuning:**
 - The whole 720–880 MHz range is reached at every corner with the ring node ≤ 2.37 V.
 - The ring starts in under 18 ns at every corner, also with 2 % mismatch.
-- The fine tuning gives **−173 MHz/V** at tt (−110 at ss, −250 at ff) over V_cont = **1.3–2.3 V**. The window moves up by 0.3 V from step 73 because the tuning switch does not conduct below about 1.3 V.
+- The fine tuning gives **−173 MHz/V** at tt (−110 at ss, −250 at ff) over V_cont = **1.3–2.3 V**. The window moves up by 0.3 V from the loop design because the tuning switch does not conduct below about 1.3 V.
 
-**System effect** (step-72 HV model with this ring and the step-73 filter):
+**System effect** (budget model with this ring and the loop-design filter):
 
 | | FFNC off | FFNC on |
 |---|---|---|
@@ -54,13 +54,13 @@ FoM **−229.0 dB**. All proposal targets are met with margin.
 | Parameter | 800 MHz, 5 V (this redo) | 1.6 GHz, 1.8 V (15 Nov) | Requirement |
 |---|---|---|---|
 | Ring | 3-stage pseudo-differential, nfet/pfet_g5v0d10v5 | 5-stage, nfet/pfet_01v8 | 5 V devices for analog |
-| Current for f₀ (tt, 27 °C, 10 fF/node) | **0.994 mA** | 1.352 mA | ≤ 1.31 mA (step 72 HV) |
+| Current for f₀ (tt, 27 °C, 10 fF/node) | **0.994 mA** | 1.352 mA | ≤ 1.31 mA (system budget) |
 | Ring node at f₀ (tt) | **1.89 V** | 1.38 V | |
 | L(1 MHz) thermal / flicker / total | **−105.16 / −107.49 / −103.16 dBc/Hz** | −98.66 / −100.87 / −96.62 (at 1.6 GHz) | thermal ≤ −104.4 |
 | 1/f³ corner | **0.59 MHz** | 0.60 MHz | ≤ 0.6 MHz (pess 1.2) |
 | h_dc / h_rms | 0.626 | 0.67 | |
 | Ring power from VDDA (I × 9/8 × 3.3 V) | **3.69 mW** | 4.64 mW | ≤ 4.86 mW |
-| K_VCO, V_cont 1.3–2.3 V (tt / ss 110 / ff −40) | **−173 / −110 / −250 MHz/V** | −326 / −223 / −484 (0.6–1.2 V) | ≈ 150 (step 73 HV) |
+| K_VCO, V_cont 1.3–2.3 V (tt / ss 110 / ff −40) | **−173 / −110 / −250 MHz/V** | −326 / −223 / −484 (0.6–1.2 V) | ≈ 150 (loop design) |
 | 880 MHz at ss 110 °C, 15 fF, VDDA 2.97 V | **1.462 mA, ring node 2.37 V** | 1.93 mA, 1.65 V (1.76 GHz) | node ≤ VDDA − CCO headroom |
 | 720 MHz at ff −40 °C, 5 fF | **0.704 mA**, 1.60 V | 0.89 mA (1.44 GHz) | |
 | sf / fs at 0.994 mA | 728 / 898 MHz | | |
@@ -169,9 +169,9 @@ Coarse gain K_I near each corner's operating point: 0.62 GHz/mA at tt (around 1 
 | ss 110 °C | 714 | 709 | 704 | 674 | 634 | 594 | 559 |
 | ff −40 °C | 1115 | 1100 | 1051 | 954 | 871 | 801 | 748 |
 
-K_VCO over 1.3–2.3 V is −173 / −110 / −250 MHz/V. Over the step-73 window 1.0–2.3 V it would be −148 / −89 / −230 MHz/V, with a nearly flat part below 1.3 V (−65 MHz/V at tt, −18 at ss).
+K_VCO over 1.3–2.3 V is −173 / −110 / −250 MHz/V. Over the loop-design window 1.0–2.3 V it would be −148 / −89 / −230 MHz/V, with a nearly flat part below 1.3 V (−65 MHz/V at tt, −18 at ss).
 
-**Decision: V_cont window = 1.3–2.3 V.** The coarse calibration (cco_code) sets the lock point near 1.8 V. The step-73 loop filter is unchanged; the narrower window makes the MOS capacitor C1 even flatter. The fine range at tt is 173 MHz (22 % of 800 MHz).
+**Decision: V_cont window = 1.3–2.3 V.** The coarse calibration (cco_code) sets the lock point near 1.8 V. The loop-design loop filter is unchanged; the narrower window makes the MOS capacitor C1 even flatter. The fine range at tt is 173 MHz (22 % of 800 MHz).
 
 **Start-up** (`vco_hv_startup.py`). All nodes and the ring supply start at 0 V, and the current ramps in 2 ns.
 
@@ -235,7 +235,7 @@ Only clkp and clkm are used. The four dummy buffers keep the load equal and have
 
 ## G. Effect on the system
 
-`vco_hv_system.py` uses the step-72 HV model, the step-73 filter, and this ring's thermal noise and corner. The pessimistic case adds 3 dB to the thermal noise and doubles the corner, as a margin for extraction.
+`vco_hv_system.py` uses the budget model, the loop-design filter, and this ring's thermal noise and corner. The pessimistic case adds 3 dB to the thermal noise and doubles the corner, as a margin for extraction.
 
 | | Typical, FFNC off | Typical, FFNC on | Pessimistic, off | Pessimistic, on | Proposal typ / max |
 |---|---|---|---|---|---|
@@ -244,20 +244,20 @@ Only clkp and clkm are used. The four dummy buffers keep the load equal and have
 | L(300 kHz) | −116.8 | −126.0 | −111.7 | −119.7 dBc/Hz | off −114 / −108, on −124 / −116 |
 | Power | 6.10 mW | 7.55 mW | | | 9.1 / 15 mW |
 
-- **FoM:** −229.0 dB (1.29 ps at 7.55 mW). The step-72 estimate was −227.7.
-- **Loop:** β·K_VCO must stay as step 73 set it. With −173 MHz/V the Gm unit falls from 19.0 to **16.5 µS** (3 units = 49.4 µS). R1, C1 and C2 are unchanged.
-- **R1 noise:** the step-72 model takes K_VCO = 150 MHz/V for the R1 term. At 173 MHz/V that term rises by 1.2 dB, about +0.01 ps.
+- **FoM:** −229.0 dB (1.29 ps at 7.55 mW). The budget estimate was −227.7.
+- **Loop:** β·K_VCO must stay as the loop design set it. With −173 MHz/V the Gm unit falls from 19.0 to **16.5 µS** (3 units = 49.4 µS). R1, C1 and C2 are unchanged.
+- **R1 noise:** the budget model takes K_VCO = 150 MHz/V for the R1 term. At 173 MHz/V that term rises by 1.2 dB, about +0.01 ps.
 
 ## H. Requirements handed on
 
 | To | Requirement |
 |---|---|
-| Step 73 loop | V_cont window **1.3–2.3 V** (was 1.0–2.3 V); lock point near 1.8 V after coarse calibration; Gm unit 16.5 µS. |
-| Step 75 CCO | Ring current 0.70 mA (ff/−40 °C, 720 MHz) to 1.46 mA (ss/110 °C, 880 MHz), plus IBIAS ±20 % and margin. Output compliance up to a 2.37 V ring node at VDDA = 2.97 V (0.60 V headroom). K_vdd ≤ 5 MHz/V (step 72 HV). L ≥ 1 µm current sources. |
-| Step 77 clock generator / dividers | clkp/clkm are 3.3 V CMOS edges (swing 2.86–3.70 V). The 1.8 V ÷16 divider needs a 3.3 → 1.8 V level shifter at 880 MHz. |
-| Step 78 SSPD (5 V redo) | It samples clkp/clkm directly; its shaping buffers see 3.3 V edges. A ≈ 0.8 V/rad to be re-checked. |
-| Step 80 NCB | Driven by clkp/clkm (3.3 V); delay range sized for a 1.25 ns period. |
-| Step 100 testbenches | Start-up: read out with \|vd\| > 1 V and a settled window, never by counting early zero crossings. |
+| Loop | V_cont window **1.3–2.3 V** (was 1.0–2.3 V); lock point near 1.8 V after coarse calibration; Gm unit 16.5 µS. |
+| CCO | Ring current 0.70 mA (ff/−40 °C, 720 MHz) to 1.46 mA (ss/110 °C, 880 MHz), plus IBIAS ±20 % and margin. Output compliance up to a 2.37 V ring node at VDDA = 2.97 V (0.60 V headroom). K_vdd ≤ 5 MHz/V (system budget). L ≥ 1 µm current sources. |
+| Clock generator / dividers | clkp/clkm are 3.3 V CMOS edges (swing 2.86–3.70 V). The 1.8 V ÷16 divider needs a 3.3 → 1.8 V level shifter at 880 MHz. |
+| SSPD (5 V redo) | It samples clkp/clkm directly; its shaping buffers see 3.3 V edges. A ≈ 0.8 V/rad to be re-checked. |
+| NCB | Driven by clkp/clkm (3.3 V); delay range sized for a 1.25 ns period. |
+| Testbenches | Start-up: read out with \|vd\| > 1 V and a settled window, never by counting early zero crossings. |
 
 ## I. Problems met and how they were solved
 
@@ -279,11 +279,11 @@ Not for correctness. Every target is met with margin:
 | Jitter, FFNC on | 1.6 / 3.2 ps | 1.29 / 2.08 ps |
 | Power, FFNC on | 9.1 / 15 mW | 7.55 mW |
 
-**Optional:** the power could be lowered to about 8 mW typ, which gives FoM −226.9 dB at 1.6 ps. The CCO, SSPD and NCB in 5 V devices are still estimates, so keeping 9.1 mW is the safer choice until step 80.
+**Optional:** the power could be lowered to about 8 mW typ, which gives FoM −226.9 dB at 1.6 ps. The CCO, SSPD and NCB in 5 V devices are still estimates, so keeping 9.1 mW is the safer choice until the loop-filter design.
 
-## Interview questions (step 74 redo)
+## Interview questions (VCO design)
 
-The answers are in the learning notebook (phase 7), step 74.
+The answers are in the learning notebook (phase 7).
 
 1. Why three stages now, when the 1.8 V design had to use five?
 2. The first 5 V ring had a 1/f³ corner of 1.5 MHz. What did the ISF say, and what fixed it?

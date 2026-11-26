@@ -5,7 +5,7 @@ Chipalooza Challenge #4 (Chip Foundry Sky130) entry. A ring-oscillator sub-sampl
 - **Frequency plan:** 50 MHz reference × 16 = 800 MHz, divided into 400, 200, 100 and 50 MHz outputs.
 - **Devices:** every analog circuit uses only the 5 V-rated `g5v0d10v5` devices on VDDA 3.3 V (ground VSSA). The digital logic uses the 1.8 V devices on VDDD (ground VSSD).
 - **Target:** 1.6 ps rms jitter (10 kHz–40 MHz) at about 10 mW.
-- **Status:** block design, steps 72–79 done (pre-layout).
+- **Status:** block design done for the budget, loop, VCO, CCO, reference receiver, clock generator, SSPD, pulsed-Gm charge pump, loop filter and FLL (pre-layout).
 
 | Folder / file | Content |
 |---|---|
@@ -14,16 +14,16 @@ Chipalooza Challenge #4 (Chip Foundry Sky130) entry. A ring-oscillator sub-sampl
 | `versions.txt` | The frozen toolchain (IIC-OSIC-TOOLS 2026.10, open_pdks 1689ac3f) |
 | `docs/design/proposal_final_spec.md` | How each proposal value was set from the pre-layout results |
 | `docs/design/hv_*.md` | 5 V device characterisation, ring feasibility, output divider |
-| `docs/design/budget_hv.md`, `design/budget/` | Step 72: phase-noise, jitter, power and area budget |
-| `docs/design/loop_hv.md`, `design/loop/` | Step 73: loop design (f_c, PM, β, R, C) and the exact sampled-loop model |
-| `docs/design/vco_hv.md`, `design/vco/`, `xschem/vco_hv/` | Step 74: 3-stage pseudo-differential ring VCO |
-| `docs/design/cco_hv.md`, `design/cco/`, `xschem/cco_hv/` | Step 75: 5-bit current DAC and level shifter |
-| `docs/design/refbuf_hv.md`, `design/refbuf/`, `xschem/refbuf_hv/` | Step 76: reference receiver |
-| `docs/design/clkgen_hv.md`, `design/clkgen/`, `xschem/clkgen_hv/` | Step 77: clock generator (sample, Gm and hold pulses) |
-| `docs/design/sspd_hv.md`, `design/sspd/`, `xschem/sspd_hv/` | Step 78: sub-sampling phase detector with hold |
-| `docs/design/sscp_hv.md`, `design/sscp/`, `xschem/sscp_hv/` | Step 79: pulsed-Gm charge pump |
-| `docs/design/lf_hv.md`, `design/loop/`, `xschem/lf_hv/` | Step 80: loop filter in real devices |
-| `docs/design/fll_hv.md`, `design/fll/`, `xschem/fll_hv/` | Step 81: frequency-locked loop (÷16, PFD + dead zone, lock detector, 5 V pump) |
+| `docs/design/budget_hv.md`, `design/budget/` | Phase-noise, jitter, power and area budget |
+| `docs/design/loop_hv.md`, `design/loop/` | Loop design (f_c, PM, β, R, C) and the exact sampled-loop model |
+| `docs/design/vco_hv.md`, `design/vco/`, `xschem/vco_hv/` | 3-stage pseudo-differential ring VCO |
+| `docs/design/cco_hv.md`, `design/cco/`, `xschem/cco_hv/` | 5-bit current DAC and level shifter |
+| `docs/design/refbuf_hv.md`, `design/refbuf/`, `xschem/refbuf_hv/` | Reference receiver |
+| `docs/design/clkgen_hv.md`, `design/clkgen/`, `xschem/clkgen_hv/` | Clock generator (sample, Gm and hold pulses) |
+| `docs/design/sspd_hv.md`, `design/sspd/`, `xschem/sspd_hv/` | Sub-sampling phase detector with hold |
+| `docs/design/sscp_hv.md`, `design/sscp/`, `xschem/sscp_hv/` | Pulsed-Gm charge pump |
+| `docs/design/lf_hv.md`, `design/loop/`, `xschem/lf_hv/` | Loop filter in real devices |
+| `docs/design/fll_hv.md`, `design/fll/`, `xschem/fll_hv/` | Frequency-locked loop (÷16, PFD + dead zone, lock detector, 5 V pump) |
 | `docs/design/ground_split.md` | VSSA / VSSD assignment, and the proof that it changed nothing simulated |
 | `docs/testbench_guide.md` | Every testbench: what it measures, why, how it is set up and run |
 | `tools/xsch.py`, `xschem/lvs.sh`, `xschem/render.sh`, `tools/lvs_hv_all.py` | Schematic builder with drawing checks, schematic-vs-simulation LVS of every cell, PNG rendering |

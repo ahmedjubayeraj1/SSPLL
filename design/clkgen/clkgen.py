@@ -1,11 +1,11 @@
-"""clkgen.py - roadmap step 77: clock generator for the SSPD and the pulsed-Gm charge pump (SKY130, VDDL = 1.8 V).
+"""clkgen.py - clock generator for the SSPD and the pulsed-Gm charge pump (SKY130, VDDL = 1.8 V).
 
-From the reference edge (refclk, step 76) it makes three complementary control pairs:
+From the reference edge (refclk) it makes three complementary control pairs:
   cks / cksb  sampling switch sw1: tracks the VCO while cks = 1, samples at the refclk rising edge (cks falls)
   ckg / ckgb  Gm current pulse: width tau = 200 ps, a gap after the sampling edge; the Gm reads C1 (the fresh sample);
               the delay from the sampling edge to the middle of this pulse is t_p (loop requirement <= 5 ns)
   ckh / ckhb  hold-transfer switch sw2 (C1 -> C2, for the NCB): a pulse of width W_H, a gap after the Gm pulse ends
-  (Order revised in step 78: reading C2 after the C1-C2 charge sharing would put a pole z = 0.5 into the loop.)
+  (Order revised in the SSPD design: reading C2 after the C1-C2 charge sharing would put a pole z = 0.5 into the loop.)
 Cells: sspll_ckg_drv (complementary driver), sspll_ckg_pulse_h / sspll_ckg_pulse_g (RC pulsers), sspll_clkgen (top).
 Every device is (model, W per finger, nf, L)."""
 import os, re, subprocess, tempfile
@@ -120,7 +120,7 @@ def tran(corner="tt", temp=27, vdd=1.8, fref=50e6, duty=0.5, tr=300e-12, p=D, nc
     def rise(k):
         a = next(x for x in xings(t, sig[k], 0.1*vdd, True) if x > t0); b = next(x for x in xings(t, sig[k], 0.9*vdd, True) if x > a)
         return b - a
-    # order (revised in step 78): sample (cks falls) -> gap1 -> Gm pulse (reads C1) -> gap2 -> hold pulse (C1 -> C2)
+    # order (revised in the SSPD design): sample (cks falls) -> gap1 -> Gm pulse (reads C1) -> gap2 -> hold pulse (C1 -> C2)
     return dict(t_s=s_f - ref, skew_s=sb_r - s_f, gap1=g_r - max(s_f, sb_r), W_H=h_f - h_r, gap2=h_r - g_f,
                 tau=g_f - g_r, skew_g=gb_f - g_r, t_p=(g_r + g_f)/2 - s_f, rise_cks=rise("cksb"), rise_ckg=rise("ckg"),
                 power=P)

@@ -1,4 +1,4 @@
-* moscap_cv.sp - roadmap step 73: small-signal C-V of the loop-filter capacitors (frozen SKY130 PDK).
+* moscap_cv.sp - small-signal C-V of the loop-filter capacitors (frozen SKY130 PDK).
 * X1: nfet_01v8 used as a capacitor, gate = V_cont, drain/source/body = VSS; unit W = 10 um, L = 10 um (100 um^2).
 * X2: cap_mim_m3_1 30 x 30 um tile. C from the AC current at 1 MHz: C = Im(I)/(2 pi f).
 * Run: PDK_ROOT=/path/to/pdk ./run_cv.sh   ->  ../../../design/loop/data/moscap_cv.csv

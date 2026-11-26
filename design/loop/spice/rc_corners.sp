@@ -1,4 +1,4 @@
-* rc_corners.sp - roadmap step 73: loop-filter R and C values over the R/C corner sections and temperature.
+* rc_corners.sp - loop-filter R and C values over the R/C corner sections and temperature.
 * R: res_high_po_1p41 L = 40 um (about 9.5 kOhm); res_xhigh_po_1p41 L = 6.5 um. C: cap_mim_m3_1 30 x 30 um.
 .lib "PDK_ROOT/sky130A/libs.tech/ngspice/sky130.lib.spice" CORNER
 .temp TEMP

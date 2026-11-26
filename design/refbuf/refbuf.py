@@ -1,4 +1,4 @@
-"""refbuf.py - roadmap step 76: REF_IN receiver (reference buffer), SKY130.
+"""refbuf.py - REF_IN receiver (reference buffer), SKY130.
 
  REF_IN pad ──┬── C_AC (MIM) ── vin ──┬──────────── S1: current-reuse inverter (thick oxide, VDDA) ── s1 ── S2 ── s2
    R_PU/R_PD  │  (pad held at VDDA/2)  └── R_B (poly) ──┘ (self-bias: vin DC = s1 DC = trip point)

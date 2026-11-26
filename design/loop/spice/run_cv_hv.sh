@@ -1,5 +1,5 @@
 #!/bin/bash
-# run_cv_hv.sh - C-V of the 5 V MOS cap and the two MIM layers over corners and temperature (step 73 redo).
+# run_cv_hv.sh - C-V of the 5 V MOS cap and the two MIM layers over corners and temperature (loop design).
 #   PDK_ROOT=/path/to/pdk ./run_cv_hv.sh      writes ../data/moscap_hv_cv.csv
 set -e
 cd "$(dirname "$0")"

@@ -4,7 +4,7 @@ K {}
 V {}
 S {}
 E {}
-T {sspll_fll_hv (step 81): clkp / 16 against refclk; PFD with dead zone and lock detector on VDDD; level shifters;} 40 -500 0 0 0.3 0.3 {}
+T {sspll_fll_hv (FLL design): clkp / 16 against refclk; PFD with dead zone and lock detector on VDDD; level shifters;} 40 -500 0 0 0.3 0.3 {}
 T {60 uA current-steering charge pump on VDDA into the loop filter (vctl). The pump is off while lock_det = 1.} 40 -460 0 0 0.3 0.3 {}
 N 100 0 300 0 {lab=}
 N 500 0 580 0 {lab=}

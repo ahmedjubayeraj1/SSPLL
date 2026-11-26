@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""sspd_hv_size.py - sizing of the 5 V SSPD for A = 0.8 V/rad at 800 MHz (step 72 HV target): series resistor
-length and sampling-switch width, each point a full beat run with the step-77 HV clock generator (method M18).
+"""sspd_hv_size.py - sizing of the 5 V SSPD for A = 0.8 V/rad at 800 MHz (the system budget target): series resistor
+length and sampling-switch width, each point a full beat run with the clock-generator clock generator (method M18).
 -> data/sspd_hv_size.json"""
 import os, json
 from multiprocessing import Pool

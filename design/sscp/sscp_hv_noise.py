@@ -5,10 +5,10 @@ Gm noise: the output current noise S_i(f) (.noise with the Gm connected to the f
 so the average current noise is d S_i; the detector converts phase into average current with beta = 2 A G d. The
 equivalent phase noise at the detector input (in-loop, like detector noise, not x N^2):
     S_phi = d S_i / beta^2 = S_i / (4 A^2 G^2 d),   L = S_phi / 2
-(the same as the step-72 model kT gamma/(A^2 g_m d) with S_i = 4 kT gamma g_m and G = g_m).
+(the same as the budget model kT gamma/(A^2 g_m d) with S_i = 4 kT gamma g_m and G = g_m).
 VDDA: a current Y v_dda reaches the filter only during the pulse -> phase error Y v / (2 A G):
     S_phi = |Y|^2 S_v / (2 A G)^2
-REF chain and SSPD: step 78 HV. -> data/sscp_hv_noise.json"""
+REF chain and SSPD: the SSPD design. -> data/sscp_hv_noise.json"""
 import os, sys, json
 import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))

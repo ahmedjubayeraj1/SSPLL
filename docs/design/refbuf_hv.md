@@ -1,11 +1,11 @@
-# Step 76 (redo): REF receiver in 5 V devices, with a 3.3 → 1.8 V level shifter on VDDD
+# REF receiver in 5 V devices, with a 3.3 → 1.8 V level shifter on VDDD
 
-*Phase 7, roadmap step 76, redone for the device-rule migration (19 Nov 2026).*
+*Phase 7, redone for the device-rule migration (19 Nov 2026).*
 
 **Basis**
 - The 13 Nov receiver (archived note, `design/refbuf/refbuf.py`). Its analog part (S1, S2, bias, R_B, C_AC, C_H) was already built from 5 V devices on VDDA, and it is kept unchanged.
 - The device-rule migration removed the LDO and its 1.8 V output VDDL. The receiver's 1.8 V side (level-shift inverter, output NOR, pll_en inverter) now runs on **VDDD**, the harness digital supply.
-- Step-72 HV budget: the whole REF chain (receiver + clock generator + level shifters + SSPD buffers) ≤ **−155 dBc/Hz** at 50 MHz typ, −151 pess; receiver power 0.20 mW.
+- budget: the whole REF chain (receiver + clock generator + level shifters + SSPD buffers) ≤ **−155 dBc/Hz** at 50 MHz typ, −151 pess; receiver power 0.20 mW.
 - N = 16 now: reference noise reaches 800 MHz with +24 dB (was +30 dB at 1.6 GHz).
 - Proposal: reference amplitude 0.4 / **1.0** / 3.3 V pp (min / typ / max); VDDA ±10 %, VDDD ±5 %.
 
@@ -20,12 +20,12 @@ python3 schematics_hv.py             # xschem/refbuf_hv/*.sch + *.sym, drawing c
 cd ../../xschem && ./lvs.sh refbuf_hv/sspll_refbuf_hv.sch netlist/ref_refbuf_hv.spice sspll_refbuf_hv   # M4
 ```
 
-The system numbers come from `design/budget/hv_system.py`. It is new in this step: the step-72 HV model with every block measured so far (step-73 filter, step-74 ring, step-75 CCO and K_vdd(f)) in place of its allocation. From now on every step reports the same cumulative system figure.
+The system numbers come from `design/budget/hv_system.py`. It is new in this step: the budget model with every block measured so far (loop-design filter, VCO ring, CCO and K_vdd(f)) in place of its allocation. From now on every step reports the same cumulative system figure.
 
-> **Revised in step 77 (19 Nov 2026): new output `refhv`.** S2's 0–3.3 V output (VDDA domain) is now also a pin of the cell. The clock generator takes the SSPD sampling edge from it instead of from refclk.
+> **Revised in 19 Nov 2026: new output `refhv`.** S2's 0–3.3 V output (VDDA domain) is now also a pin of the cell. The clock generator takes the SSPD sampling edge from it instead of from refclk.
 > - **Why:** through refclk the sampling edge crossed two VDDD gates here and three more in the clock generator, and moved by **376 ps per volt of VDDD** (`design/clkgen/data/clkgen_hv_supply_via_vddd.json`). Through refhv it never touches VDDD.
 > - **What did not change:** refclk is still made the same way for the clock generator's 1.8 V core (Gm and hold pulses).
-> - S2 now also drives the 5 V sampling driver's input (≈ 10 fF); the step-77 timing benches include this load.
+> - S2 now also drives the 5 V sampling driver's input (≈ 10 fF); the clock-generator timing benches include this load.
 > - Ports: `REF_IN refclk refhv ib pll_en VDDA VDDD VSS`. The schematic and LVS were redone and give *Circuits match uniquely*.
 
 ## Result in one paragraph
@@ -71,7 +71,7 @@ Every proposal maximum is met over the whole input range. With a 1.0 V pp sine (
 | Start-up (periods within 2 %) | 3.8 / 4.3 / 4.9 µs (ss / tt / ff) | ≈ 4 µs | < FLL wait |
 | Disabled | refclk ≤ 2 µV; I(VDDA) 5.9 µA (pad divider + bias pull), I(VDDD) < 2 nA | same | quiet |
 | VDDA → edge (square / 1 V sine) | **31–60 / 254–530 ps/V** | 119 (3.3 V sine) / 254 ps/V, DC only | — |
-| VDDD → refclk edge | **157 ps/V**, DC–20 MHz | VDDL 150 ps/V (DC) | none since step 77: the sampling edge comes from refhv |
+| VDDD → refclk edge | **157 ps/V**, DC–20 MHz | VDDL 150 ps/V (DC) | none since the clock-generator design: the sampling edge comes from refhv |
 | S1 per-edge white jitter (square / 1 V / 0.4 V) | **0.034 / 0.556 / 1.162 ps** | 0.23 (3.3 V sine) / 0.61 / 1.15 | |
 | Output chain jitter (M17, square / 1 V sine) | 0.097 / 0.173 ps | not estimated | |
 | Receiver floor, typ (square / 1 V / 0.4 V) | **−164.7 / −150.9 / −145.4 dBc/Hz** | −159.9 (3.3 V sine) / −151.4 / −145.8 | chain ≤ −155 |
@@ -115,7 +115,7 @@ $$\mathcal{L}_{sup}(f) = \frac{(2\pi f_{ref})^2\,K_s(f)^2\,S_v(f)}{2}\quad\text{
 | Keep the analog core of 13 Nov | **yes** | Already 5 V devices on VDDA; noise and power were sized then (header 60 µA, moderate inversion). |
 | Where to power the 1.8 V output side without VDDL | **VDDD** | The clock generator that receives refclk is on VDDD anyway; an on-chip regulator was dropped with the LDO. |
 | Level shifter 3.3 → 1.8 V | **5 V inverter on VDDD** (2 / 1 µm, L 0.5 µm) | A 1.8 V gate cannot take 3.3 V; a down-shift needs no latch. Slowest at ss/−40 °C, 1.71 V: 491 ps rise, still a clean edge. |
-| VDDD quality | first: ≤ 160 nV/√Hz at the die; **final: no requirement** | The harness VDDD is shared with other projects, so a limit could not be guaranteed; step 77 takes the sampling edge from refhv (VDDA) instead. |
+| VDDD quality | first: ≤ 160 nV/√Hz at the die; **final: no requirement** | The harness VDDD is shared with other projects, so a limit could not be guaranteed; the clock-generator design takes the sampling edge from refhv (VDDA) instead. |
 | Typical reference for the noise specs | **3.3 V CMOS square** (proposal updated 19 Nov) | 1 V sine misses the typ L(300 kHz) FFNC-on by 0.7 dB. |
 | More S1 current for the sine case | **no** | Doubling the header (+0.2 mW) buys 3 dB of S1 white noise; at 1 V pp the system L(300 kHz) would still sit near −124 dBc/Hz, and a full-swing XO costs nothing on chip. |
 
@@ -142,7 +142,7 @@ $$\mathcal{L}_{sup}(f) = \frac{(2\pi f_{ref})^2\,K_s(f)^2\,S_v(f)}{2}\quad\text{
 | tt, VDDD 1.71 / 1.89 V, square | 181 / 152 ps | 54.7 / 54.4 % | 322 / 273 ps | 0.232 / 0.234 mW |
 
 - Start-up: the AC-coupled input's centre climbs to the trip point through R_B; refclk periods are within 2 % after 3.8 µs (ss), 4.3 µs (tt) and 4.9 µs (ff). The CCO filter needs ~0.3 ms, so the FLL waits longer anyway.
-- Disabled: refclk ≤ 2 µV. I(VDDA) is 5.9 µA: 3.3 µA in the pad divider and the 2.5 µA that the bias generator pulls through XPEN (that generator is switched off with pll_en, step 86). I(VDDD) < 2 nA.
+- Disabled: refclk ≤ 2 µV. I(VDDA) is 5.9 µA: 3.3 µA in the pad divider and the 2.5 µA that the bias generator pulls through XPEN (that generator is switched off with pll_en). I(VDDD) < 2 nA.
 
 ## C. Supply sensitivity (method M21, new)
 
@@ -184,7 +184,7 @@ So VDDD must be as quiet as VDDA. **161 nV/√Hz** keeps the VDDD term at −165
 - **M15:** S1's per-edge white jitter. The white plateau is injected at the pad by `trnoise` and the circuit is otherwise noiseless; 300 edges. The white per-edge value is taken as period jitter / √2.
 - **M17:** output-chain jitter. Each stage's white drain-noise current at its trip point is injected at its output: S2 1.99 pA/√Hz, level shifter 0.61, NOR 3.67. 80 edges; the baseline run (sources × 10⁻⁶) gives 0.003 ps.
 - The supply terms come from section C.
-- **The chain total** adds the clock-generator sampling edge (−163.4 dBc/Hz, step 77, kept until step 77 is redone) and the SSPD isolation buffers (−169, step 78).
+- **The chain total** adds the clock-generator sampling edge (−163.4 dBc/Hz, the clock-generator design, kept until the clock-generator design is redone) and the SSPD isolation buffers (−169).
 
 ![noise](../img/refbuf_hv_noise.png)
 
@@ -196,7 +196,7 @@ So VDDD must be as quiet as VDDA. **161 nV/√Hz** keeps the VDDD term at −165
 
 - With the square input the output chain, not S1, sets the white floor. M17 applies the trip-point noise all the time, so 0.097 ps is an upper bound.
 - For the square input, the absolute jitter of S1 (0.13 ps) is larger than period/√2 (0.034 ps). This is a slow wander, most likely numerical (a 10 ps time grid against 0.5 ns edges). A white source cannot make it with such a steep edge, so the period-based value is used. For the sines the two agree (0.560 / 0.556 ps).
-- Below 30 kHz the chain is set by the placeholder 1/f corners of the clock generator and SSPD buffers, which steps 77 and 78 will replace.
+- Below 30 kHz the chain is set by the placeholder 1/f corners of the clock generator and SSPD buffers, which the clock-generator and SSPD designs will replace.
 
 **System** (`hv_system.py`; typ = tt, VDDA and VDDD 100 nV/√Hz; pess = ring +3 dB, corner ×2, 300 nV/√Hz, K_vdd at ss/110 °C 3.13 V; worst = pess with VDDA 2.97 V):
 
@@ -214,8 +214,8 @@ So VDDD must be as quiet as VDDA. **161 nV/√Hz** keeps the VDDD term at −165
 |---|---|---|
 | 1 | `xschem/refbuf_hv/sspll_refbuf_hv_rb.sch` | R_B: 10 xhigh-poly segments, 5 MΩ, bodies VSS |
 | 1 | `xschem/refbuf_hv/sspll_refbuf_hv_s1.sch` | S1 with bias diode, header ×24, C_H, enable devices |
-| 1 | `xschem/cco_hv/sspll_ls_1v8_3v3.sch` | enable level shifter (step 75 HV) |
-| 2 | `xschem/refbuf_hv/sspll_refbuf_hv.sch` | pad divider, C_AC, R_B, S1, S2 (VDDA), level-shift inverter + NOR + pll_en inverter (VDDD); pins REF_IN, refclk, refhv (S2 output, added in step 77), ib, pll_en, VDDA, VDDD, VSS |
+| 1 | `xschem/cco_hv/sspll_ls_1v8_3v3.sch` | enable level shifter (CCO design) |
+| 2 | `xschem/refbuf_hv/sspll_refbuf_hv.sch` | pad divider, C_AC, R_B, S1, S2 (VDDA), level-shift inverter + NOR + pll_en inverter (VDDD); pins REF_IN, refclk, refhv (S2 output, added in the clock-generator design), ib, pll_en, VDDA, VDDD, VSS |
 
 ![receiver](../img/sch_sspll_refbuf_hv.png)
 ![S1](../img/sch_sspll_refbuf_hv_s1.png)
@@ -252,7 +252,7 @@ So VDDD must be as quiet as VDDA. **161 nV/√Hz** keeps the VDDD term at −165
 | XPL / XNL | pfet / nfet_g5v0d10v5 | 2 / 1 | 0.5 µm | **3.3 → 1.8 V level shift on VDDD** |
 | XPB, XPB2 / XNB, XNB2 | pfet / nfet_01v8 | 4 / 1 | 0.15 µm | output NOR on VDDD |
 | XPEI / XNEI | pfet / nfet_01v8 | 1 / 0.5 | 0.15 µm | pll_en inverter on VDDD |
-| xls | sspll_ls_1v8_3v3 | (step 75 HV) | | pll_en → en / enb on VDDA |
+| xls | sspll_ls_1v8_3v3 | (CCO design) | | pll_en → en / enb on VDDA |
 
 Area ≈ 4 000 µm², as before (3 MIM tiles over R_B and S1).
 
@@ -260,11 +260,11 @@ Area ≈ 4 000 µm², as before (3 MIM tiles over R_B and S1).
 
 | To | Requirement |
 |---|---|
-| Step 77 clock generator | refclk rising edge, 46–343 ps delay with a square input, 208–491 ps rise; its own VDDD sensitivity must be measured with M21 and added to the 157 ps/V of this step. (Done in step 77: the sum was 376 ps/V, so the sampling edge now comes from refhv.) |
-| Board / test plan | A 3.3 V CMOS crystal oscillator for the typical noise numbers. (A VDDD noise limit was first handed on here; step 77 removed the need for it.) |
-| Step 86 bias | 2.5 µA sink into ib; switched off with pll_en (5.9 µA disabled current otherwise). |
+| Clock generator | refclk rising edge, 46–343 ps delay with a square input, 208–491 ps rise; its own VDDD sensitivity must be measured with M21 and added to the 157 ps/V of this step. (Done in the clock-generator design: the sum was 376 ps/V, so the sampling edge now comes from refhv.) |
+| Board / test plan | A 3.3 V CMOS crystal oscillator for the typical noise numbers. (A VDDD noise limit was first handed on here; the clock-generator design removed the need for it.) |
+| Bias | 2.5 µA sink into ib; switched off with pll_en (5.9 µA disabled current otherwise). |
 | Layout | VDDD of the receiver's output side routed separately from the divider's VDDD up to the pad (star), with local decoupling; REF_IN short and shielded; vin guarded. |
-| `hv_system.py` | Steps 77–80 call it with their measured block. |
+| `hv_system.py` | The block designs call it with their measured block. |
 
 ## Does the proposal need an update?
 
@@ -276,12 +276,12 @@ Yes. Two points came out of this step, and both were settled on 19 Nov after a c
    - The test-equipment line asks for crystal oscillators with 3.3 V CMOS outputs.
    - Rules: the proposal is not submitted yet (due 23 Nov), so Rule 9's approval for spec changes does not apply. A 0–3.3 V signal on the 3.3 V periphery reference pad is within Rule 10.
 2. **VDDD noise → removed by design, not by a requirement.** A VDDD noise limit at the die could not be guaranteed: the harness 1.8 V digital supply (Rule 7.1) is shared with the other projects' logic.
-   - So in step 77 the SSPD sampling edge was moved off VDDD altogether. It now comes from this receiver's 3.3 V node (refhv) through a 5 V driver.
+   - So in the clock-generator design the SSPD sampling edge was moved off VDDD altogether. It now comes from this receiver's 3.3 V node (refhv) through a 5 V driver.
    - The proposal's architecture text now says so; no VDDD noise requirement was added.
 
-## Interview questions (step 76 redo)
+## Interview questions (reference-receiver design)
 
-The answers are in the learning notebook (phase 7), step 76.
+The answers are in the learning notebook (phase 7).
 
 1. What changed in the REF receiver for the 800 MHz / 5 V redo, and what did not?
 2. Why is a 5 V inverter on a 1.8 V supply a correct 3.3 V → 1.8 V level shifter?

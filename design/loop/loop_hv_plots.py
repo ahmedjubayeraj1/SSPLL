@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""loop_hv_plots.py - figures of the step-73 redo (800 MHz, 5 V devices): docs/img/loop_hv_*.png.
+"""loop_hv_plots.py - figures of the loop-design redo (800 MHz, 5 V devices): docs/img/loop_hv_*.png.
 Run loop_hv.py first."""
 import os, sys, csv, json
 import numpy as np

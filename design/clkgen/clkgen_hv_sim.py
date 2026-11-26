@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""clkgen_hv_sim.py - verification of the 5 V-output clock generator (step 77 redo). -> data/clkgen_hv_sim.json
+"""clkgen_hv_sim.py - verification of the 5 V-output clock generator. -> data/clkgen_hv_sim.json
 A  timing over MOS x R/C corners, temperature, VDDD, VDDA, reference frequency, REF_IN amplitude and waveform (M16)
-B  tau x K_VCO over corners (the loop sees the product; K_VCO from step 74 HV)                             (M16)
+B  tau x K_VCO over corners (the loop sees the product; K_VCO from the VCO design)                             (M16)
 C  jitter the clock generator adds to the sampling edge (refhv -> cks falling, 5 V driver): transient noise with a
    white current of each stage's trip-point noise at the driver nodes and at refhv (S2), behind the real receiver
-   (flat copy, noiseless input; S1's own white jitter is step 76's)                                          (M17)
+   (flat copy, noiseless input; S1's own white jitter is the reference-receiver design's)                                          (M17)
 Timing benches run with the real receiver in front (clkgen_hv.tran), so the reference input is a REF_IN waveform."""
 import os, re, json, sys
 import numpy as np
@@ -25,7 +25,7 @@ COND = [("tt", 27, 1.8, 3.3, 50e6) + Q, ("tt", 27, 1.71, 3.3, 50e6) + Q, ("tt", 
         ("tt", 27, 1.8, 3.3, 45e6) + Q, ("tt", 27, 1.8, 3.3, 55e6) + Q,
         ("tt", 27, 1.8, 3.3, 50e6) + W, ("tt", 27, 1.8, 3.3, 50e6, 0.4, "sine"),
         ("ss", 110, 1.71, 2.97, 50e6, 0.4, "sine"), ("ff", -40, 1.89, 3.63, 50e6, 0.4, "sine")]
-KVCO = {"tt": 1.0, "ss": 110/173, "ff": 250/173}    # step 74 HV: -173 / -110 / -250 MHz/V (tt / ss 110 C / ff -40 C)
+KVCO = {"tt": 1.0, "ss": 110/173, "ff": 250/173}    # the VCO design: -173 / -110 / -250 MHz/V (tt / ss 110 C / ff -40 C)
 
 
 def timing(a):
@@ -54,7 +54,7 @@ def path_noise():
 
 
 def jitter(a):
-    """Receiver (flat top cell, step 76 HV) + the sampling driver's inverted path (flat: c1, c2, cks); trnoise currents
+    """Receiver (flat top cell) + the sampling driver's inverted path (flat: c1, c2, cks); trnoise currents
     at refhv (S2) and at c1, c2, cks. 3.3 V square reference, 80 edges at 50 MHz."""
     S, scale, seed, nedge = a
     import refbuf_hv_noise as N, refbuf_hv as H, refbuf as R
@@ -109,6 +109,6 @@ if __name__ == "__main__":
         j = pool.map(jitter, [(S, 1.0, 1, 80), (S, 1e-6, 1, 80)])
     s = np.sqrt(max(j[0]["sigma"]**2 - j[1]["sigma"]**2, 0))
     res["jitter"] = dict(raw=j[0], baseline=j[1], sigma=float(s), L_floor=float(10*np.log10((2*np.pi*50e6*s)**2/50e6)),
-                         note="S2 + sampling driver; S1's white jitter is step 76's")
+                         note="S2 + sampling driver; S1's white jitter is the reference-receiver design's")
     print(f"C jitter {s*1e15:.1f} fs (raw {j[0]['sigma']*1e15:.1f}, baseline {j[1]['sigma']*1e15:.1f}), floor {res['jitter']['L_floor']:.1f} dBc/Hz", flush=True)
     json.dump(res, open(os.path.join(HERE, "data", "clkgen_hv_sim.json"), "w"), indent=1)

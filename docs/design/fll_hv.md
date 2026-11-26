@@ -1,6 +1,6 @@
-# Step 81: the frequency-locked loop (FLL)
+# The frequency-locked loop (FLL)
 
-*Phase 7, roadmap step 81 (26 Nov 2026).* Deliverable: the loop that brings the ring to exactly 16 × f_ref from any
+*Phase 7 (26 Nov 2026).* Deliverable: the loop that brings the ring to exactly 16 × f_ref from any
 start, then steps aside for the sub-sampling loop. Transistor-level design (divider, PFD with dead zone, lock detector,
 5 V charge pump), a time-domain model of the dual-loop acquisition, verification over PVT, hierarchical schematics
 (LVS-clean) and sizing table. Design files `design/fll/fll_hv.py`, `fll_hv_model.py`, `fll_hv_acq.py`,
@@ -22,7 +22,7 @@ cd ../../xschem && ./lvs.sh fll_hv/sspll_fll_hv.sch netlist/ref_fll_hv.spice ssp
 ## Result in one paragraph
 
 The FLL divides the ring by 16 (a 5 V down-shifter on VDDD and four TSPC ÷2 cells, f_max ≥ 3.5 GHz at every
-corner), compares it with the reference in a standard-cell PFD with a 0.4 ns dead zone, and drives the step-80 filter
+corner), compares it with the reference in a standard-cell PFD with a 0.4 ns dead zone, and drives the loop filter
 with a **60 µA current-steering 5 V charge pump**. A lock detector with hysteresis switches the pump off once the
 divided edge has stayed within ±0.6 ns for 16 periods, and back on only after 4 periods beyond ±2 ns. In lock the
 FLL injects nothing; leakage is ≤ 12 pA, and it draws ≈ 0.20 mW.
@@ -128,9 +128,9 @@ another multiple of 50 MHz.
 | dead zone | AND of UP with UP delayed by `clkdlybuf4s25` + `buf` (≈ 0.26 ns at tt) | removes the 0.2 ns reset pulse of both outputs, so the pump is silent at alignment |
 | lock detector | effective windows about 0.6 ns (acquiring) / 2 ns (locked), 16 periods to lock, 4 to unlock; taps of 3 / 7 × clkdlybuf4s50 | hysteresis: the sub-sampling loop may shift the divided edge by up to T_VCO/2 = 0.625 ns. The tap must also cover the PFD reset time and the flip-flop setup time |
 | charge pump | 5 V current-steering mirrors, 60 µA, off when locked | drain-switched mirrors gave +75 % current overshoot from the gate kick; steering keeps the mirrors in saturation |
-| level shifters | three `sspll_ls_1v8_3v3` (step 75) for upg, dng, act | same cell as the rest of the chip; its outb gives the complementary steering signals for free |
+| level shifters | three `sspll_ls_1v8_3v3` (CCO design) for upg, dng, act | same cell as the rest of the chip; its outb gives the complementary steering signals for free |
 
-The lock point is shared with the sub-sampling loop through **one** filter (step 80). No switch is in the filter path.
+The lock point is shared with the sub-sampling loop through **one** filter (loop-filter design). No switch is in the filter path.
 
 ## C. Sizing with the time-domain model (method M26)
 
@@ -251,7 +251,7 @@ How to read the table:
 ## E. Closed loop at transistor level (method M27)
 
 The transistor-level FLL (divider, PFD, dead zone, lock detector, level shifters, charge pump) and the drawn
-step-80 filter, around the behavioural ring (tt tuning curve), started at V_cont = 1.0 V and 2.8 V. The sub-sampling
+loop filter, around the behavioural ring (tt tuning curve), started at V_cont = 1.0 V and 2.8 V. The sub-sampling
 loop is not in this run, so it shows the FLL alone up to lock_det.
 
 | Start | lock_det, transistor level | lock_det, model (8 divider start phases) | V_cont at lock_det |
@@ -274,7 +274,7 @@ loop is not in this run, so it shows the FLL alone up to lock_det.
 |---|---|---|---|
 | acquiring (pump steering 2 × 60 µA + bias) | ≈ 130 µA | ≈ 103 µA | ≈ 0.62 mW, for 1–5 µs |
 | locked (pump off, divider and logic running) | ≈ 5 µA (ib, shorted) | 103 µA at tt (67 divider + 36 logic) | **≈ 0.20 mW** |
-| allocation (step 72 HV) | FLL pump 0.07 mW | divider, PFD, FLL logic, decode 0.20 mW | 0.27 mW |
+| allocation (system budget) | FLL pump 0.07 mW | divider, PFD, FLL logic, decode 0.20 mW | 0.27 mW |
 
 The open-loop run (pump active about 40 % of the time) averaged 72 µA on VDDA and 103 µA on VDDD at tt.
 
@@ -329,7 +329,7 @@ cells are black boxes to netgen (pin-matched); their transistor netlists are the
 | cp: XSD, XSDX | pfet_g5v0d10v5 | 2.0 µm | 0.5 µm | steering switches |
 | logic | sky130_fd_sc_hd | 9 × dfrtp_1, 14 × clkdlybuf4s50, 3 × clkdlybuf4s25, 3 × mux2, and2/and3/or2/xor2/xnor2/inv/buf/nand2 | | PFD, dead zone, windows, counter |
 
-## I. Layout guidance (for step 88)
+## I. Layout guidance (for layout)
 
 - **Down-shifter.** Put it right next to the ring buffer that drives it: clkp is a 3.3 V, 800 MHz net. The 5 V
   inverter needs the high-voltage spacing rules: its N-well on VDDD is a 1.8 V well holding a thick-oxide device.
@@ -338,17 +338,17 @@ cells are black boxes to netgen (pin-matched); their transistor netlists are the
 - **Logic.** About 60 standard cells (≈ 900 µm² of cell area): one placed row block with tap cells, VDDD / VSSD
   rails, and decap fill.
 - **Charge pump.** The mirrors (L = 4 µm, 12 units each) are interdigitated with dummies, with the steering switches
-  at the vctl side. vctl from the pump joins the filter's C2 at the same point as the Gm's output (step 80, section J).
-- **Level shifters.** On the VDDD / VDDA boundary, as in steps 75 and 77.
+  at the vctl side. vctl from the pump joins the filter's C2 at the same point as the Gm's output (the loop-filter design, section J).
+- **Level shifters.** On the VDDD / VDDA boundary, as in the CCO and clock-generator designs.
 
 ## J. Requirements handed on
 
-1. **Step 82 (top-level integration).**
-   - Connect clkp to the ring buffer reserved for the divider (step 74), refclk to the receiver's 1.8 V output
-     (step 76), ib to a 5 µA bias leg (step 86), and fll_en to the control register.
+1. **Top-level integration.**
+   - Connect clkp to the ring buffer reserved for the divider (VCO design), refclk to the receiver's 1.8 V output
+     (reference-receiver design), ib to a 5 µA bias leg (bias design), and fll_en to the control register.
    - Bring lock_det and fll_dir to test outputs.
    - The output divider (÷1–÷16) may tap c1–c4 of `sspll_fll_div16` instead of building its own chain.
-2. **Step 86 (bias).** One 5 µA sink leg into ib, always on while pll_en = 1.
+2. **Bias.** One 5 µA sink leg into ib, always on while pll_en = 1.
 3. **Test plan.** The coarse-code sweep (cco_code 0–31 with the FLL on, recording lock_det) works as planned. Sweep
    from low codes up: at code 31 the ring may run above 1 GHz; the divider still follows (≥ 3.5 GHz).
 4. **Known limit.** lock_det is clocked by the reference. If the reference stops, lock_det holds its last value. A
@@ -369,9 +369,9 @@ cells are black boxes to netgen (pin-matched); their transistor netlists are the
 
 ## Testbenches
 
-See `docs/testbench_guide.md`, "FLL benches (M26, M27, step 81)".
+See `docs/testbench_guide.md`, "FLL benches (M26, M27)".
 
-## Interview questions (step 81)
+## Interview questions (FLL design)
 
 **1. A sub-sampling PLL has no divider in the loop. Why does it still need one?**
 
@@ -512,8 +512,8 @@ fast corner (dead zone > reset pulse, w_in > the fight offset 0.3 ns) and below 
 *Short answer.* Every law in it comes from a transistor-level measurement, and one full case was rerun at transistor
 level and compared.
 
-*In detail.* The block laws come from the benches: tuning curve (step 74), detector charge curve (step 79), packet
-timing (step 77), filter (step 80), and charge-pump current, dead zone and windows (this step). The closed-loop run
+*In detail.* The block laws come from the benches: tuning curve (VCO design), detector charge curve (Gm design), packet
+timing (clock-generator design), filter (loop-filter design), and charge-pump current, dead zone and windows (this step). The closed-loop run
 (M27) puts the real FLL and the drawn filter around a behavioural ring and is compared with the model for the same
 start (section E). Where the model is only an approximation (it treats the pump current as constant inside the
 window, for example), the robustness sweeps scale it by ×0.6 and ×1.5.

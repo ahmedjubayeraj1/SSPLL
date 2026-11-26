@@ -1,12 +1,12 @@
-# Step 77 (redo): clock generator with 3.3 V outputs for the 5 V SSPD and Gm
+# Clock generator with 3.3 V outputs for the 5 V SSPD and Gm
 
-*Phase 7, roadmap step 77, redone for the device-rule migration (19 Nov 2026).*
+*Phase 7, redone for the device-rule migration (19 Nov 2026).*
 
 **Basis**
 - The 13/17 Nov clock generator (archived note, `design/clkgen/clkgen.py`): 1.8 V logic on VDDL, three complementary pairs: cks/cksb (sample), ckg/ckgb (Gm pulse, τ = 200 ps), ckh/ckhb (hold), in the order sample → Gm → hold.
-- Now VDDL is gone, and the SSPD (step 78 HV) and the Gm (step 79) use 5 V switches on VDDA, whose gates need 0 / 3.3 V.
+- Now VDDL is gone, and the SSPD and the Gm use 5 V switches on VDDA, whose gates need 0 / 3.3 V.
 - The step list keeps the clock generator in 1.8 V logic (on VDDD) and adds level shifters to 3.3 V.
-- Step 76 HV: the receiver gives refclk (1.8 V, VDDD) and, since this step, refhv (3.3 V, VDDA).
+- The reference-receiver design: the receiver gives refclk (1.8 V, VDDD) and, since this step, refhv (3.3 V, VDDA).
 
 Reproduce (in `design/clkgen`):
 
@@ -33,8 +33,8 @@ The clock generator keeps its 1.8 V timing core on VDDD and drives the 5 V switc
 | Driver taper | C_in(k+1)/C_in(k) | ≈ 3 | INV5S 1/2.5 → INV5M 2.5/6.25 → INV5L 8/20 µm into 60 fF |
 | Edge-pair delay | t_stop − t_start ≈ ln2·R·C_G + 2 gates | ≈ 0.45 ns | sets τ together with the output-gate difference |
 | Gm pulse | τ = (t_stop − t_start) + (d_o − d_ob) | 528 ps | full 0–3.3 V swing at the fastest corner (≥ 322 ps) |
-| Gap-1 delay | ln2·R_DL·C_DL + 4 gates | ≈ 1.75 ns (gap1 2.36 ns) | the Gm recovers from the 800 MHz tracking swing (step 79) |
-| Loop delay | t_p = gap1 + τ/2 | 2.62 ns | ≤ 5 ns; costs ΔPM ≈ 1.4° (step 73 HV table: 50.0° at 0.5 ns, 47.0° at 5 ns) |
+| Gap-1 delay | ln2·R_DL·C_DL + 4 gates | ≈ 1.75 ns (gap1 2.36 ns) | the Gm recovers from the 800 MHz tracking swing (Gm design) |
+| Loop delay | t_p = gap1 + τ/2 | 2.62 ns | ≤ 5 ns; costs ΔPM ≈ 1.4° (the loop design table: 50.0° at 0.5 ns, 47.0° at 5 ns) |
 | Gap 2 | 4 inverter delays + output-gate difference | 177 ps | ≥ 100 ps: Gm off before C1 → C2 sharing |
 | Hold pulse | W_H ≈ ln2·R·C_H + gates | 1.84 ns | ≥ 1.0 ns (5 time constants of the C1–C2 transfer = 0.25 ns) and the hold must end before tracking resumes |
 | Dynamic power | Σ C·VDDA²·f_ref per output + internal | 0.72 mW | 6 outputs × (40–60 fF load + ≈ 50 fF self) × 3.3² × 50 MHz ≈ 0.3 mW, the rest is internal 5 V gates and short-circuit current |
@@ -73,7 +73,7 @@ $$t_p = t_{gap1} + \frac{\tau}{2},\qquad \Delta PM = 360°\cdot f_c\cdot \Delta 
 2. **A narrow pulse dies in a 5 V buffer chain.** Thick-oxide gates have 100–250 ps edges with these loads, so a pulse shorter than about rise + fall never reaches full swing at the next stage. The first pulse output drove the pulse through a driver and lost it. In the final design the pulse exists only at the last gate.
 3. **τ is longer than before (≈ 530 ps instead of 200 ps).**
    - At 400 ps, the ff_ll / 110 °C corner made a 210 ps pulse that reached only 84 % of VDDA.
-   - The loop sees only β = 2A·g_m·τ/T, so step 79 lowers g_m by the same factor.
+   - The loop sees only β = 2A·g_m·τ/T, so the Gm design lowers g_m by the same factor.
    - The pulsed-Gm noise ∝ 1/(g_m·τ) does not change.
    - τ is mostly gate delay. It grows at the slow corners, where the ring's K_VCO falls, so τ·K_VCO stays within ×0.89–1.14.
 4. **The sampling edge must not pass through VDDD.** The first version took it from refclk through two VDDD inverters and a level shifter. Measured with M21, the edge then moved **376 ps per volt of VDDD** (receiver 157 + clock generator ≈ 220). The harness VDDD is shared with the other projects' logic, so no noise limit on it could be promised. Taking the edge from refhv removes VDDD from the sampling path (section D).
@@ -83,7 +83,7 @@ $$t_p = t_{gap1} + \frac{\tau}{2},\qquad \Delta PM = 360°\cdot f_c\cdot \Delta 
 | Question | Decision | Evidence |
 |---|---|---|
 | Where to make the timing | **1.8 V logic on VDDD** (kept) | Fast and small; refclk is already a VDDD signal |
-| How to cross to 3.3 V | **cross-coupled level shifter (step 75 HV), rising edges only** | Rising output is the fast edge |
+| How to cross to 3.3 V | **cross-coupled level shifter (CCO design), rising edges only** | Rising output is the fast edge |
 | How to make 3.3 V pulses | **edge pairs, pulse formed at the output NOR / NAND** | A pulse through a shifter or a 5 V driver chain shrinks or vanishes (clkgen_hv_size.py: 'output never switched') |
 | Sampling edge source | **refhv (receiver's 3.3 V node)** | 376 ps/V of VDDD through refclk (`data/clkgen_hv_supply_via_vddd.json`) |
 | 5 V gate P/N ratio | **2.5** | equal rise / fall at fan-out 1: 61.4 / 62.4 ps |
@@ -91,13 +91,13 @@ $$t_p = t_{gap1} + \frac{\tau}{2},\qquad \Delta PM = 360°\cdot f_c\cdot \Delta 
 | τ | **≈ 530 ps** (C_G 4 × 4 µm) | full swing at every corner (≥ 322 ps at ff_ll 110 °C) |
 | Gap 2 | **four 1.8 V inverters** | two gave 79 ps at fs (< 100 ps) |
 | Hold pulse | **edge pair, C_H 4.5 × 4.5 µm** (6 × 6 before the gap-1 delay) | W_H 1.20–3.31 ns; the hold ends ≤ 8.2 ns after the sample |
-| Gap 1 | **RC delay cell `sspll_ckg_dly` (R 0.35 × 6 µm, C 5.3 × 5.3 µm) + edge pair** | added after step 79: Gm charge offset 4.4 → 0.7 fC per period, gain 73 → 102 % of G·τ |
+| Gap 1 | **RC delay cell `sspll_ckg_dly` (R 0.35 × 6 µm, C 5.3 × 5.3 µm) + edge pair** | added after the Gm design: Gm charge offset 4.4 → 0.7 fC per period, gain 73 → 102 % of G·τ |
 
 ## B. Timing over 25 conditions (method M16)
 
 **Bench (`clkgen_hv.tran`, `clkgen_hv_sim.py` part A).**
-- The real 5 V receiver (step 76 HV) is in front: REF_IN → refhv and refclk → clock generator.
-- Output loads are 60 fF on cks/cksb and 40 fF on the others. These are estimates of the 5 V switch gates, checked in steps 78 and 79.
+- The real 5 V receiver is in front: REF_IN → refhv and refclk → clock generator.
+- Output loads are 60 fF on cks/cksb and 40 fF on the others. These are estimates of the 5 V switch gates, checked in the SSPD and Gm designs.
 - Conditions: tt, ss, ff, sf, fs, ss_hh, ff_ll, hl, lh; −40 / 27 / 110 °C; VDDD 1.71–1.89 V, VDDA 2.97–3.63 V; 45 / 55 MHz; 3.3 V square, 1 V and 0.4 V sine.
 - Outputs are read at VDDA/2.
 
@@ -140,7 +140,7 @@ $$t_p = t_{gap1} + \frac{\tau}{2},\qquad \Delta PM = 360°\cdot f_c\cdot \Delta 
 
 **Reading the table.**
 - t_s grows with a smaller reference amplitude (1.88 ns at 1 V sine, 2.43 ns at 0.4 V): that is the receiver's slope, not the clock generator. Only its *stability* matters, because the loop locks the VCO to whatever instant cks falls.
-- gap1 is the time between cks/cksb settling and the Gm turning on. Since step 79 it holds an RC delay of about 2 ns (section B2): ≥ 1.67 ns, so the Gm has recovered from the SSPD's tracking swing before it is read.
+- gap1 is the time between cks/cksb settling and the Gm turning on. Since the Gm design it holds an RC delay of about 2 ns (section B2): ≥ 1.67 ns, so the Gm has recovered from the SSPD's tracking swing before it is read.
 - t_p (sample → middle of the Gm pulse) is the loop's delay; the slowest corner gives 4.15 ns (≤ 5 ns, PM ≥ 47.5°).
 - The hold pulse ends at most 8.2 ns after the sample (ss_hh −40 °C), before tracking resumes (≥ 9.6 ns: the shortest refhv high time, 48 % duty).
 
@@ -151,11 +151,11 @@ $$t_p = t_{gap1} + \frac{\tau}{2},\qquad \Delta PM = 360°\cdot f_c\cdot \Delta 
 - τ·K_VCO within ±15 % ✔
 - cks/cksb skew ≤ 25 ps ✔
 
-The ckg/ckgb skew reaches −79 ps at sf and +56 ps at ss. Step 79 is designed so that this does not matter (section G).
+The ckg/ckgb skew reaches −79 ps at sf and +56 ps at ss. The Gm design is designed so that this does not matter (section G).
 
-## B2. The gap-1 delay (added after step 79)
+## B2. The gap-1 delay (added after the Gm design)
 
-**What happened.** Step 79's whole-detector bench (SSPD + Gm + this clock generator, beat run) found that with the
+**What happened.** The Gm design's whole-detector bench (SSPD + Gm + this clock generator, beat run) found that with the
 original 0.6 ns gap the Gm delivered 4.4 fC per period at lock and only 73 % of G·τ per volt. During tracking the
 SSPD's v1 swings ±2 V at 800 MHz; the Gm's source nodes (degeneration R_S ≈ 97 kΩ × ≈ 12 fF) need about 1.5 ns to
 come back after the sample, and the Gm was read before they had.
@@ -173,8 +173,8 @@ sharpen the edge again) replaces the two gap inverters in front of the Gm edge p
 before tracking resumes at the slowest corner (8.2 ns after the sample, against ≥ 9.6 ns). The sampling path
 (refhv → cks) is untouched, so its jitter (C) and supply sensitivity (D) still hold; part A and B were re-run.
 
-**Cost.** t_p rises from 0.88 to 2.62 ns: PM 50.0° → 48.6° at tt, ≥ 47.5° at the slowest corner (step 73 HV);
-the step-73 HV PM table puts that at +0.01 ps of FFNC-on jitter.
+**Cost.** t_p rises from 0.88 to 2.62 ns: PM 50.0° → 48.6° at tt, ≥ 47.5° at the slowest corner (loop design);
+the loop-design PM table puts that at +0.01 ps of FFNC-on jitter.
 
 ## C. Jitter of the sampling edge (method M17)
 
@@ -184,7 +184,7 @@ the step-73 HV PM table puts that at +0.01 ps of FFNC-on jitter.
 - Input: a noiseless 3.3 V square on REF_IN; 80 edges, 4th-order detrend.
 - A baseline run with the sources × 10⁻⁶ gives the numerical floor.
 
-**Why:** these are the stages between the receiver's S1 (whose jitter step 76 measured) and the sampling switch. Only this edge is timing-critical; the Gm and hold edges act on a sample that is already held.
+**Why:** these are the stages between the receiver's S1 (whose jitter the reference-receiver design measured) and the sampling switch. Only this edge is timing-critical; the Gm and hold edges act on a sample that is already held.
 
 | Stage (node) | Trip-point noise current |
 |---|---|
@@ -225,20 +225,20 @@ the step-73 HV PM table puts that at +0.01 ps of FFNC-on jitter.
 - VDDD: 369–377 → **2.1–2.1 ps/V**. Nothing in the sampling path runs from VDDD any more; the small remainder couples in from the VDDD half of the shared receiver (not traced further at this size). VDDD can carry any realistic noise: 12 µV/√Hz would still be below −165 dBc/Hz.
 - VDDA: 117–142 → 148–175 ps/V. The edge now passes five VDDA gates (S1, S2, three driver inverters) instead of S1 plus the 5 V driver, so it sees a little more of VDDA. At 100 nV/√Hz this is a -169.7 dBc/Hz term, 15 dB under the −155 dBc/Hz allocation (at 300 nV/√Hz: -160.1).
 - With the 1 V sine the receiver's S1 sees a slope 3.3× smaller, so its threshold moving with VDDA turns into 323–1410 ps/V; VDDD 3.1–3.5 ps/V.
-  - The rise with ripple frequency (330 at 1 MHz, 519 at 5 MHz, 1410 at 20 MHz) was already visible in step 76 (268 → 529 ps/V from 1 to 5 MHz). A likely cause (not traced further): S1 is self-biased through R_B, so at low frequency the bias moves the input with the threshold and part of the ripple cancels; above that bias loop's corner the threshold moves alone.
+  - The rise with ripple frequency (330 at 1 MHz, 519 at 5 MHz, 1410 at 20 MHz) was already visible in 268 → 529 ps/V from 1 to 5 MHz. A likely cause (not traced further): S1 is self-biased through R_B, so at low frequency the bias moves the input with the threshold and part of the ripple cancels; above that bias loop's corner the threshold moves alone.
   - Above the 2.5 MHz loop bandwidth the loop filters reference noise, so these high-frequency points cost little: the 1 V sine system result moves from 1.40 to 1.40 ps (typ) and 2.24 to 2.25 ps (pess) compared with the earlier estimate.
-  - Before this run, the 1 V sine terms were estimated from step 76's refclk runs plus the clock generator's own part. The combined run replaced that estimate (problem log, 77-HV).
+  - Before this run, the 1 V sine terms were estimated from the reference-receiver design's refclk runs plus the clock generator's own part. The combined run replaced that estimate (problem log, 77-HV).
 - The delay is read where cks crosses VDDA/2 *at that instant*, because the SSPD switches are VDDA gates.
 
 ## E. Effect on the system (method M9)
 
 `clkgen_hv_noise.py` builds the REF chain at 50 MHz from:
-- the receiver (step 76 HV: white and quasi-static parts);
+- the receiver (the reference-receiver design: white and quasi-static parts);
 - this step's sampling-edge jitter, with an assumed 30 kHz 1/f corner (logic flicker is not in M17);
 - the VDDA and VDDD terms with the combined sensitivity of section D;
-- the SSPD buffers (step 78 placeholder, −169 dBc/Hz).
+- the SSPD buffers (the SSPD design placeholder, −169 dBc/Hz).
 
-The chain is then put into `hv_system.py`, which contains the measured blocks of steps 73–76.
+The chain is then put into `hv_system.py`, which contains the measured blocks.
 
 | Case | receiver S1 | clock gen | VDDA | VDDD | REF chain | jitter off / on (ps) | L(300 kHz) off / on |
 |---|---|---|---|---|---|---|---|
@@ -257,12 +257,12 @@ Floors in dBc/Hz at 50 MHz (white region). Worst case (3.3 V square, pess chain,
 
 | Level | Cell | Contents |
 |---|---|---|
-| 1 | `sspll_ckg_dly` | gap-1 RC delay (added after step 79): inverter, R, C, three inverters |
+| 1 | `sspll_ckg_dly` | gap-1 RC delay (added after the Gm design): inverter, R, C, three inverters |
 | 1 | `sspll_ckg_edges_g` / `_h` | 1.8 V RC edge pair: stop = delayed edge, pls = 1.8 V pulse |
 | 1 | `sspll_ckg_hlatch` | hold trigger latch (set by the 1.8 V Gm pulse, reset while refclk is low) |
 | 1 | `sspll_ckg_drv5` / `drv5t` | 5 V complementary driver (always-on TG + 2 inverters / 3 inverters); large / small output stage |
 | 2 | `sspll_ckg_pout5` | two step drivers + output NOR (o) and NAND (ob) |
-| 1 | `../cco_hv/sspll_ls_1v8_3v3` | level shifter (step 75 HV) |
+| 1 | `../cco_hv/sspll_ls_1v8_3v3` | level shifter (CCO design) |
 | 3 | `sspll_clkgen_hv` | refhv → drv5 → cks/cksb; refclk → buffers, gap inverters, edge pairs, latch, 4 level shifters, 2 pulse outputs |
 
 ![top](../img/sch_sspll_clkgen_hv.png)
@@ -291,18 +291,18 @@ Floors in dBc/Hz at 50 MHz (white region). Worst case (3.3 V square, pess chain,
 | CDL (gap-1 delay) | cap_mim_m3_1 | 5.3 × 5.3 µm | — |
 | RDL (gap-1 delay) | res_xhigh_po_0p35 | 0.35 × 6 µm | — |
 
-The 1.8 V core (RC edge generators, gap inverters, hold latch) keeps the 13 Nov sizes of `clkgen.py`; the four level shifters are the step-75 HV cell `sspll_ls_1v8_3v3`. All widths ≥ 0.42 µm, all 5 V lengths = 0.5 µm (PDK minimum for g5v0d10v5), MIM sides between 2 and 30 µm: inside the PDK limits (`tools/pdk_limits.py`).
+The 1.8 V core (RC edge generators, gap inverters, hold latch) keeps the 13 Nov sizes of `clkgen.py`; the four level shifters are the CCO cell `sspll_ls_1v8_3v3`. All widths ≥ 0.42 µm, all 5 V lengths = 0.5 µm (PDK minimum for g5v0d10v5), MIM sides between 2 and 30 µm: inside the PDK limits (`tools/pdk_limits.py`).
 
 ## H. Requirements handed on
 
 | To | Requirement |
 |---|---|
-| Step 78 SSPD | cks/cksb are 0 / 3.3 V, 117 ps fall (tt), 81–186 ps over corners; sampling instant 425 ps after REF_IN (square, tt). Gate load ≤ 60 fF per output. |
-| Step 79 Gm | ckg/ckgb: τ = 528 ps tt (322–951 ps); β = 2A·g_m·τ/T → g_m for β·K_VCO = step 73 HV. ckg/ckgb skew up to ±80 ps: the pulse width must be set by ckg alone (TG steering whose both halves see the same pulse is fine). Load ≤ 40 fF. |
-| Step 73 HV loop | t_p = 2.62 ns tt (1.83–4.15 ns) instead of 0.5 ns: PM 48.6° at tt, ≥ 47.5° at the slowest corner (step 73 HV table); jitter +0.01 ps (step 73 HV PM table). |
-| Step 76 receiver | new output refhv (done; LVS redone). |
+| SSPD | cks/cksb are 0 / 3.3 V, 117 ps fall (tt), 81–186 ps over corners; sampling instant 425 ps after REF_IN (square, tt). Gate load ≤ 60 fF per output. |
+| Gm | ckg/ckgb: τ = 528 ps tt (322–951 ps); β = 2A·g_m·τ/T → g_m for β·K_VCO = the loop design. ckg/ckgb skew up to ±80 ps: the pulse width must be set by ckg alone (TG steering whose both halves see the same pulse is fine). Load ≤ 40 fF. |
+| Loop | t_p = 2.62 ns tt (1.83–4.15 ns) instead of 0.5 ns: PM 48.6° at tt, ≥ 47.5° at the slowest corner (the loop design table); jitter +0.01 ps (the loop design PM table). |
+| Receiver | new output refhv (done; LVS redone). |
 | Proposal | none for timing; the architecture text now says the sampling edge stays in the 3.3 V domain (19 Nov). |
-| Power budget | clock generator 0.72 mW typ (0.54–0.95) against 0.41 mW (0.08 core + 0.33 level shifters): +0.31 mW. Running total 7.55 (after step 74 HV) − 0.18 (CCO) + 0.03 (receiver) + 0.31 = 7.71 mW typ (proposal 9.1, max 15); settled after step 79, when the SSPD and the Gm are measured. |
+| Power budget | clock generator 0.72 mW typ (0.54–0.95) against 0.41 mW (0.08 core + 0.33 level shifters): +0.31 mW. Running total 7.55 (after the VCO design) − 0.18 (CCO) + 0.03 (receiver) + 0.31 = 7.71 mW typ (proposal 9.1, max 15); settled after the Gm design, when the SSPD and the Gm are measured. |
 
 ## I. Problems met and how they were solved
 
@@ -322,11 +322,11 @@ The 1.8 V core (RC edge generators, gap inverters, hold latch) keeps the 13 Nov 
 
 - **Timing, jitter, phase noise:** no change. Every typical and maximum value still holds (table in E).
 - **Architecture text:** already updated on 19 Nov (the sampling edge stays in the 3.3 V domain; VDDD carries no noise requirement).
-- **Power:** the typical rises from 7.40 to 7.71 mW with this step (proposal 9.1 mW). Steps 78 and 79 add the SSPD and the Gm; the power line is decided once, after step 79, with all three numbers measured, instead of being edited three times.
+- **Power:** the typical rises from 7.40 to 7.71 mW with this step (proposal 9.1 mW). The SSPD and Gm designs add the SSPD and the Gm; the power line is decided once, after the Gm design, with all three numbers measured, instead of being edited three times.
 
-## Interview questions (step 77 redo)
+## Interview questions (clock-generator design)
 
-The answers are in the learning notebook (phase 7), step 77.
+The answers are in the learning notebook (phase 7).
 
 1. Why does the clock generator stay in 1.8 V logic when its outputs must swing 0–3.3 V?
 2. Why can't a short pulse simply be passed through one level shifter?

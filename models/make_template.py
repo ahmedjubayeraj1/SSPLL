@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""make_template.py - writes models/template.ipynb (roadmap step 9). Edit the cells here, not in the notebook,
+"""make_template.py - writes models/template.ipynb (model set-up). Edit the cells here, not in the notebook,
 so the template stays reproducible:  python3 models/make_template.py && jupyter nbconvert --execute --inplace models/template.ipynb"""
 import os, nbformat as nbf
 md, code = nbf.v4.new_markdown_cell, nbf.v4.new_code_cell

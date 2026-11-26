@@ -4,8 +4,8 @@ K {}
 V {}
 S {}
 E {}
-T {sspll_sspd_hv: sub-sampling phase detector with hold. v1p - v1m (the fresh sample) goes to the pulsed Gm (step 79), v2p - v2m (held for a whole period) to the NCB amplifier} 40 -520 0 0 0.3 0.3 {}
-T {clkp / clkm: the 5 V ring's buffered outputs (step 74 HV); cks/cksb, ckh/ckhb from the clock generator (step 77 HV, 3.3 V); every device 5 V-rated on VDDA} 40 -470 0 0 0.25 0.25 {}
+T {sspll_sspd_hv: sub-sampling phase detector with hold. v1p - v1m (the fresh sample) goes to the pulsed Gm, v2p - v2m (held for a whole period) to the NCB amplifier} 40 -520 0 0 0.3 0.3 {}
+T {clkp / clkm: the 5 V ring's buffered outputs (VCO design); cks/cksb, ckh/ckhb from the clock generator (the clock-generator design, 3.3 V); every device 5 V-rated on VDDA} 40 -470 0 0 0.25 0.25 {}
 N 60 -80 600 -80 {lab=}
 N 60 520 600 520 {lab=}
 N 800 -20 1300 -20 {lab=}

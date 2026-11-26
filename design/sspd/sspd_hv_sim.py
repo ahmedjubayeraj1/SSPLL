@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""sspd_hv_sim.py - verification of the 5 V SSPD (step 78 redo). -> data/sspd_hv_sim.json
+"""sspd_hv_sim.py - verification of the 5 V SSPD. -> data/sspd_hv_sim.json
 A  sampled characteristic (A, alpha, CM, power) over MOS x R/C corners, temperature, VDDA, VDDD, f_ref    (M18)
 B  kick-back on the ring output and f_ref supply current, with and without the dummy sampler          (M19)
 C  isolation-buffer jitter: trip-point noise currents of XB1 / XB2 (transient noise)                   (M17)

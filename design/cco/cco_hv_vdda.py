@@ -2,7 +2,7 @@
 """cco_hv_vdda.py - how VDDA rejection of the 5 V CCO depends on the supply level at the slow corner (method M11).
 
 Why this run exists: at ss/110 C the ring needs a 2.37 V node for 880 MHz (top of the coarse range) and 2.25 V for
-800 MHz (the operating point, step 74 HV char: 1.32 mA). With VDDA at its -10 % limit (2.97 V) MOUT + cascode MC
+800 MHz (the operating point, the VCO characterisation: 1.32 mA). With VDDA at its -10 % limit (2.97 V) MOUT + cascode MC
 have only 0.60 V (880 MHz) or 0.72 V (800 MHz) between them, both leave saturation, r_out collapses and K_vdd rises
 to ~110 MHz/V (cco_hv_headroom.py). This sweep finds the VDDA level above which K_vdd is back near the 5 MHz/V
 allocation, so the datasheet can state 'full jitter spec for VDDA >= x V, functional down to 2.97 V'.

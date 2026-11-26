@@ -1,5 +1,5 @@
 #!/bin/bash
-# run_rc.sh - loop-filter R and MIM C over tt/ll/hh/hl/lh and -40/27/110 C (roadmap step 73).
+# run_rc.sh - loop-filter R and MIM C over tt/ll/hh/hl/lh and -40/27/110 C (loop design).
 #   PDK_ROOT=/path/to/pdk ./run_rc.sh      writes ../data/rc_corners.csv
 set -e
 cd "$(dirname "$0")"

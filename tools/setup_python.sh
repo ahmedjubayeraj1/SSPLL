@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup_python.sh - roadmap step 9: Python environment for the phase-domain models (models/).
+# setup_python.sh - the model set-up: Python environment for the phase-domain models (models/).
 #   ./tools/setup_python.sh          creates .venv in the repo, installs models/requirements.txt,
 #                                    registers the Jupyter kernel "sspll" and runs the self-test.
 # Inside IIC-OSIC-TOOLS numpy/scipy/matplotlib are already present; the venv still keeps versions reproducible.

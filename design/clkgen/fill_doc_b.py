@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fill the step-77 HV doc sections that need the supply runs and the system model (RESULT, SUPPLY, SYSTEM, POWERREQ,
+"""Fill the clock-generator doc sections that need the supply runs and the system model (RESULT, SUPPLY, SYSTEM, POWERREQ,
 PROPOSAL) and the testbench-guide supply line. Run after clkgen_hv_supply.py (both waveforms) and clkgen_hv_noise.py."""
 import os, json
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -67,13 +67,13 @@ system = ("| Case | receiver S1 | clock gen | VDDA | VDDD | REF chain | jitter o
           f"now the largest REF-chain terms with a square input, still {-155 - last('3.3_typ', 'chain'):.0f} dB under the "
           f"allocation; with a 1 V sine the receiver's S1 dominates.")
 powerreq = ("clock generator 0.72 mW typ (0.54–0.95) against 0.41 mW (0.08 core + 0.33 level shifters): +0.31 mW. Running "
-            "total 7.55 (after step 74 HV) − 0.18 (CCO) + 0.03 (receiver) + 0.31 = 7.71 mW typ (proposal 9.1, max 15); settled after step 79, "
+            "total 7.55 (after the VCO design) − 0.18 (CCO) + 0.03 (receiver) + 0.31 = 7.71 mW typ (proposal 9.1, max 15); settled after the Gm design, "
             "when the SSPD and the Gm are measured.")
 proposal = ("- **Timing, jitter, phase noise:** no change. Every typical and maximum value still holds (table in E).\n"
             "- **Architecture text:** already updated on 19 Nov (the sampling edge stays in the 3.3 V domain; VDDD carries no "
             "noise requirement).\n"
-            "- **Power:** the typical rises from 7.40 to 7.71 mW with this step (proposal 9.1 mW). Steps 78 and "
-            "79 add the SSPD and the Gm; the power line is decided once, after step 79, with all three numbers measured, "
+            "- **Power:** the typical rises from 7.40 to 7.71 mW with this step (proposal 9.1 mW). The SSPD and "
+            "Gm designs add the SSPD and the Gm; the power line is decided once, after the Gm design, with all three numbers measured, "
             "instead of being edited three times.")
 s = open(DOC).read()
 for kk_, v in dict(RESULT=result, SUPPLY=supply, SYSTEM=system, POWERREQ=powerreq, PROPOSAL=proposal).items():

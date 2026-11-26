@@ -1,4 +1,4 @@
-"""cco.py - roadmap step 75: current-controlled supply (CCO) of the ring VCO, SKY130 3.3 V devices.
+"""cco.py - current-controlled supply (CCO) of the ring VCO, SKY130 3.3 V devices.
 
                 VDDA ──┬───────────────┬──────────────┬──────────── (MIM C_f between VDDA and vgo, over the array)
                   MREF (1 unit, diode)  │          MOUT (NOUT units)

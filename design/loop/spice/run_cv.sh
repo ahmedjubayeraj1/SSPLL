@@ -1,5 +1,5 @@
 #!/bin/bash
-# run_cv.sh - C-V of the loop-filter MOS cap and MIM tile over corners and temperature (roadmap step 73).
+# run_cv.sh - C-V of the loop-filter MOS cap and MIM tile over corners and temperature (loop design).
 #   PDK_ROOT=/path/to/pdk ./run_cv.sh      writes ../data/moscap_cv.csv
 set -e
 cd "$(dirname "$0")"

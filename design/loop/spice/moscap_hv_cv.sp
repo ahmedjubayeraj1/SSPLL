@@ -1,4 +1,4 @@
-* moscap_hv_cv.sp - step 73 redo (5 V analog devices): small-signal C-V of the loop-filter capacitor candidates.
+* moscap_hv_cv.sp - 5 V analog devices: small-signal C-V of the loop-filter capacitor candidates.
 * X1: nfet_g5v0d10v5 used as a capacitor, gate = V_cont, drain/source/body = VSS; unit W = 10 um, L = 10 um (100 um^2).
 * X2: cap_mim_m3_1 30 x 30 um (met3 / capm).  X3: cap_mim_m3_2 30 x 30 um (met4 / capm2), stackable on top of X2.
 * C from the AC current at 1 MHz: C = -Im(I)/(2 pi f).

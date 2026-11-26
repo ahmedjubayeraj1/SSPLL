@@ -1,4 +1,4 @@
-"""vco.py - roadmap step 74: parametric 5-stage pseudo-differential ring VCO for the frozen SKY130 PDK.
+"""vco.py - parametric 5-stage pseudo-differential ring VCO for the frozen SKY130 PDK.
 
 Cell (one half; the other half is mirrored), after Nagam & Kinget and the proposal's x1.5 cell:
   main inverter  P (pfet) / N (nfet)  in -> out   (inp -> outm, inm -> outp)
@@ -20,7 +20,7 @@ BASE = dict(P=("pfet_01v8", 3.0, 4, 0.15), N=("nfet_01v8", 3.0, 2, 0.15),
             S=("nfet_01v8", 2.25, 1, 0.15), C=("nfet_01v8", 4.5, 1, 0.5),
             TN=("nfet_01v8", 0.63, 1, 0.15), TP=("pfet_01v8", 0.63, 1, 0.15))
 
-# step-74 cell: the base cell with the two flicker sources found by the ISF (fine-tune switch S, TG nMOS) drawn at
+# VCO cell: the base cell with the two flicker sources found by the ISF (fine-tune switch S, TG nMOS) drawn at
 # L = 0.3 um (S keeps W/L = 15; TN keeps W = 0.84 um). 1/f^3 corner 1.02 -> 0.57 MHz for +9 % current.
 FINAL = dict(BASE, S=("nfet_01v8", 4.5, 1, 0.3), TN=("nfet_01v8", 0.84, 1, 0.3))
 
@@ -86,7 +86,7 @@ def netlist(p, corner="tt", temp=27, I=1.31e-3, vtune=0.9, cpar=10e-15, tstop=26
     else:
         sv = f"save all {save}\n" if save else ""
         wr = f"wrdata {{wr}} {save}\n" if save else ""
-    return f"""* step 74 ring: {corner} {temp} C, I = {I}, vtune = {vtune}, cpar = {cpar}
+    return f"""* the VCO ring: {corner} {temp} C, I = {I}, vtune = {vtune}, cpar = {cpar}
 .lib {LIB} {corner}
 .temp {temp}
 {cell(p).replace('{cpar}', f'{cpar:.4e}')}{BUF if buf == "pdk" else BUF_IDEAL}vss vss 0 0

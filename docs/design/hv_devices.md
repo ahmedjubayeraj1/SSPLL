@@ -33,5 +33,5 @@ listed: the coarse sweep did not resolve it.)
   will be nMOS-dominated transmission gates biased with a 3.3 V gate swing, or bootstrapped if the SSPD needs it.
 - **Capacitance.** The 5 V gate capacitance per area is lower (2.87 fF/µm²) but L ≥ 0.5 µm, so per µm of width it is
   about the same as a 1.8 V device (≈ 1.4 fF/µm).
-- **Digital** stays on fast 1.8 V devices: the clock generator (step 77) is unchanged; its outputs need level shifters
+- **Digital** stays on fast 1.8 V devices: the clock generator is unchanged; its outputs need level shifters
   up to 3.3 V for the analog switches.

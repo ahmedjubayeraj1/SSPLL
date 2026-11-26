@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""budget_hv.py - roadmap step 72, redone for the device-rule migration (18 Nov 2026):
+"""budget_hv.py - the system budget, redone for the device-rule migration (18 Nov 2026):
 50 MHz x 16 = 800 MHz, all analog blocks in 5 V devices (nfet/pfet_g5v0d10v5) on VDDA 3.3 V, digital in 1.8 V devices,
 no LDO (the NCB and buffers sit on VDDA), 3-stage pseudo-differential ring (ring B) fed by the CCO.
 
-Same model as step72_budget.py (the 1.6 GHz basis, kept unchanged for the record), with three changes:
+Same model as the archived 1.6 GHz budget script (SSPLL_Personal, design/budget/) (the 1.6 GHz basis, kept unchanged for the record), with three changes:
   1. Every allocation is written at 800 MHz in its own units - no hidden frequency scaling. The ring and CCO keep the
-     step-74/75 power and figure of merit: at the same power and FoM, L(1 MHz) is 20 log(1.6/0.8) = 6.02 dB lower at
+     VCO/75 power and figure of merit: at the same power and FoM, L(1 MHz) is 20 log(1.6/0.8) = 6.02 dB lower at
      800 MHz and the ring's timing jitter is unchanged (ring jitter ~ 1/sqrt(P), independent of f0).
   2. "LDO noise through the NCB" is replaced by two supply paths of the raw VDDA: through the NCB delay (K_s, s/V, added
      directly at the output when FFNC is on) and into the ring through the CCO's finite output impedance
@@ -25,7 +25,7 @@ from loop_type2 import loop_design_type2      # same directory
 kT = 1.380649e-23*300
 FREF, N = 50e6, 16
 F0 = N*FREF
-KV_HZ = 150e6                       # fine-tuning gain at 800 MHz (300 MHz/V at 1.6 GHz scaled with f0; step 74 sets it)
+KV_HZ = 150e6                       # fine-tuning gain at 800 MHz (300 MHz/V at 1.6 GHz scaled with f0; the VCO design sets it)
 FC, PMDEG = 2.5e6, 50               # f_ref/20, as before
 D6 = 20*np.log10(1.6e9/F0)          # 6.02 dB: same power and FoM, half the carrier
 
@@ -38,8 +38,8 @@ ALLOC = {
  "SSPD sampler (kT/C)":                      dict(kind="pd"),
  "pulsed-Gm charge pump":                    dict(kind="pd"),
  "loop-filter resistor R1":                  dict(kind="lfr"),
- # ring: step-74 FoM (Lth -98.35 dBc/Hz at 1 MHz from 1.6 GHz) at the same power -> -104.4 at 800 MHz; 1/f^3 corner as
- # achieved in step 74 (0.6 MHz). pess: 3 dB worse thermal (FoM not reached in thick oxide) and a 1.2 MHz corner.
+ # ring: VCO FoM (Lth -98.35 dBc/Hz at 1 MHz from 1.6 GHz) at the same power -> -104.4 at 800 MHz; 1/f^3 corner as
+ # achieved in 0.6 MHz. pess: 3 dB worse thermal (FoM not reached in thick oxide) and a 1.2 MHz corner.
  "ring VCO core (5 V, 3-stage)":             dict(kind="vco", typ=(-98.35 - D6, 0.60e6), pess=(-98.35 - D6 + 3, 1.2e6)),
  # CCO: same 1.31 mA source, same current noise; the Hz/A gain halves at 800 MHz -> 6 dB lower in dBc/Hz
  "CCO current DAC + mirror":                 dict(kind="vco", typ=(-104.2 - D6, 0.30e6), pess=(-101.2 - D6, 0.6e6)),
@@ -50,21 +50,21 @@ ALLOC = {
  # K_vdd = ring frequency pushing by VDDA through the CCO output impedance (Hz/V)
  "VDDA noise into the ring (CCO r_out)":     dict(kind="supply_vco", typ=(100e-9, 5e6), pess=(300e-9, 20e6)),
 }
-# A per VCO radian doubles at half the carrier (same edge slope, step 78: 0.51 V/rad at 1.6 GHz); Cs = step-78 C1 + parasitics
+# A per VCO radian doubles at half the carrier (same edge slope, the SSPD design: 0.51 V/rad at 1.6 GHz); Cs = SSPD C1 + parasitics
 CORNER = dict(typ=dict(A=0.8, gamma=1.1, gm=100e-6, duty=0.01, Cs=46e-15, gerr=0.10),
               pess=dict(A=0.5, gamma=1.5, gm=100e-6, duty=0.01, Cs=35e-15, gerr=0.30))
 
 
 def loop(fref=FREF, n=N, fc=FC, pmdeg=PMDEG, corner="typ"):
     p = CORNER[corner]
-    beta = 2*p["A"]*p["gm"]*p["duty"]                       # A per VCO rad (pulsed Gm, step 50)
+    beta = 2*p["A"]*p["gm"]*p["duty"]                       # A per VCO rad (pulsed Gm, the pulsed-Gm derivation)
     d = loop_design_type2(fc, pmdeg, 2*np.pi*n*beta, 2*np.pi*KV_HZ, n)
     return beta, d
 
 
 def spectra(corner, ffnc, fref=FREF, n=N, f=None, alias=True, fc=None, pmd=None, over=None, lf=None):
     """Output phase-noise PSD per block (rad^2/Hz) at f0 = n*fref. over = {block: value} replaces an allocation;
-    lf = (R1, C1, C2) uses a realised loop filter for the R1 noise term (step 73) instead of the closed-form one."""
+    lf = (R1, C1, C2) uses a realised loop filter for the R1 noise term (loop design) instead of the closed-form one."""
     f = pm.freq_axis(n=3000) if f is None else f
     fc = FC if fc is None else fc
     pmd = PMDEG if pmd is None else pmd
@@ -83,7 +83,7 @@ def spectra(corner, ffnc, fref=FREF, n=N, f=None, alias=True, fc=None, pmd=None,
         if k == "ref":
             L, fc1 = val; S[name] = lin(pm.floor_L(f, L, fc1) + 20*np.log10(n))*T_in
         elif k == "pd" and "kT/C" in name:
-            L = 10*np.log10(kT/(2*c["Cs"]*c["A"]**2*fref))  # differential sampler (step 49)
+            L = 10*np.log10(kT/(2*c["Cs"]*c["A"]**2*fref))  # differential sampler (sampler-noise derivation)
             S[name] = lin(np.full_like(f, L))*T_in
         elif k == "pd":
             L = 10*np.log10(kT*c["gamma"]/(c["A"]**2*c["gm"]*c["duty"])/2)   # gated Gm noise, beta = 2 A gm d
@@ -103,7 +103,7 @@ def spectra(corner, ffnc, fref=FREF, n=N, f=None, alias=True, fc=None, pmd=None,
         elif k == "supply_vco":
             vn, Kvdd = val; Sv = vn**2*(1 + 10e3/f)
             S[name] = Kvdd**2*Sv/f**2*T_vco
-    if ffnc and alias:                                       # Thijssen aliasing of VCO-like noise (step 70)
+    if ffnc and alias:                                       # Thijssen aliasing of VCO-like noise (aliasing study)
         vco_like = sum(S[k]/np.maximum(T_vco, 1e-30) for k in ALLOC if ALLOC[k]["kind"] in ("vco", "lfr", "supply_vco"))
         fa = lambda x: np.interp(np.abs(x), f, vco_like*np.abs(1-H)**2, left=vco_like[0], right=0)
         S["aliasing of VCO noise (k = 1..3)"] = sum(fa(f - k*fref) + fa(f + k*fref) for k in (1, 2, 3))*np.abs(Gc)**2
@@ -128,7 +128,7 @@ POWER = [("ring VCO via CCO (1:8 mirror + DAC), 5 V devices", "VDDA", 1.31*9/8, 
          ("bias distribution (IBIAS mirrors)", "VDDA", 0.05, 3.3, False, None),
          ("NCB delay line", "VDDA", 0.44, 3.3, True, None),
          ("REF receiver (5 V, self-biased)", "VDDA", 0.2/3.3, 3.3, False, None),
-         ("clock generator (step 77, 1.8 V logic)", "VDDD", 0.08/1.8, 1.8, False, None),
+         ("clock generator (the clock-generator design, 1.8 V logic)", "VDDD", 0.08/1.8, 1.8, False, None),
          ("/16 TSPC divider, PFD, FLL logic, decode", "VDDD", 0.20/1.8, 1.8, False, None),
          ("output divider /1-/16 + glitch-free mux", "VDDD", 0.12/1.8, 1.8, False, None)]
 # area (um^2): 5 V devices need wider spacing and guard rings (~1.3-2x the 1.8 V layout)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""fll_hv_sim.py - step 81: transistor-level characterisation of the FLL (python3 fll_hv_sim.py <part> ...).
+"""fll_hv_sim.py - transistor-level characterisation of the FLL (python3 fll_hv_sim.py <part> ...).
   div    /16 with the down-shifter: highest input frequency that still divides by exactly 16, 5 corners (bisection),
          and supply current at 800 MHz
   cp     5 V charge pump: sink / source current vs V_cont, corners, IBIAS +-20 %; off-state leakage (locked) hot

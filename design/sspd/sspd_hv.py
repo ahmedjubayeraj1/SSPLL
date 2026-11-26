@@ -1,5 +1,5 @@
-"""sspd_hv.py - roadmap step 78 redone for the device-rule migration: sub-sampling phase detector with hold, every device
-5 V-rated (g5v0d10v5) on VDDA = 3.3 V, sampling the 800 MHz ring (step 74 HV) at 50 MHz.
+"""sspd_hv.py - the SSPD design redone for the device-rule migration: sub-sampling phase detector with hold, every device
+5 V-rated (g5v0d10v5) on VDDA = 3.3 V, sampling the 800 MHz ring (VCO design) at 50 MHz.
 
 Per side (p from clkp, m from clkm, the ring's 3.3 V buffered outputs):
   isolation buffer  two 5 V inverters (xb1 small: little load on clkp; xb2 drives the sampling network)
@@ -10,10 +10,10 @@ Per side (p from clkp, m from clkm, the ring's 3.3 V buffered outputs):
   sw2 / C2          hold TG: after the Gm pulse has read C1, ckh shares C1 onto C2 for the NCB
 Differences from the 1.6 GHz SSPD (sspd.py, kept for the record):
   * VDDA 3.3 V instead of VDDL 1.8 V and half the carrier: A = VDDA/(2 w0 tau_s) -> the target A = 0.8 V/rad
-    (step 72 HV) needs tau_s = 0.41 ns instead of 0.18 ns, so R_s is larger at the same C1;
+    (system budget) needs tau_s = 0.41 ns instead of 0.18 ns, so R_s is larger at the same C1;
   * there is no low-V_T 5 V device: the sampling nMOS sits at V_GS = 3.3 - 1.65 V, so it is wider than the lvt
     1.8 V switch, and the pMOS carries half the conductance;
-  * the clock pairs come from the 5 V outputs of the step-77 HV clock generator (cks/cksb from refhv).
+  * the clock pairs come from the 5 V outputs of the clock-generator clock generator (cks/cksb from refhv).
 Every device is (model, W per finger, nf, L)."""
 import os, re, sys, subprocess, tempfile
 import numpy as np
@@ -30,15 +30,15 @@ D = dict(
     RS=("res_xhigh_po_0p35", 0.35, 1, 0.6),            # series resistor: A = 0.81 V/rad at tt (sspd_hv_size.py)
     SWN=(N5, 3.0, 1, 0.5), SWP=(P5, 6.0, 1, 0.5),       # sampling / dummy TG
     HWN=(N5, 1.0, 1, 0.5), HWP=(P5, 2.0, 1, 0.5),       # hold TG
-    # C1 resized after step 79: the Gm's measured input capacitance is 26.5 fF at tt (final mirror-less Gm,
+    # C1 resized after the Gm design: the Gm's measured input capacitance is 26.5 fF at tt (final mirror-less Gm,
     # sscp_hv_cin.py; 24-29 fF over corners and codes), not the 8 fF placeholder. C1 = 2.69 x 2.69 um (16.2 fF) keeps
     # C1 + C_Gm = 42.7 fF, so the sampled node, A, alpha, kT/C and power stay where they were, and the dummy CD
-    # (= C1 + C_Gm) stays 4.4 x 4.4 um. (The step-78 verification ran with 2.73 um + a 26.0 fF load: the same 42.7 fF.)
+    # (= C1 + C_Gm) stays 4.4 x 4.4 um. (The SSPD verification ran with 2.73 um + a 26.0 fF load: the same 42.7 fF.)
     C1=("cap_mim_m3_1", 2.69, 1, 2.69), C2=("cap_mim_m3_1", 4.0, 1, 4.0),   # 16.2 / 34.6 fF
     CD=("cap_mim_m3_1", 4.4, 1, 4.4),                  # 41.6 fF: dummy = C1 + the Gm input
 )
-LOAD = dict(gm=26.5e-15, ncb=4e-15)    # Gm input on v1 (measured in step 79: 26.5 fF at lock, tt) and the NCB input on v2 (placeholder)
-VCODRV = ((N5, 1.2, 1, 0.5), (P5, 3.0, 1, 0.5))      # the ring's AC-coupled buffer output stage (step 74 HV)
+LOAD = dict(gm=26.5e-15, ncb=4e-15)    # Gm input on v1 (measured in the Gm design: 26.5 fF at lock, tt) and the NCB input on v2 (placeholder)
+VCODRV = ((N5, 1.2, 1, 0.5), (P5, 3.0, 1, 0.5))      # the ring's AC-coupled buffer output stage (VCO design)
 
 
 def cells(p=D):
@@ -76,7 +76,7 @@ def run(net, files=()):
 
 def bench(p=D, corner="tt", temp=27, vdda=3.3, vddd=1.8, fref=50e6, nb=48, nper=None, td=0.0, refon=True, extra="",
           save="", tstep=2e-12, n=16):
-    """SSPD + the step-77 HV clock generator. The 'VCO' is two ideal squares at f = (n + 1/nb) f_ref behind a 5 V
+    """SSPD + the clock-generator clock generator. The 'VCO' is two ideal squares at f = (n + 1/nb) f_ref behind a 5 V
     inverter like the ring's buffer output stage, so the sampling phase slides by 2 pi / nb per reference period (beat).
     The reference edges are ideal: refhv (0..VDDA, the receiver's S2 output) and refclk (0..VDDD, 0.2 ns later, as
     the receiver's level shifter and NOR make it)."""
@@ -150,7 +150,7 @@ def kick(p=D, phi0=0.0, corner="tt", temp=27, vdda=3.3, fref=50e6, nper=7, t_s=0
     generator switching against the reference held still (sampler tracking): edge-time displacement of clkp -> spur
     estimate at f_ref; also the SSPD supply current at f_ref with and without the dummy sampler."""
     T = 1/fref; fv = 16*fref; Tv = 1/fv
-    s_est = T/4 + t_s                                           # refhv edge + cks delay (step 77 HV, incl. receiver)
+    s_est = T/4 + t_s                                           # refhv edge + cks delay (the clock-generator design, incl. receiver)
     td = (s_est - phi0/(2*np.pi*fv)) % Tv
     out = {}
     for tag, pp, refon in (("normal", p, True), ("static", p, False),
@@ -214,7 +214,7 @@ def buf_jitter(p=D, S=None, seed=1, scale=1.0, nt=1e-12, tstop=200e-9):
 
 def buf_supply(p=D, dv=10e-3):
     """Static VDDA sensitivity of the isolation-buffer delay (clkp crossing -> f crossing at mid-level), ps/V. The
-    buffer has no slow nodes, so the static value holds up to f_ref/2 (as M21 showed for the VDDD gates of step 76)."""
+    buffer has no slow nodes, so the static value holds up to f_ref/2 (as M21 showed for the VDDD gates of the reference-receiver design)."""
     def dly(v):
         net = buf_chain(p, vdda=v) + ".control\ntran 1p 20n\nwrdata w.txt v(clkp) v(f)\n.endc\n.end\n"
         _, d = run(net, ["w.txt"]); z = d["w.txt"]; t = z[:, 0]

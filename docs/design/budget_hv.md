@@ -1,6 +1,6 @@
-# Step 72 (redo): budget for 800 MHz with 5 V analog devices
+# Budget for 800 MHz with 5 V analog devices
 
-*Phase 7, roadmap step 72, redone for the device-rule migration (18 Nov 2026).*
+*Phase 7, redone for the device-rule migration (18 Nov 2026).*
 
 **Basis**
 - 50 MHz × 16 = 800 MHz (720–880 MHz over a 45–55 MHz reference).
@@ -9,7 +9,7 @@
 - No LDO: the NCB and the buffers sit on VDDA.
 - Loop: f_c = 2.5 MHz, PM 50°.
 
-The 1.6 GHz budget (archived note, `step72_budget.py`) is kept unchanged for the record.
+The 1.6 GHz budget (archived note, the archived 1.6 GHz budget script, SSPLL_Personal design/budget/) is kept unchanged for the record.
 
 Reproduce everything on this page:
 
@@ -30,7 +30,7 @@ The migration costs no jitter. The budget closes at:
 
 These are within 0.01 ps of the 1.6 GHz budget (2.11 / 1.36 ps typ).
 
-The reason is that a ring's timing jitter depends on its power and figure of merit, not on its frequency. The ring and CCO keep the step-74/75 power (1.47 mA from 3.3 V, 4.86 mW). Their phase noise in dBc/Hz is 6 dB lower at half the carrier, and their jitter in seconds stays the same.
+The reason is that a ring's timing jitter depends on its power and figure of merit, not on its frequency. The ring and CCO keep the VCO/75 power (1.47 mA from 3.3 V, 4.86 mW). Their phase noise in dBc/Hz is 6 dB lower at half the carrier, and their jitter in seconds stays the same.
 
 | | Typical | Total power |
 |---|---|---|
@@ -51,7 +51,7 @@ Phase noise at 300 kHz is −116.2 dBc/Hz (FFNC off) and −125.8 dBc/Hz (on) ty
 
 ### What happens
 
-**Same method as the first step 72.** Every block adds an independent timing error. The output jitter is the root-sum-square of all of them, each one shaped by its path to the output. The budget gives each block a number in its own units, which its design step must meet.
+**Same method as the first the system budget.** Every block adds an independent timing error. The output jitter is the root-sum-square of all of them, each one shaped by its path to the output. The budget gives each block a number in its own units, which its design step must meet.
 
 **What changed is the technology under the blocks.**
 - 5 V (thick-oxide) transistors are about 5× slower (f_T 10.9 GHz vs 58 GHz at g_m/I_D = 10). Their noise is also different.
@@ -73,7 +73,7 @@ So every VCO-side allocation is written 20·log(1.6/0.8) = 6.02 dB lower in dBc/
 
 **2. Reference-side terms.**
 - XO, receiver and the new level shifters scale by N² = 256 (it was 1024). In seconds they are unchanged: a reference edge error is a timing error.
-- The SSPD gain per VCO radian A = slope/ω₀ doubles at half the carrier. A = 0.8 V/rad typ is assumed, against 0.51 V/rad measured at 1.6 GHz in step 78. The kT/C and Gm terms therefore fall in rad², and they stay negligible.
+- The SSPD gain per VCO radian A = slope/ω₀ doubles at half the carrier. A = 0.8 V/rad typ is assumed, against 0.51 V/rad measured at 1.6 GHz in the SSPD design. The kT/C and Gm terms therefore fall in rad², and they stay negligible.
 
 **3. Raw VDDA.** Two paths replace "LDO noise through the NCB".
 - *Through the NCB delay* (only when FFNC is on). It adds directly at the output:
@@ -100,7 +100,7 @@ $$S_\phi(f) = \frac{K_{vdd}^2\, S_{v,DD}(f)}{f^2}\,\big|(1-G_c)(1-H)\big|^2$$
 | **pfet_g5v0d10v5** | 0.50 | 52.1 | **0.53** | 2.0 MHz | 30 nV/√Hz |
 | **pfet_g5v0d10v5** | 1.00 | 114.6 | 0.55 | **0.2 MHz** | 12 nV/√Hz |
 
-**Thermal noise.** Per unit g_m, the thermal current noise of the 5 V devices is 2.3 dB (nMOS) to 3.6 dB (pMOS) lower: long-channel γ instead of short-channel excess noise. That is why the typical case keeps the step-74 FoM.
+**Thermal noise.** Per unit g_m, the thermal current noise of the 5 V devices is 2.3 dB (nMOS) to 3.6 dB (pMOS) lower: long-channel γ instead of short-channel excess noise. That is why the typical case keeps the VCO FoM.
 
 **Flicker noise.** Per unit gate area the 5 V nMOS is about 3× noisier, but at equal g_m it is wider and comes out quieter. Going to L = 1 µm cuts its corner 20×. The CCO mirror and the NCB current sources should use L ≥ 1 µm.
 
@@ -143,7 +143,7 @@ Over the reference range (ps, typ off / on | pess off / on):
 | C2 | 2.22 pF |
 | Zero | 0.91 MHz |
 | Pole | 6.87 MHz |
-| K_VCO (fine) | 150 MHz/V, assumed; step 74 sets it |
+| K_VCO (fine) | 150 MHz/V, assumed; the VCO design sets it |
 
 The filter capacitance scales with β·K_VCO; N cancels because the charge-pump current is 2πNβ. Here β is 1.6× and K_VCO 0.5× the 1.6 GHz values, so the capacitance falls to 0.8×: 16.8 pF instead of 21.0 pF. R1 rises from 9.6 kΩ to 12.0 kΩ. Its noise term barely changes, at 0.31 ps off.
 
@@ -169,7 +169,7 @@ The filter capacitance scales with β·K_VCO; N cancels because the charge-pump 
 | Board VDDA at the die | ≤ 100 nV/√Hz (10 kHz corner) | 300 nV/√Hz | test plan |
 | SSPD | A ≥ 0.5 V/rad, C_s ≥ 35 fF | — | 78 |
 
-## D. Power budget (mW, P worst = I × 1.3 at 3.63 V / 1.89 V; ring from the step-74 CCO limit)
+## D. Power budget (mW, P worst = I × 1.3 at 3.63 V / 1.89 V; ring from the VCO CCO limit)
 
 | Block | Supply | I typ (mA) | P typ | P worst |
 |---|---|---|---|---|
@@ -191,7 +191,7 @@ The filter capacitance scales with β·K_VCO; N cancels because the charge-pump 
 - **What came in:**
   - level shifters (0.33 mW)
   - the output divider (0.12 mW)
-  - the SSPD measured in step 78 (0.47 mW), above its old 0.40 mW allocation
+  - the SSPD measured in 0.47 mW, above its old 0.40 mW allocation
 - **Net:** the total is unchanged at about 9 mW.
 
 ## E. Area budget (µm²)
@@ -229,7 +229,7 @@ As before, the ring is the whole budget. The FFNC exists to cancel it.
 
 ## G. Findings and decisions
 
-1. **800 MHz in 5 V devices costs no jitter.** Jitter is 2.12 / 1.37 ps typ against 2.11 / 1.36 ps at 1.6 GHz, at the same 9.1 mW. This holds if the ring reaches the step-74 FoM. The γ data say this is realistic; the pessimistic case covers 3 dB less.
+1. **800 MHz in 5 V devices costs no jitter.** Jitter is 2.12 / 1.37 ps typ against 2.11 / 1.36 ps at 1.6 GHz, at the same 9.1 mW. This holds if the ring reaches the VCO FoM. The γ data say this is realistic; the pessimistic case covers 3 dB less.
 2. **New targets from removing the LDO:**
    - K_vdd ≤ 5 MHz/V (CCO cascoded, L ≥ 1 µm).
    - K_s ≤ 104 ps/V for the NCB.
@@ -246,9 +246,9 @@ As before, the ring is the whole budget. The FFNC exists to cancel it.
    | Power | about 9 mW | 15 mW | |
    | FoM | −226.3 dB | | 1.6 ps at 9.1 mW |
 
-   The "Budget" column is typical / pessimistic. The typical targets hold even if the 5 V ring misses the step-74 FoM by 2 dB (1.62 / 2.56 ps). The maxima hold at a 6 dB miss (2.40 / 3.86 ps) and leave room for PVT corners beyond the pessimistic case.
+   The "Budget" column is typical / pessimistic. The typical targets hold even if the 5 V ring misses the VCO FoM by 2 dB (1.62 / 2.56 ps). The maxima hold at a 6 dB miss (2.40 / 3.86 ps) and leave room for PVT corners beyond the pessimistic case.
 
-## Interview questions (answers in the learning notebook (phase 7), step 72)
+## Interview questions (answers in the learning notebook, phase 7)
 
 1. Why is a ring's timing jitter independent of its frequency at fixed power and FoM, while its phase noise in dBc/Hz is not?
 2. Why does the reference-side noise get 6 dB less N² amplification at N = 16, but contribute the same jitter in seconds?

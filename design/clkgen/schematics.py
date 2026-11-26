@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""schematics.py - step 77 xschem schematics (hierarchical, real wiring, drawing checks):
+"""schematics.py - the clock-generator design xschem schematics (hierarchical, real wiring, drawing checks):
    sspll_ckg_drv (complementary driver), sspll_ckg_pulse_h / _g (RC pulsers), sspll_ckg_hlatch (hold trigger,
-   added in step 78), sspll_clkgen (top)."""
+   added in the SSPD design), sspll_clkgen (top)."""
 import os, sys
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(ROOT, "tools")); sys.path.insert(0, HERE)
@@ -116,7 +116,7 @@ def hlatch(p):
 
 def top(p, DXY, PXY, LXY):
     s = Sch("sspll_clkgen")
-    s.text("sspll_clkgen: refclk (step 76) -> sampling pair cks/cksb (sw1 samples at the refclk rising edge), "
+    s.text("sspll_clkgen: refclk (reference-receiver design) -> sampling pair cks/cksb (sw1 samples at the refclk rising edge), "
            "Gm pulse ckg/ckgb (tau = 200 ps, reads C1 right after the sample), then hold pulse ckh/ckhb (sw2, C1 -> C2)", 40, -460, 0.3)
     s.text("all devices 1.8 V core (VDD = VDDL, the regulated rail); supplies of the sub-cells connected by name", 40, -420, 0.25)
     s.pin("refclk", "in", 60, 0)

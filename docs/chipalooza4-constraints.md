@@ -1,4 +1,4 @@
-# Chipalooza #4 — confirmed constraints (step 1 deliverable)
+# Chipalooza #4 — confirmed constraints (the constraints review deliverable)
 
 Revised 2026-11-10. Living version with full reasoning and sources:
 https://claude.ai/artifact/SBCDWUv8wme5tZhRAVSPZQ

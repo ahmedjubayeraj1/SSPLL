@@ -1,7 +1,7 @@
 # Proposal specification, final values (20 Nov 2026)
 
 The proposal (rev 101) lists only final values. This note records how each one was set.
-Each value is the pre-layout prediction after steps 72–79, plus a margin for layout parasitics and silicon.
+Each value is the pre-layout prediction after the block designs, plus a margin for layout parasitics and silicon.
 Keep it for the review.
 
 ## Margins used
@@ -15,7 +15,7 @@ Keep it for the review.
 
 ## Prediction → specification
 
-Predictions come from the system model `design/budget/hv_system.py`, which uses the measured blocks of steps 73–79 (`design/sscp/data/sscp_hv_noise.json`).
+Predictions come from the system model `design/budget/hv_system.py`, which uses the measured blocks (`design/sscp/data/sscp_hv_noise.json`).
 Conditions: typical = tt, 3.3 V square reference; maximum = worst case or the pessimistic chain.
 
 | Row | Pre-layout | With margin | Proposal before | Proposal now |
@@ -47,7 +47,7 @@ Every other row is equal or tighter.
 
 | Block | Step | mW |
 |---|---|---|
-| After step 74 HV: ring 3.69 (instead of 4.86), two buffers 0.59 (instead of 0.99), other blocks as budgeted | 74 | 7.55 |
+| After the VCO design: ring 3.69 (instead of 4.86), two buffers 0.59 (instead of 0.99), other blocks as budgeted | 74 | 7.55 |
 | CCO overhead 0.23 (instead of 0.41) | 75 | −0.18 |
 | REF receiver 0.23 (instead of 0.20) | 76 | +0.03 |
 | Clock generator 0.72 (instead of 0.41 incl. level shifters) | 77 | +0.31 |

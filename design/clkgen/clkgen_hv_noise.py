@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""clkgen_hv_noise.py - the REF chain (receiver step 76 HV + clock generator + level shifters, this step) in the
+"""clkgen_hv_noise.py - the REF chain (receiver the reference-receiver design + clock generator + level shifters, this step) in the
 800 MHz system (method M9 with design/budget/hv_system.py).
 
 Chain L(f) at 50 MHz =  receiver S1 white + quasi-static parts (refbuf_hv_noise.json; S1 only: since this step
@@ -7,7 +7,7 @@ Chain L(f) at 50 MHz =  receiver S1 white + quasi-static parts (refbuf_hv_noise.
                       + sampling-edge white jitter of the clock generator (M17, clkgen_hv_sim.json), 1/f corner 30 kHz
                         (assumed, as on 13 Nov: logic flicker is not in M17)
                       + VDDA and VDDD terms with the COMBINED edge sensitivity REF_IN -> cks (M21, clkgen_hv_supply.json; 1 V sine: _1v.json)
-                      + SSPD isolation buffers (step 78, -169 dBc/Hz, kept until step 78 is redone)
+                      + SSPD isolation buffers (the SSPD design, -169 dBc/Hz, kept until the SSPD design is redone)
 For the 1 V sine reference the combined sensitivity is only measured with the square input; the clock generator's
 own part (combined minus receiver, square input) is added in magnitude to the receiver's sine value (conservative).
 -> data/clkgen_hv_noise.json"""
@@ -62,7 +62,7 @@ if __name__ == "__main__":
             else:                                        # estimate until that run exists
                 Ka = lambda q: Kr[("vdda", 1.0)](q) + Kg["vdda"](q); Kd = lambda q: Kr[("vddd", 1.0)](q) + Kg["vddd"](q)
             La, Ld = L_supply(fl, Ka, VN[cn]), L_supply(fl, Kd, VN[cn])
-            # receiver white part: S1 only (period jitter / sqrt 2, step 76 M15). Step 76's "white" also held its
+            # receiver white part: S1 only (period jitter / sqrt 2, the reference-receiver design M15). The reference-receiver design's "white" also held its
             # output chain S2 -> level shifter -> NOR, which is no longer in the sampling path; S2 is inside this
             # step's M17 run (refhv node), so it is not counted twice.
             s1 = next(x["per"]/np.sqrt(2) for x in RX["tn"] if x["vpp"] == vpp)

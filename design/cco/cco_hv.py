@@ -1,10 +1,10 @@
-"""cco_hv.py - roadmap step 75 redone for the device-rule migration: current-controlled supply (CCO) of the 3-stage
-5 V ring VCO (step 74 HV), all devices 5 V-rated (g5v0d10v5) on VDDA = 3.3 V, control bits from 1.8 V logic.
+"""cco_hv.py - the CCO design redone for the device-rule migration: current-controlled supply (CCO) of the 3-stage
+5 V ring VCO, all devices 5 V-rated (g5v0d10v5) on VDDA = 3.3 V, control bits from 1.8 V logic.
 
                 VDDA ──┬────────────────┬─────────────────────── (C_F = MIM tiles between VDDA and vgo, over the array)
                   MREF (1 unit, diode)  │            MOUT (NOUT units)
                        vgr ──[ R_F ]── vgo ────────────┘    │
-                       │                                   ring node (vring, step 74 HV ring) <── VTEST injection
+                       │                                   ring node (vring, the VCO ring) <── VTEST injection
           DAC: unit sinks I_u = IBIAS/2 (x NBASE always on + 1,2,4,8,16 switched by cco_code)
           IBIAS 5 uA -> 2-unit nMOS diode sets the unit current
 
@@ -13,7 +13,7 @@ I_out = NOUT x I_u x (NBASE + code).  Differences from the 1.6 GHz CCO (cco.py, 
     NBASE 11 -> 13 (LSB 42.5 uA instead of 62.5 uA);
   * no clamp: the ring is now built from 5 V devices, its node may go up to VDDA (and the 1.8 V rail is gone);
   * headroom: the ring node reaches 2.37 V at ss/110 C (was 1.65 V), so MOUT has 0.60 V at VDDA = 2.97 V;
-  * VDDA rejection matters more without the LDO: K_vdd = K_I x dI/dVDDA <= 5 MHz/V (step 72 HV). A plain mirror gives
+  * VDDA rejection matters more without the LDO: K_vdd = K_I x dI/dVDDA <= 5 MHz/V (system budget). A plain mirror gives
     66-110 MHz/V (MOUT's g_ds at the held ring node); a cascode whose gate follows VDDA, an RC-filtered cascode bias and
     R_F's body on VDDA bring it to about 5 MHz/V.
 Every device is (model, W per finger, nf, L): the netlist is the layout."""
@@ -25,7 +25,7 @@ _m = c18._m; run = c18.run
 
 # Ground split (24 Nov 2026): two grounds, VSSA for the VDDA domain and VSSD for the VDDD domain. The level shifter is
 # the one cell that sits in both: its thin-oxide input inverter runs on VDDD / VSSD, every 5 V device (pull-downs,
-# cross-coupled loads, output inverters) on VDDA / VSSA. Same devices and sizes as the step-75 cell (cco.LS); only the
+# cross-coupled loads, output inverters) on VDDA / VSSA. Same devices and sizes as the CCO cell (cco.LS); only the
 # ground of the input inverter is now its own pin.
 LS = """.subckt sspll_ls_1v8_3v3 in out outb VDDD VDDA VSSA VSSD
 * 1.8 V -> 3.3 V level shifter: thin-oxide input inverter on VDDD / VSSD, thick-oxide cross-coupled pMOS load,
@@ -115,7 +115,7 @@ def full(p):
     c += _cascode(p, "VDDA", "VSSA", "vring", "ibias", en="en")
     # R_F: body terminal on VDDA (the serpentine is drawn over an n-well tied to VDDA). With the body on VSS, the
     # poly-to-substrate capacitance (~60 fF) pulls the gate node towards VSSA at high frequency, so the gate stops
-    # following VDDA and VDDA ripple becomes current ripple (step 75 HV: 34 -> see cco_hv_casc.py).
+    # following VDDA and VDDA ripple becomes current ripple (the CCO design: 34 -> see cco_hv_casc.py).
     model, nseg, L = p["RSEG"]
     nodes = ["vgr"] + [f"rf{i}" for i in range(1, nseg)] + ["vgo"]
     for i in range(nseg):
@@ -134,7 +134,7 @@ def tb(p, c, t, vdda=3.3, ib=5e-6, code=10, vring="vr vring 0 1.89", en=1.8, vdd
     (its current is the CCO output), code bits from ideal 1.8 V sources."""
     bits = "".join(f"vc{k} code{k} 0 {vddd if code >> k & 1 else 0}\n" for k in range(5))
     vd = f"vdda VDDA 0 dc {vdda} ac 1\n" if vdda_ac else f"vdda VDDA 0 {vdda}\n"
-    return (f"* step75 HV tb\n.lib {LIB} {c}\n.temp {t}\n{full(p)}{vd}vddd VDDD 0 {vddd}\niib 0 ibias {ib}\n"
+    return (f"* CCO HV tb\n.lib {LIB} {c}\n.temp {t}\n{full(p)}{vd}vddd VDDD 0 {vddd}\niib 0 ibias {ib}\n"
             f"{vring}\nvt vtest 0 1.89\nven pll_en 0 {en}\nvvt vtest_en 0 0\n{bits}{extra}"
             f"x1 VDDA VDDD 0 0 vring ibias vtest code0 code1 code2 code3 code4 pll_en vtest_en sspll_cco_hv\n"
             f".control\n{ctl}\n.endc\n.end\n")

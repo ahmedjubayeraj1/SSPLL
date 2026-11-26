@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""fll_hv_model.py - roadmap step 81: time-domain model of frequency acquisition (FLL) and the hand-over to the
-sub-sampling loop, with the step-80 filter, the step-74 tuning curves, the step-79 detector charge curve and the
-step-77 packet timing. Method M26 (fixed-step behavioural simulation, every block reduced to its measured law).
+"""fll_hv_model.py - time-domain model of frequency acquisition (FLL) and the hand-over to the
+sub-sampling loop, with the loop filter, the VCO tuning curves, the Gm detector charge curve and the
+clock-generator packet timing. Method M26 (fixed-step behavioural simulation, every block reduced to its measured law).
 
 Blocks and laws (all times from the reference rising edge of each period, T = 20 ns):
-  VCO      f(V_cont) from the step-74 HV tuning curve at the corner (negative slope: higher V_cont = slower ring),
+  VCO      f(V_cont) from the VCO tuning curve at the corner (negative slope: higher V_cont = slower ring),
            scaled in current so that 800 MHz falls at V_cont = 1.8 V (the coarse code puts it there).
   divider  /16: an edge every 16 VCO cycles, t_div after the VCO edge.
   PFD      tri-state: UP set by the reference edge, DN by the divider edge, both cleared t_rst after both are set.
   dead zone  the charge pump conducts only the part of UP / DN longer than t_dz (removes the reset pulse).
   FLL CP   UP (VCO slow) sinks I_cp from vctl (lower V_cont = faster ring), DN sources I_cp.
-  SSPLL    every period the SSPD samples the VCO phase at the reference edge; the Gm delivers q(phi) (step 79
+  SSPLL    every period the SSPD samples the VCO phase at the reference edge; the Gm delivers q(phi) (the Gm design
            curve, +-6 fC) centred t_p after the sample, over tau.
   lock detector  o1 = UP still high t_w after the reference edge; o2 = DN still high t_w after the divider edge.
            Unlocked: t_w = w_in (narrow); nlock consecutive periods with o1 = o2 = 0 set lock_det.
@@ -24,7 +24,7 @@ from scipy.linalg import expm
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))
 T, N, F0 = 20e-9, 16, 800e6
 
-# step-80 filter (tt 27 C, 1.8 V) + 175 fF load
+# loop filter (tt 27 C, 1.8 V) + 175 fF load
 R1, C1, C2 = 20.26e3, 8.836e-12, 0.960e-12 + 0.175e-12
 
 

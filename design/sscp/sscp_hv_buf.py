@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""sscp_hv_buf.py - resizing of the dump buffer after the first step-79 run (ss 110 C, VDDA 2.97 V, V_cont 2.3 V:
+"""sscp_hv_buf.py - resizing of the dump buffer after the first Gm run (ss 110 C, VDDA 2.97 V, V_cont 2.3 V:
 vdump 92 mV below vctl, no tracking). The input-range limit of an nMOS-input OTA with a pMOS mirror load in unity gain is
     V_in,max = VDDA - V_SG(l1) + V_TN
 so the mirror's V_SG must fall: a wider, shorter pMOS at the same current. Each variant is checked at the corners that
-bound the V_cont window (1.3-2.3 V, step 74 HV). -> data/sscp_hv_buf.json"""
+bound the V_cont window (1.3-2.3 V). -> data/sscp_hv_buf.json"""
 import os, re, json
 import numpy as np
 from multiprocessing import Pool

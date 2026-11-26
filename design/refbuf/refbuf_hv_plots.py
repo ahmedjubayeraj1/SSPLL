@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""refbuf_hv_plots.py - figures of the step-76 redo (5 V REF receiver, VDDD level shifter): docs/img/refbuf_hv_*.png.
+"""refbuf_hv_plots.py - figures of the receiver redo (5 V REF receiver, VDDD level shifter): docs/img/refbuf_hv_*.png.
 Run refbuf_hv_sim.py, refbuf_hv_supply.py and refbuf_hv_noise.py first."""
 import os, json
 import numpy as np

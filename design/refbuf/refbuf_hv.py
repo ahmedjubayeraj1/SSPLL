@@ -1,17 +1,17 @@
-"""refbuf_hv.py - roadmap step 76 redone for the device-rule migration: REF_IN receiver in 5 V devices on VDDA, with a
+"""refbuf_hv.py - the reference-receiver design redone for the device-rule migration: REF_IN receiver in 5 V devices on VDDA, with a
 3.3 -> 1.8 V level shifter into the 1.8 V clock generator on VDDD. There is no LDO and no VDDL any more.
 
  REF_IN ──┬── C_AC (MIM) ── vin ──┬── S1: current-reuse inverter (5 V, header-fed from VDDA) ── s1 ── S2 (5 V, VDDA) ── refhv (s2)
   R_PU/R_PD (pad at VDDA/2)       └── R_B (xhigh-poly, 5 MOhm) ──┘  self-bias: vin DC = s1 DC = trip point
- refhv (0..3.3 V, also an output: the clock generator's sampling edge, step 77 HV) ── LS: 5 V inverter on VDDD (gate takes 3.3 V, output 0..1.8 V) ── s3 ── NOR(s3, enl) on VDDD ── refclk
+ refhv (0..3.3 V, also an output: the clock generator's sampling edge) ── LS: 5 V inverter on VDDD (gate takes 3.3 V, output 0..1.8 V) ── s3 ── NOR(s3, enl) on VDDD ── refclk
 
 What changed from the 1.6 GHz design (refbuf.py, kept for the record):
   * the level-shifter inverter and the 1.8 V output NOR were on VDDL (the LDO output); they are now on VDDD, the
     harness 1.8 V digital supply. VDDD is noisier than an LDO output, so the edge's VDDD sensitivity is now measured
     and turned into a VDDD noise requirement (refbuf_hv_supply.py);
-  * the pll_en inverter is on VDDD; the enable level shifter is the step-75 HV cell sspll_ls_1v8_3v3;
+  * the pll_en inverter is on VDDD; the enable level shifter is the CCO cell sspll_ls_1v8_3v3;
   * the loop now has N = 16, so reference noise reaches the output with +24 dB instead of +30 dB.
-S1, S2, the bias, R_B, C_AC and C_H are unchanged: they were already 5 V devices on VDDA (step 76, 13 Nov)."""
+S1, S2, the bias, R_B, C_AC and C_H are unchanged: they were already 5 V devices on VDDA (the reference-receiver design, 13 Nov)."""
 import os, re, sys
 import numpy as np
 import refbuf as R
@@ -40,7 +40,7 @@ def full(p=D, q=PDK):
     c += _m("p1", "s1", "vin", "vh", "vh", p["P1"]) + _m("n1", "s1", "vin", "VSSA", "VSSA", p["N1"])
     c += _m("pen", "ib", "en", "VDDA", "VDDA", q["PEN"]) + _m("ns1", "s1", "enb", "VSSA", "VSSA", q["NS1"])
     c += ".ends\n"
-    # refhv (added in step 77 HV): S2's 0..3.3 V output, the reference edge in the VDDA domain. The clock generator
+    # refhv (added in the clock-generator design): S2's 0..3.3 V output, the reference edge in the VDDA domain. The clock generator
     # takes the SSPD sampling edge from it, so that edge never passes a VDDD gate (VDDD noise moved it 376 ps/V)
     c += ".subckt sspll_refbuf_hv REF_IN refclk refhv ib pll_en VDDA VDDD VSSA VSSD\n"
     rm2, _, L2 = q["RPAD"]

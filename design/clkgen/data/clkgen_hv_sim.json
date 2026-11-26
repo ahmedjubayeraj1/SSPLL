@@ -602,6 +602,6 @@
   },
   "sigma": 7.83343025373004e-14,
   "L_floor": -169.16766297018137,
-  "note": "S2 + sampling driver; S1's white jitter is step 76's"
+  "note": "S2 + sampling driver; S1's white jitter is the reference-receiver design's"
  }
 }

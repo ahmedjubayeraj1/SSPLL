@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """sspd_hv_noise.py - the 5 V SSPD in the 800 MHz system (method M9, design/budget/hv_system.py).
 
- * REF chain = step 77 HV chain (receiver + clock generator + VDDA / VDDD terms) with the SSPD isolation-buffer part
+ * REF chain = the clock-generator design chain (receiver + clock generator + VDDA / VDDD terms) with the SSPD isolation-buffer part
    replaced by this step's measurement: white jitter (M17, the two sides' buffers are independent, the differential
    crossing sees sigma/sqrt 2) plus the buffers' VDDA sensitivity (a common delay change of both sides is a timing
    shift of the sampled crossing, reference-like). 1/f corner of the logic noise assumed 30 kHz as before.
- * kT/C and the detector gain: the measured A (tt) and C_s = C1 + Gm input + switch junctions replace the step-72
+ * kT/C and the detector gain: the measured A (tt) and C_s = C1 + Gm input + switch junctions replace the budget
    corner values.
 -> data/sspd_hv_noise.json"""
 import os, sys, json
@@ -20,7 +20,7 @@ C77 = J("design", "clkgen", "data", "clkgen_hv_noise.json")
 SIM = J("design", "sspd", "data", "sspd_hv_sim.json")
 FREF = 50e6
 VN = dict(typ=100e-9, pess=300e-9)
-CS = 16.2e-15 + 26.5e-15 + 3e-15        # C1 + Gm input (measured, step 79) + TG junctions
+CS = 16.2e-15 + 26.5e-15 + 3e-15        # C1 + Gm input (measured) + TG junctions
 
 
 if __name__ == "__main__":

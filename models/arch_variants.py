@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""arch_variants.py - Type-II CP-PLL vs SSPLL vs SSPLL+FFNC with the same ring, reference and N (roadmap step 8).
+"""arch_variants.py - Type-II CP-PLL vs SSPLL vs SSPLL+FFNC with the same ring, reference and N (architecture decision).
 Writes models/out/arch_variants.csv and docs/img/arch_variants_L.png.   Run from the repo root or models/."""
 import os, sys, csv
 import numpy as np

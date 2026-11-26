@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""schematics_hv.py - step 75 redo (5 V CCO for the 3-stage 5 V ring, 800 MHz): xschem schematics (hierarchical,
+"""schematics_hv.py - 5 V CCO for the 3-stage 5 V ring, 800 MHz: xschem schematics (hierarchical,
 real wiring, drawing checks), generated from schematics.py (the 1.6 GHz drawing) with these changes:
    sspll_cco_hv_dac (13 base units), sspll_cco_hv_rf (10 Mohm, body on VDDA), sspll_cco_hv_rcas (cascode-bias filter,
    8 segments, body on VDDA), sspll_cco_hv (mirror x17 with a VDDA-tracking cascode, no clamp, no VDDL);

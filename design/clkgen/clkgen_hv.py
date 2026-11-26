@@ -1,4 +1,4 @@
-"""clkgen_hv.py - roadmap step 77 redone for the device-rule migration: the 1.8 V clock generator (kept, now on VDDD)
+"""clkgen_hv.py - the clock-generator design redone for the device-rule migration: the 1.8 V clock generator (kept, now on VDDD)
 plus level shifters and 5 V drivers, so the SSPD switches and the pulsed-Gm switches (5 V devices on VDDA) get
 0 / 3.3 V control pairs.
 
@@ -48,13 +48,13 @@ D.update(
                                                         # (a 210 ps pulse no longer reaches full swing there)
     CH=("cap_mim_m3_1", 4.5, 1, 4.5),                   # hold pulser C (W_H ~1.8 ns tt, so the hold ends before tracking
                                                         # resumes at the slowest corner with the longer gap 1)
-    # gap-1 delay (added after step 79): the pulsed Gm needs about 2-3 ns after the sample to recover from the 800 MHz
+    # gap-1 delay (added after the Gm design): the pulsed Gm needs about 2-3 ns after the sample to recover from the 800 MHz
     # tracking swing of the SSPD (its degeneration R_S x source capacitance); with the 0.6 ns gap the charge per period
     # at lock was 4.4 fC and the gain 73 % of G tau, with 3 ns 0.7 fC and 102 % (sscp_hv_det.py / recovery runs)
     RDL=("res_xhigh_po_0p35", 0.35, 1, 6.0), CDL=("cap_mim_m3_1", 5.3, 1, 5.3),
 )
-# loads of the 3.3 V pairs: 5 V switch gates of the SSPD (step 78) and the Gm (step 79), estimated about 2x the
-# 1.8 V switches of 13 Nov (thick oxide: 1/3 the C per area, but longer and wider devices); checked in steps 78 / 79
+# loads of the 3.3 V pairs: 5 V switch gates of the SSPD and the Gm, estimated about 2x the
+# 1.8 V switches of 13 Nov (thick oxide: 1/3 the C per area, but longer and wider devices); checked in the block designs
 LOADS = dict(cks=60e-15, cksb=60e-15, ckh=40e-15, ckhb=40e-15, ckg=40e-15, ckgb=40e-15)
 
 
@@ -70,7 +70,7 @@ def _d(text):
 
 def cells(p=D):
     """Subcircuits: 1.8 V pulser cores with start/stop taps (VDDD / VSSD), the 5 V driver and pulse combiner
-    (VDDA / VSSA), the level shifter (step 75 HV; input on VDDD / VSSD, output on VDDA / VSSA) and the top cell
+    (VDDA / VSSA), the level shifter (the CCO design; input on VDDD / VSSD, output on VDDA / VSSA) and the top cell
     sspll_clkgen_hv. Ground split (24 Nov 2026): every 1.8 V device and the RC timing parts of the 1.8 V cells return to
     VSSD, every 5 V device to VSSA."""
     c = CC.LS
@@ -134,7 +134,7 @@ def cells(p=D):
 
 
 def tran(corner="tt", temp=27, vddd=1.8, vdda=3.3, fref=50e6, vpp=3.3, wave="square", p=D, ncyc=4, loads=LOADS):
-    """Timing with the real receiver in front (step 76 HV: refclk on VDDD and refhv on VDDA come from it), outputs read
+    """Timing with the real receiver in front (the reference-receiver design: refclk on VDDD and refhv on VDDA come from it), outputs read
     at VDDA/2: t_s (REF_IN rising -> cks falling), skews, gap1, tau, gap2, W_H, t_p (sample -> middle of the Gm pulse),
     edge times, power of the clock generator alone (receiver currents subtracted with a second run without it is not
     possible on shared rails: the clock generator's VDDA / VDDD come from their own sources here)."""

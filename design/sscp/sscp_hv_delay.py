@@ -3,7 +3,7 @@
 exactly 16 f_ref, sampling near the zero crossing) with the Gm's steering clocks from ideal sources at a variable delay
 after the sample (0.7 / 2 / 3 / 4.5 ns, 0.53 ns wide). Two lock phases 0.06 rad apart give the gain per volt of v1; the
 charge at lock is the static error. Run on the first mirror-less Gm (before the noise resize) with the 2 pF dump
-capacitor; it set the step-77 gap-1 delay. -> data/sscp_hv_delay.json"""
+capacitor; it set the clock-generator gap-1 delay. -> data/sscp_hv_delay.json"""
 import os, sys, json, numpy as np
 sys.path.insert(0, "/home/claude/SSPLL/design/sscp"); sys.path.insert(0, "/home/claude/SSPLL/design/sspd")
 from multiprocessing import Pool

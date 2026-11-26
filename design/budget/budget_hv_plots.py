@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""budget_hv_plots.py - figures for the 800 MHz (5 V analog) step-72 budget: docs/img/budget_hv_*.png."""
+"""budget_hv_plots.py - figures for the 800 MHz (5 V analog) budget: docs/img/budget_hv_*.png."""
 import os, sys
 import numpy as np
 import matplotlib; matplotlib.use("Agg")
@@ -26,7 +26,7 @@ for i, k in enumerate(names):
     ax.text(jon[k]*1e12 + 0.02, i - h/2 - 0.02, f"{jon[k]*1e15:.0f} fs", va="center", fontsize=8, color=MUTED)
 ax.set_yticks(y, names); ax.set_xlabel("rms jitter contribution, 10 kHz–40 MHz (ps)")
 ax.grid(axis="x", color=GRID); ax.set_axisbelow(True)
-ax.set_title("Step 72 (5 V analog) jitter budget per block, typ, 50 MHz × 16 = 800 MHz", loc="left", color=INK, fontsize=11)
+ax.set_title("5 V analog jitter budget per block, typ, 50 MHz × 16 = 800 MHz", loc="left", color=INK, fontsize=11)
 ax.legend(frameon=False, loc="lower right")
 fig.tight_layout(); fig.savefig(os.path.join(img, "budget_hv_jitter_blocks.png"), dpi=150)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """sspd_hv_check.py - re-check of the SSPD at tt after the two later changes: C1 = 2.59 um with the final Gm's 27.6 fF
-(same 42.7 fF node) and the step-77 gap-1 delay (the Gm and hold pulses now come 2.4 ns after the sample).
+(same 42.7 fF node) and the clock-generator gap-1 delay (the Gm and hold pulses now come 2.4 ns after the sample).
 Characteristic (M18) and kick-back (M19) at tt. -> data/sspd_hv_check.json"""
 import os, json
 from multiprocessing import Pool

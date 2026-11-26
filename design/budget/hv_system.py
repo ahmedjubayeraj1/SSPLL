@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""hv_system.py - the step-72 HV phase-domain model (method M9) with every block measured so far in the 800 MHz / 5 V
+"""hv_system.py - the budget phase-domain model (method M9) with every block measured so far in the 800 MHz / 5 V
 redo put in place of its allocation. Each design step from 76 on calls system() with its own block, so all steps
 report the same, cumulative system number.
 
 Measured blocks used (update this list when a step is finished):
-  step 73 HV  loop filter R1, C1, C2                       design/loop/data/loop_hv_design.json
-  step 74 HV  ring thermal L and 1/f^3 corner (hl6)        design/vco/data/vco_hv_hl6.json
-  step 75 HV  CCO output-current noise, K_vdd(f)           design/cco/data/cco_hv_noise.json, cco_hv_sim.json
-  step 76 HV  REF receiver L(f) + its supply terms         design/refbuf/data/refbuf_hv_noise.json (when present)
+  the loop design  loop filter R1, C1, C2                       design/loop/data/loop_hv_design.json
+  the VCO design  ring thermal L and 1/f^3 corner (hl6)        design/vco/data/vco_hv_hl6.json
+  the CCO design  CCO output-current noise, K_vdd(f)           design/cco/data/cco_hv_noise.json, cco_hv_sim.json
+  the reference-receiver design  REF receiver L(f) + its supply terms         design/refbuf/data/refbuf_hv_noise.json (when present)
 Corners: typ (tt, VDDA noise 100 nV/rtHz), pess (ring +3 dB / corner x2, VDDA 300 nV/rtHz, K_vdd at ss/110 C, 3.13 V),
 worst (as pess with VDDA at 2.97 V)."""
 import os, sys, json
@@ -33,9 +33,9 @@ def kvdd_f(f, k1):
 
 def system(corner="typ", ref=None, extra=None, band=(10e3, 40e6), corner_over=None, pd=None):
     """ref: callable f -> L_ref(f) in dBc/Hz AT THE REFERENCE (50 MHz) for the whole REF chain (receiver, clock
-    generator, level shifters, SSPD buffers); None keeps the step-72 allocation.
+    generator, level shifters, SSPD buffers); None keeps the budget allocation.
     extra: {name: callable f -> L(f) dBc/Hz at the reference} added as further in-loop reference terms.
-    corner_over: {key: value} replaces entries of the step-72 corner (e.g. A, Cs: the measured SSPD gain and sampling
+    corner_over: {key: value} replaces entries of the budget corner (e.g. A, Cs: the measured SSPD gain and sampling
     capacitance change the kT/C term) for this call only.
     pd: {name: callable f -> L(f) dBc/Hz in output-phase units, in-loop like detector noise (|H + G_c(1 - H)|^2, no N^2)};
     a name that already exists (e.g. "pulsed-Gm charge pump") is replaced.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""refbuf_hv_noise.py - phase noise of the 5 V REF receiver and its effect on the 800 MHz PLL (step 76 redo).
+"""refbuf_hv_noise.py - phase noise of the 5 V REF receiver and its effect on the 800 MHz PLL (reference-receiver design).
 
  1. S1 gate-referred noise spectrum (.noise at the self-bias point, M14) - S1 is the same circuit as on 13 Nov.
  2. Per-edge white jitter of S1 by transient noise (M15): a pad-referred white source of S1's plateau density, the
@@ -7,8 +7,8 @@
  3. Jitter added by the output chain S2 (5 V, VDDA) -> level shifter (5 V on VDDD) -> NOR (1.8 V on VDDD) (M17): white
     drain-noise current of each stage at its trip point injected at its output node, noiseless input.
  4. Supply terms from refbuf_hv_supply.py (M21): L(f) = (2 pi f_ref)^2 K(f)^2 S_v(f) / 2 for VDDA and VDDD.
- 5. System (M9, design/budget/hv_system.py): the REF chain L(f) replaces the step-72 HV allocation; the clock-generator
-    sampling edge and the SSPD isolation buffers keep their step-77 / step-78 values until those steps are redone.
+ 5. System (M9, design/budget/hv_system.py): the REF chain L(f) replaces the budget allocation; the clock-generator
+    sampling edge and the SSPD isolation buffers keep their clock-generator / SSPD values until those steps are redone.
 -> data/refbuf_hv_noise.json"""
 import os, re, sys, json
 import numpy as np
@@ -17,9 +17,9 @@ import refbuf as R, refbuf_hv as H
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(ROOT, "design", "budget"))
 FREF = 50e6
-CLKGEN = (-163.4, 30e3)     # step 77 sampling edge (0.15 ps per edge, M17), kept until step 77 is redone
-SSPDBUF = (-169.0, 30e3)    # step 78 isolation buffers (0.080 ps on the differential crossing), kept until step 78 HV
-VN = dict(typ=100e-9, pess=300e-9)   # VDDA noise at the die (step 72 HV), 10 kHz corner
+CLKGEN = (-163.4, 30e3)     # the clock-generator design sampling edge (0.15 ps per edge, M17), kept until the clock-generator design is redone
+SSPDBUF = (-169.0, 30e3)    # the SSPD design isolation buffers (0.080 ps on the differential crossing), kept until the SSPD design
+VN = dict(typ=100e-9, pess=300e-9)   # VDDA noise at the die (system budget), 10 kHz corner
 
 
 def stage_noise(lines, vdd):
@@ -59,7 +59,7 @@ def chain_jitter(a):
     """a = (S dict, scale, seed, vpp, wave): refclk rising-edge jitter from the output chain only."""
     S, scale, seed, vpp, wave = a
     subs, body = flat_tail(); nt = 4e-12; T = 1/FREF; ncyc = 80   # 80 edges: +-8 % on sigma
-    node = dict(s2="refhv", s3="s3", refclk="refclk")    # S2's output node is called refhv since step 77 HV
+    node = dict(s2="refhv", s3="s3", refclk="refclk")    # S2's output node is called refhv since the clock-generator design
     src = "".join(f"in_{n} 0 {node[n]} dc 0 trnoise({scale*np.sqrt(S[n][0]/(2*nt)):.4e} {nt} 0 0)\n" for n in ("s2", "s3", "refclk"))
     b = H.op()
     net = (f"* chain jitter\n.lib {R.LIB} tt\n.temp 27\n{subs}{body}vss VSS 0 0\nvssa VSSA 0 0\nvssd VSSD 0 0\nvdda VDDA 0 3.3\nvddd VDDD 0 1.8\niib ib 0 2.5e-6\n"

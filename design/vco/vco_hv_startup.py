@@ -3,7 +3,7 @@
 all nodes and the ring supply start at 0 V, the CCO current ramps in 2 ns. Read-out: the time when |v(vop)-v(vom)|
 first exceeds 1 V (start-up time), and f (10 periods from the first rising zero crossing after 40 ns) and the differential swing in 40-60 ns.
 (The first version measured between the 10th and 30th zero crossing of vd, which at power-up are numerical chatter
-around 0 V in the first ns: it reported 'no oscillation' although the ring starts. See the design log, step 74-HV.)
+around 0 V in the first ns: it reported 'no oscillation' although the ring starts. See the design log, the VCO design-HV.)
 Cases: tt/27, ss/110, ff/-40 symmetric; tt, ss, ff with +-2 % width mismatch in stage 1. -> data/vco_hv_startup_VARIANT.json"""
 import sys, os, re, json, subprocess, tempfile
 import vco_hv as v

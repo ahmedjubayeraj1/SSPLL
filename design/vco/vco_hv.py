@@ -1,4 +1,4 @@
-"""vco_hv.py - roadmap step 74 redone for the device-rule migration: parametric 3-stage pseudo-differential ring VCO
+"""vco_hv.py - the VCO design redone for the device-rule migration: parametric 3-stage pseudo-differential ring VCO
 in 5 V devices (nfet/pfet_g5v0d10v5, L >= 0.5 um) for 800 MHz, current-fed by the CCO from VDDA = 3.3 V.
 
 Same cell topology as the 1.6 GHz design (vco.py, kept for the record), one half shown; the other half is mirrored:
@@ -66,7 +66,7 @@ def cell(p):
 
 # AC-coupled buffer in 5 V devices on VDDA: MIM couples the ring node to the gate of a self-biased inverter (feedback
 # resistor from its output), a second inverter squares the edge. First stage at L = 0.5 um, 1.5 / 0.6 um: a first
-# try at L = 1 um (0.84 / 0.42) drew less current but swung only 1.1 V at ss / 110 C / 880 MHz (step 74-HV log).
+# try at L = 1 um (0.84 / 0.42) drew less current but swung only 1.1 V at ss / 110 C / 880 MHz (the VCO design-HV log).
 BUF = """.subckt acbuf in o vdd vss
 xcc g in sky130_fd_pr__cap_mim_m3_1 w=4.2 l=4.2 m=1
 xrf g x vss sky130_fd_pr__res_xhigh_po_0p35 l=39.8 mult=1 m=1
@@ -108,7 +108,7 @@ def netlist(p, corner="tt", temp=27, I=1.0e-3, vtune=1.65, cpar=10e-15, tstop=60
         q = {k: ((x[0], x[1]*mism.get(k, 1.0), x[2], x[3]) if isinstance(x, tuple) else x) for k, x in p.items()}
         body += cell(q).replace(".subckt dcell", ".subckt dcellm").replace('{cpar}', f'{cpar:.4e}')
         lines[0] = lines[0].replace(" dcell\n", " dcellm\n")
-    return f"""* step 74 HV ring: {corner} {temp} C, I = {I}, vtune = {vtune}, cpar = {cpar}
+    return f"""* the VCO ring: {corner} {temp} C, I = {I}, vtune = {vtune}, cpar = {cpar}
 .lib {LIB} {corner}
 .temp {temp}
 {body}{BUF if buf == "pdk" else BUF_IDEAL}vss vss 0 0

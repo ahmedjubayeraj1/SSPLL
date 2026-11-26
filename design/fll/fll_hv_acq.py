@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""fll_hv_acq.py - step 81: acquisition sweeps with the time-domain model fll_hv_model.py (method M26).
+"""fll_hv_acq.py - acquisition sweeps with the time-domain model fll_hv_model.py (method M26).
   A  FLL charge-pump current I_cp: lock time over start voltage, corner and start phase
   B  lock-detector settings (window w_in, count nlock) at the chosen I_cp
   C  robustness: loop gain x0.6 / x1.5 (K_VCO, beta, I_cp spread), packet delay 1.8 / 4.2 ns, divider delay 0.5-2 ns

@@ -1,4 +1,4 @@
-"""sampled_loop.py - exact sampled-data model of the SSPLL main loop (roadmap step 73).
+"""sampled_loop.py - exact sampled-data model of the SSPLL main loop.
 
 Each reference period T the SSPD samples the VCO phase error; the pulsed Gm then dumps one charge packet
 q[k] = beta*T*theta_e[k] into the loop filter a delay t_p after the sampling edge (t_p is set by the clock generator).

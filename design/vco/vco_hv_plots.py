@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""vco_hv_plots.py - figures of the step-74 redo (5 V, 3-stage ring, 800 MHz): docs/img/vco_hv_*.png.
+"""vco_hv_plots.py - figures of the VCO redo (5 V, 3-stage ring, 800 MHz): docs/img/vco_hv_*.png.
 Run vco_hv_point.py for the variants and vco_hv_char.py hl6 first."""
 import os, json
 import numpy as np

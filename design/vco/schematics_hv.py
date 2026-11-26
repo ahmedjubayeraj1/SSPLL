@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""schematics_hv.py - step 74 redo (5 V devices, 3 stages, 800 MHz): xschem schematics, hierarchical, real wiring:
+"""schematics_hv.py - 5 V devices, 3 stages, 800 MHz: xschem schematics, hierarchical, real wiring:
    sspll_vco_hv_dcell (transistors) -> sspll_vco_hv_core (3 cells in a ring) -> sspll_vco_hv (core + 6 buffers).
 Writes xschem/vco_hv/*.sch and *.sym and runs the drawing checks of tools/xsch.py.  Usage: python3 schematics_hv.py
 Generated from schematics.py (the 1.6 GHz drawing) with the device models, stage count and buffer changed."""

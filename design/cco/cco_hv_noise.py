@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """cco_hv_noise.py - output-current noise of the complete 5 V CCO (.noise, all PDK devices, method M11) and its
-effect on the system (method M9): S_phi = K_I^2 S_i / f^2, shaped like VCO noise, put into the step-72 HV budget with
-the step-74 HV ring, the step-73 HV loop filter and the measured VDDA push (K_vdd from cco_hv_sim.py).
+effect on the system (method M9): S_phi = K_I^2 S_i / f^2, shaped like VCO noise, put into the budget with
+the VCO ring, the loop-design loop filter and the measured VDDA push (K_vdd from cco_hv_sim.py).
 -> data/cco_hv_noise.json"""
 import json, os, sys
 import numpy as np
@@ -15,7 +15,7 @@ RING = json.load(open(os.path.join(ROOT, "design", "vco", "data", "vco_hv_hl6.js
 L73 = json.load(open(os.path.join(ROOT, "design", "loop", "data", "loop_hv_design.json")))
 SIM = json.load(open(os.path.join(c.HERE, "data", "cco_hv_sim.json")))
 VD = json.load(open(os.path.join(c.HERE, "data", "cco_hv_vdda.json")))     # cco_hv_vdda.py: K_vdd vs VDDA level
-KI = 0.62e12                                         # Hz/A, step 74 HV ring near 1 mA (tt)
+KI = 0.62e12                                         # Hz/A, the VCO ring near 1 mA (tt)
 
 
 def kvdd_f(f, k1):

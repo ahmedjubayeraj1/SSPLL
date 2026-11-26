@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""cco_hv_sim.py - verification of the 5 V CCO (step 75 redo; methods M10, M11, M13):
+"""cco_hv_sim.py - verification of the 5 V CCO (the CCO design; methods M10, M11, M13):
  A. DC: output current vs cco_code over 5 corners x VDDA 2.97/3.63 V x IBIAS 4/5/6 uA, ring node held at the voltage
     the ring has at that corner (ss 2.37 V, ff 1.60 V, others 1.89 V)                                   (M10)
  B. compliance: current vs ring node at the least headroom (code 31, IBIAS 4 uA, ss/110 C, VDDA 2.97 V) and at tt (M10)

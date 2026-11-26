@@ -1,9 +1,9 @@
-"""sscp_hv.py - roadmap step 79: pulsed-Gm charge pump (sub-sampling charge pump), every analog device 5 V-rated
+"""sscp_hv.py - pulsed-Gm charge pump (sub-sampling charge pump), every analog device 5 V-rated
 (g5v0d10v5) on VDDA = 3.3 V, the trim decoder in 1.8 V logic.
 
                  VDDA ──┬───────────────┬──── (one pMOS mirror for all slices: MP1 diode on d1, MP2 output on x)
                        MP1 (diode)     MP2
-                        d1              x ──┬── TG_F (ckg / ckgb) ── vctl   (loop filter, step 80)
+                        d1              x ──┬── TG_F (ckg / ckgb) ── vctl   (loop filter)
    slice k (k = 1..5):  │               │   └── TG_D (ckgb / ckg) ── vdump  (held at vctl by the dump buffer)
        v1p ── MN1 ──────┘    MN2 ───────┘
                s1 ── R_S ── s2                (source degeneration: G = 1 / (1/g_m + R_S/2) per slice)
@@ -14,8 +14,8 @@ What happens: the SSPD's fresh sample v1p - v1m (= 2 A phi) becomes a current G 
 Gm pulse (ckg, tau ~ 530 ps) x is connected to the loop filter, the rest of the period to the dump node, which the
 buffer holds at the loop-filter voltage. The pair and the mirror never switch off, and x never jumps in voltage,
 so no turn-on transient and no charge sharing reach the filter. Average current into the filter:
-    I = G (2 A phi) tau / T   ->   beta = 2 A G tau / T   (step 50)
-The trim (icp_trim, step 73): 00 -> 3 slices, 01 -> 4, 10 -> 2, 11 -> 5.
+    I = G (2 A phi) tau / T   ->   beta = 2 A G tau / T   (pulsed-Gm derivation)
+The trim (icp_trim): 00 -> 3 slices, 01 -> 4, 10 -> 2, 11 -> 5.
 Every device is (model, W per finger, nf, L)."""
 import os, re, sys
 import numpy as np
@@ -56,7 +56,7 @@ D = dict(
     CDUMP=("cap_mim_m3_1", 22.4, 2, 22.4),
 )
 NSL = 5                               # slices
-G_TARGET = 18.43e-6                   # three slices: beta 0.790 uA/rad with A 0.812 V/rad, tau 528 ps (steps 73/77/78)
+G_TARGET = 18.43e-6                   # three slices: beta 0.790 uA/rad with A 0.812 V/rad, tau 528 ps (the block designs)
 
 
 def cells(p=D):
@@ -152,7 +152,7 @@ def _nand18(nm, a, b, y):
 
 def full(p=D):
     """Drawn cell with the trim decoder: icp_trim (icp1 icp0) 00 -> 3 slices, 01 -> 4, 10 -> 2, 11 -> 5; pll_en = 0
-    turns every slice and the dump buffer off. Decoder in 1.8 V logic on VDDD, four level shifters (step 75 HV) to the
+    turns every slice and the dump buffer off. Decoder in 1.8 V logic on VDDD, four level shifters (CCO design) to the
     5 V enable gates. Ports: v1p v1m vctl ckg ckgb ib icp0 icp1 pll_en VDDA VDDD VSSA VSSD. Ground split (24 Nov 2026):
     the decoder logic returns to VSSD, the Gm core to VSSA, the level shifters have both."""
     c = K.CC.LS + cells(p)

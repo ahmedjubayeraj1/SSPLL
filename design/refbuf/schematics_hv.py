@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""schematics_hv.py - step 76 redo (5 V devices, no VDDD): xschem schematics, hierarchical, real wiring, drawing checks:
+"""schematics_hv.py - 5 V devices, no VDDD: xschem schematics, hierarchical, real wiring, drawing checks:
    sspll_refbuf_hv_rb (5 Mohm self-bias resistor, 10 segments), sspll_refbuf_hv_s1 (first gain stage with its header
    current source), sspll_refbuf_hv (pad divider, AC coupling, S1, S2, 3.3 -> 1.8 V level shifter on VDDD, output NOR,
    enable). Generated from schematics.py (the 13 Nov drawing) with VDDD replaced by VDDD; also writes the LVS reference.
@@ -136,7 +136,7 @@ def top(p, q, LS_XY, RB_XY, S1_XY):
     XL = 1400
     PL = M(s, "XPL", G5P, XL, -60, p["PL"], "VDDD"); NL = M(s, "XNL", G5N, XL, 120, p["NL"], "VSSD")
     s.wire((P2["D"][0], 30), (XL - 120, 30)); s.wire((XL - 120, 30), (XL - 50, 30))
-    # refhv: S2's output brought out for the clock generator's sampling edge (step 77 HV)
+    # refhv: S2's output brought out for the clock generator's sampling edge (clock-generator design)
     s.wire((XL - 120, 30), (XL - 120, 270), (2500, 270)); s.pin("refhv", "out", 2500, 270, flip=1)
     s.wire(PL["G"], (XL - 50, PL["G"][1]), (XL - 50, 30), (XL - 50, NL["G"][1]), NL["G"])
     s.wire(NL["S"], (NL["S"][0], VS)); s.wire(PL["D"], (PL["D"][0], 30), NL["D"])
@@ -173,7 +173,7 @@ def top(p, q, LS_XY, RB_XY, S1_XY):
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    LS_XY = symbol("/tmp/ls_tmp.sym", "sspll_ls_1v8_3v3", **LS_PINS)        # pin positions of the step-75 symbol
+    LS_XY = symbol("/tmp/ls_tmp.sym", "sspll_ls_1v8_3v3", **LS_PINS)        # pin positions of the CCO symbol
     RB_XY = symbol(os.path.join(OUT, "sspll_refbuf_hv_rb.sym"), "sspll_refbuf_hv_rb", **RB_PINS)
     S1_XY = symbol(os.path.join(OUT, "sspll_refbuf_hv_s1.sym"), "sspll_refbuf_hv_s1", **S1_PINS)
     symbol(os.path.join(OUT, "sspll_refbuf_hv.sym"), "sspll_refbuf_hv", **TOP_PINS)

@@ -1,8 +1,8 @@
-# Step 73 (redo): loop parameters for 800 MHz with 5 V analog devices
+# Loop parameters for 800 MHz with 5 V analog devices
 
-> **Superseded in part by step 80 (26 Nov 2026).** With the measured packet delay (2.62 ns, step 77) and the 175 fF that the ring, the Gm and the wiring add on vctl, R1 became 3 × 9.44 µm = 20.26 kΩ and the drawn C2 2 × MIM 30 × 7.74 µm = 0.960 pF; C1 is unchanged. See `lf_hv.md`.
+> **Superseded in part by 26 Nov 2026.** With the measured packet delay (2.62 ns) and the 175 fF that the ring, the Gm and the wiring add on vctl, R1 became 3 × 9.44 µm = 20.26 kΩ and the drawn C2 2 × MIM 30 × 7.74 µm = 0.960 pF; C1 is unchanged. See `lf_hv.md`.
 
-*Phase 7, roadmap step 73, redone for the device-rule migration (18 Nov 2026).*
+*Phase 7, redone for the device-rule migration (18 Nov 2026).*
 
 **Basis**
 - 50 MHz × 16 = 800 MHz.
@@ -18,9 +18,9 @@ python3 design/loop/loop_hv.py                   # jitter grid, sampled-loop des
 python3 design/loop/loop_hv_plots.py                  # docs/img/loop_hv_*.png
 ```
 
-The R corners and MIM corners are reused from step 73 (`design/loop/data/rc_corners.csv`); resistors and MIM are not MOS devices, so the rule change does not touch them.
+The R corners and MIM corners are reused from `design/loop/data/rc_corners.csv`; resistors and MIM are not MOS devices, so the rule change does not touch them.
 
-## Revision, 19 Nov 2026 (from step 74 redo)
+## Revision, 19 Nov 2026 (from the VCO design)
 
 The 5 V ring's tuning switch does not conduct below about 1.3 V, so the V_cont window is now **1.3–2.3 V**, with the lock point near 1.8 V. Over that window the measured K_VCO is −173 MHz/V (tt), so the Gm unit falls from 19.0 to **16.5 µS**, keeping β·K_VCO constant. R1, C1 and C2 are unchanged.
 
@@ -51,10 +51,10 @@ The loop filter takes about 3 800 µm².
 | f_REF, N | 50 MHz, 16 | 50 MHz, 32 | proposal |
 | f_c | **2.50 MHz** | 2.50 MHz | both the L(300 kHz) and the FFNC-reduction specs (section A) |
 | PM (exact sampled loop) | **50.0°** | 50.0° | 2.2 dB margin on L(300 kHz) typ |
-| Packet delay t_p | **0.5 ns** design value (PM 50.2° at 0.2 ns, 47.0° at 5 ns) | 2.5 ns | step 77 measured 0.28 ns (0.18–0.50) + one level shifter |
+| Packet delay t_p | **0.5 ns** design value (PM 50.2° at 0.2 ns, 47.0° at 5 ns) | 2.5 ns | Measured 0.28 ns (0.18–0.50) + one level shifter |
 | β | **0.911 µA/rad** | 0.848 µA/rad | C1 snapped to 2 tiles |
-| K_VCO (fine) | 150 MHz/V, assumed | 300 MHz/V | step 74 sets it; g_m ∝ 1/K_VCO |
-| SSPD gain A, Gm duty d | 0.8 V/rad, 1 % | 0.5 V/rad, 1 % | steps 77–78 (A doubles at half the carrier) |
+| K_VCO (fine) | 150 MHz/V, assumed | 300 MHz/V | Sets it; g_m ∝ 1/K_VCO |
+| SSPD gain A, Gm duty d | 0.8 V/rad, 1 % | 0.5 V/rad, 1 % | the block designs (A doubles at half the carrier) |
 | g_m | **56.9 µS = 3 units × 19.0 µS** | 84.8 µS = 3 × 28.3 µS | β = 2A·g_m·d |
 | R1 | **20.60 kΩ**: res_xhigh_po_2p85, L = 29.2 µm | 11.01 kΩ, L = 15.5 µm | |
 | C1 | **8.81 pF**: 2 tiles × (9 nfet_g5v0d10v5, W = L = 10 µm, + 1 cap_mim_m3_1 30 × 30 µm on top) | 17.11 pF, nfet_01v8 tiles | |
@@ -66,7 +66,7 @@ The loop filter takes about 3 800 µm².
 | V_cont window | **1.0–2.3 V** (centre VDDA/2) | 0.6–1.2 V | the 5 V MOS cap is flat above 1.0 V |
 | icp_trim | 00 → 3 units, 01 → 4, 10 → 2, 11 → 5 | same | |
 | Loop-filter area | **about 3 800 µm²** | about 3 600 µm² | inside the 5 000 µm² CP + LF budget |
-| Jitter (step-72 HV model, realised filter and g_m) | 2.14 / 1.37 ps typ; 3.45 / 2.20 ps pess; R1 adds 0.41 / 0.22 ps | 2.12 / 1.36; 2.71 / 1.73 | |
+| Jitter (budget model, realised filter and g_m) | 2.14 / 1.37 ps typ; 3.45 / 2.20 ps pess; R1 adds 0.41 / 0.22 ps | 2.12 / 1.36; 2.71 / 1.73 | |
 
 ## What happens, how, why
 
@@ -141,7 +141,7 @@ A higher PM lowers the jitter slightly but pushes the zero down, which costs low
 |---|---|---|---|---|---|---|
 | PM with the final filter | 50.2° | **50.0°** | 49.7° | 49.1° | 48.7° | 47.0° |
 
-The step-77 clock generator fires the Gm pulse 0.28 ns (0.18–0.50 ns) after the hold transfer. A level shifter to 3.3 V adds about 0.1–0.2 ns, so the design value is 0.5 ns. Even 2 ns would cost only 0.9°, so the level shifter is not timing-critical here. It is critical only on the sampling edge (step 72 budget).
+The clock-generator clock generator fires the Gm pulse 0.28 ns (0.18–0.50 ns) after the hold transfer. A level shifter to 3.3 V adds about 0.1–0.2 ns, so the design value is 0.5 ns. Even 2 ns would cost only 0.9°, so the level shifter is not timing-critical here. It is critical only on the sampling edge (the system budget).
 
 ![step response](../img/loop_hv_step.png)
 
@@ -178,7 +178,7 @@ Two tiles cost 0.013 ps (FFNC off) against three, and save 1 500 µm². That kee
 2. **β follows C1.** The sampled design asked for 9.67 pF at β = 1 µA/rad. C1 was snapped to 2 tiles (8.81 pF, ×0.911), and β, R1 and C2 were rescaled by the same factor.
 3. **C2 = 2 × cap_mim_m3_1, 30 × 10.1 µm,** next to C1. Both are linear, so the pole stays put.
 4. **R1 = res_xhigh_po_2p85, L = 29.2 µm.** Fold it in 3 × 9.7 µm with a dummy strip on each side. It has the smallest corner spread of the poly resistors, and 2.85 µm is a legal width.
-5. **Gm = 3 identical unit cells of 19.0 µS (5 V devices),** plus switchable units for `icp_trim`. If step 74 measures K_VCO ≠ 150 MHz/V, the unit size scales as 150/K_VCO; the filter stays.
+5. **Gm = 3 identical unit cells of 19.0 µS (5 V devices),** plus switchable units for `icp_trim`. If the VCO design measures K_VCO ≠ 150 MHz/V, the unit size scales as 150/K_VCO; the filter stays.
 
 **Option: stacking MIM2.** cap_mim_m3_2 (met4/capm2, top plate on met5) has the same 2.0 fF/µm² and can be stacked on MIM1 in the same footprint. That gives 6.6 pF per tile instead of 4.4. It is not used because the slot's met5 use is not confirmed by the organisers. If they allow met5, the same 2 tiles give 12.45 pF, so β ≈ 1.29 µA/rad and R1 ≈ 14.6 kΩ (about −0.01 ps).
 
@@ -220,14 +220,14 @@ The thick-oxide MOS capacitor is flatter over its window (×0.93–1.06) than th
 
 | To | Requirement |
 |---|---|
-| Step 74 ring VCO | Fine-tune gain near 150 MHz/V over V_cont = 1.0–2.3 V (or rescale g_m ∝ 1/K_VCO). The fine range (about 195 MHz at 150 MHz/V) must cover the drift after the coarse code is set. |
-| Step 75 CCO | Coarse DAC step smaller than the fine range, with margin for temperature drift. |
-| Step 77 clock generator + level shifters | Gm pulse t_p ≤ 2 ns after the hold transfer (0.5 ns design value). τ = 200 ps ±25 %. |
-| Step 78 SSPD | A = 0.8 V/rad nominal at 800 MHz, ≥ 0.5 V/rad worst case. |
-| Step 79 pulsed-Gm CP (5 V devices) | 3 + 2 unit cells of 19.0 µS (offset-binary decode). Output compliance over 1.0–2.3 V. |
-| Step 80 loop filter | The device sizes above. Repeat the C-V and R corners with the Cadence kit. |
-| Step 81 FLL | Same filter: C_tot = 10.05 pF. A 10 µA FLL current slews V_cont at 1.0 V/µs. |
-| Steps 100 / 103 / 104 testbenches | Zero 0.877 MHz, pole 7.13 MHz; PM 50° at m = 1; settling 0.40 µs to ±10 ps (800 MHz), 27.6 % overshoot after a 1 rad step. |
+| Ring VCO | Fine-tune gain near 150 MHz/V over V_cont = 1.0–2.3 V (or rescale g_m ∝ 1/K_VCO). The fine range (about 195 MHz at 150 MHz/V) must cover the drift after the coarse code is set. |
+| CCO | Coarse DAC step smaller than the fine range, with margin for temperature drift. |
+| Clock generator + level shifters | Gm pulse t_p ≤ 2 ns after the hold transfer (0.5 ns design value). τ = 200 ps ±25 %. |
+| SSPD | A = 0.8 V/rad nominal at 800 MHz, ≥ 0.5 V/rad worst case. |
+| Pulsed-Gm CP (5 V devices) | 3 + 2 unit cells of 19.0 µS (offset-binary decode). Output compliance over 1.0–2.3 V. |
+| Loop filter | The device sizes above. Repeat the C-V and R corners with the Cadence kit. |
+| FLL | Same filter: C_tot = 10.05 pF. A 10 µA FLL current slews V_cont at 1.0 V/µs. |
+| Top-level testbenches | Zero 0.877 MHz, pole 7.13 MHz; PM 50° at m = 1; settling 0.40 µs to ±10 ps (800 MHz), 27.6 % overshoot after a 1 rad step. |
 
 ## Does the proposal need an update?
 
@@ -236,7 +236,7 @@ No.
 | Item | Proposal | This step |
 |---|---|---|
 | Loop bandwidth | about 2.5 MHz | 2.50 MHz |
-| Lock time, typ / max | 5 / 20 µs | the phase loop settles in 0.40 µs; the FLL dominates (step 81) |
+| Lock time, typ / max | 5 / 20 µs | the phase loop settles in 0.40 µs; the FLL dominates (FLL design) |
 | Jitter, FFNC off / on, typ | 2.6 / 1.6 ps | 2.14 / 1.37 ps |
 | Jitter, FFNC off / on, max | 5.0 / 3.2 ps | 3.45 / 2.20 ps (pess) |
 | L(300 kHz) typ, FFNC off | −114 dBc/Hz | −116.2 dBc/Hz |
@@ -245,9 +245,9 @@ No.
 
 The proposal does not mention the loop-filter devices or the V_cont window.
 
-## Interview questions (step 73 redo)
+## Interview questions (loop design)
 
-The answers are in the learning notebook (phase 7), step 73.
+The answers are in the learning notebook (phase 7).
 
 1. Why does the 5 V MOS capacitor give 2.6× less capacitance per area, and why is its flat region higher?
 2. If C1 has to shrink, why does lowering β keep the loop identical, and what does it cost?

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""clkgen_hv_supply.py - supply-to-edge sensitivity of the whole reference path REF_IN -> receiver (step 76 HV) ->
+"""clkgen_hv_supply.py - supply-to-edge sensitivity of the whole reference path REF_IN -> receiver ->
 clock generator (this step) -> cks falling (the SSPD sampling instant), method M21 (differential sinusoidal
 modulation). Both blocks share VDDA and VDDD, so their sensitivities add with their signs: only the combined run
 gives the number that sets the VDDD requirement. Reference input: 3.3 V pp square (CMOS crystal oscillator); --sine1: 1 V pp sine -> data/clkgen_hv_supply_1v.json.

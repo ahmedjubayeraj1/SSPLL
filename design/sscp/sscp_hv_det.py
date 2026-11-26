@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""sscp_hv_det.py - the whole detector: 5 V SSPD (step 78 HV) + pulsed Gm (this step) + the step-77 HV clock generator,
+"""sscp_hv_det.py - the whole detector: 5 V SSPD + pulsed Gm (this step) + the clock-generator clock generator,
 with the real Gm on v1 (no placeholder load). Beat run (ring at (16 + 1/32) f_ref): every reference period gives one
 sample of the ring phase and one charge packet into the loop filter (vctl held by an ideal source). From the packets
 vs phase: the effective detector gain beta_eff = (dq/dphi)/T at the lock point, the charge at the lock point (static

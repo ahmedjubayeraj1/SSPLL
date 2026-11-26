@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""cco_hv_plots.py - figures of the step-75 redo (5 V CCO for the 800 MHz ring): docs/img/cco_hv_*.png.
+"""cco_hv_plots.py - figures of the CCO redo (5 V CCO for the 800 MHz ring): docs/img/cco_hv_*.png.
 Run cco_hv_sim.py, cco_hv_vdda.py, cco_hv_noise.py (and cco_hv_headroom.py for the design study) first."""
 import os, json
 import numpy as np
@@ -12,7 +12,7 @@ plt.rcParams.update({"font.size": 10, "axes.edgecolor": MUTED, "axes.labelcolor"
 ld = lambda n: json.load(open(os.path.join(HERE, "data", f"cco_hv_{n}.json")))
 def style(ax, t):
     ax.set_title(t, loc="left", color=INK, fontsize=10.5); ax.grid(True, color=GRID); ax.set_axisbelow(True)
-S = ld("sim"); IMIN, IMAX = 0.704e-3, 1.462e-3          # step 74 HV: ff/-40 C 720 MHz, ss/110 C 880 MHz
+S = ld("sim"); IMIN, IMAX = 0.704e-3, 1.462e-3          # the VCO design: ff/-40 C 720 MHz, ss/110 C 880 MHz
 
 # 1 --- DC: code sweep at tt, and the range over corners / VDDA / IBIAS
 fig, ax = plt.subplots(1, 2, figsize=(11, 4))

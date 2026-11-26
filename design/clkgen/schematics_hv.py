@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""schematics_hv.py - step 77 redo: xschem schematics of the clock generator with 3.3 V outputs (hierarchical, real
+"""schematics_hv.py - xschem schematics of the clock generator with 3.3 V outputs (hierarchical, real
 wiring, drawing checks) and the LVS reference:
    sspll_ckg_edges_g / _h  1.8 V RC edge pairs (start = in, stop = delayed edge, pls = 1.8 V pulse)
    sspll_ckg_hlatch        hold trigger latch (as on 13/17 Nov)

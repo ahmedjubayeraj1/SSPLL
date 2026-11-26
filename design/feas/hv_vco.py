@@ -2,7 +2,7 @@
 """hv_vco.py - feasibility of a ring VCO in 5 V devices (g5v0d10v5, L >= 0.5 um) for the device-rule migration.
 Candidates (all with a 5 V output-buffer inverter + 10 fF on every ring node and 8 fF wiring per node):
   A  3-stage single-ended inverter ring, supplied from the CCO node (ideal voltage V_ring stands for the CCO)
-  B  3-stage pseudo-differential ring (step-74 cell style: two inverter rings tied by always-on transmission gates)
+  B  3-stage pseudo-differential ring (VCO cell style: two inverter rings tied by always-on transmission gates)
   C3/C4  Maneatis differential ring (symmetric pMOS loads, nMOS tail), 3 or 4 stages, replica-biased: an ideal
      amplifier sets the tail bias so that a replica half-cell output equals V_bp; control = V_bp (swing = VDD - V_bp)
 Worst corner for speed: ss, 110 C, VDDA = 3.0 V; A/B get at most V_ring = 2.6 V (0.4 V for the CCO mirror)."""

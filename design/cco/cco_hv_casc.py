@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""cco_hv_casc.py - cascoded output stage for the 5 V CCO (step 75 redo): the plain mirror gave K_vdd = 66-110 MHz/V
+"""cco_hv_casc.py - cascoded output stage for the 5 V CCO: the plain mirror gave K_vdd = 66-110 MHz/V
 (target <= 5) because MOUT's C_gd ties its gate to the (AC-quiet) ring node, so the gate does not follow VDDA. A
 cascode MC whose gate (vcas) follows VDDA moves MOUT's drain with VDDA. Sweep the bias diode MB (sets how much of the
 0.60 V headroom MOUT and MC each get) and report compliance at the worst corner, K_vdd and noise. -> data/cco_hv_casc.json"""

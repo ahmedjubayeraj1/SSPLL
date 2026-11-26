@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""sscp_hv_sim.py - verification of the 5 V pulsed-Gm charge pump (step 79). -> data/sscp_hv_sim.json
+"""sscp_hv_sim.py - verification of the 5 V pulsed-Gm charge pump (Gm design). -> data/sscp_hv_sim.json
 A  DC transfer (Gm on): G, offset, linear range over corners, VDDA, V_cont = 1.3 / 1.8 / 2.3 V and the trim codes  (M10)
-B  pulsed operation with the step-77 HV clock generator: average current into the loop filter vs input, charge per
+B  pulsed operation with the clock-generator clock generator: average current into the loop filter vs input, charge per
    period at zero input (charge injection / mismatch -> static phase offset and f_ref ripple)                     (M16)
 C  output current noise with the Gm on (.noise, CCVS read-out)                                                       (M11)
 D  dump buffer: tracking error vdump - vctl and closed-loop AC (peaking = stability)                                  (M10)

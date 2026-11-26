@@ -12,7 +12,7 @@ below ~0.9 GHz, too slow for the 40 ns measurement window — not a failure to o
 | Candidate | tt, V_ring 2.6 V | **ss 110 °C, V_ring 2.6 V** | ss 110 °C, 3.0 V | ff −40 °C, 2.6 V | ring current at ss limit |
 |---|---|---|---|---|---|
 | A: 3-stage inverter ring, single-ended | 1.53 GHz | **1.07 GHz** | 1.29 GHz | 2.12 GHz | 0.41 mA |
-| B: 3-stage pseudo-differential (step-74 cell style) | 1.59 GHz | **1.10 GHz** | 1.37 GHz | 2.25 GHz | 0.87 mA |
+| B: 3-stage pseudo-differential (VCO cell style) | 1.59 GHz | **1.10 GHz** | 1.37 GHz | 2.25 GHz | 0.87 mA |
 | C3: Maneatis differential, 3 stages | unreliable (swing 0.3–0.4 V, near the edge of oscillation) | — | — | — | — |
 | C4: Maneatis differential, 4 stages | 0.85–1.31 GHz at 3–13 mW | 0.87 GHz only at 6.8 mW | — | 1.6 GHz at 15 mW | 2.25 mA |
 
@@ -23,7 +23,7 @@ below ~0.9 GHz, too slow for the 40 ns measurement window — not a failure to o
 - The reduced-swing Maneatis ring did not help: thick-oxide devices have low g_m/C and need large overdrive; it was
   slower and used 2–5× the power. (Quick sizing — but no sign it could reach 1.6 GHz at sane power.)
 - A and B have the same speed; B costs about 2× the current but gives true complementary outputs (needed by the
-  SSPD and the NCB) and keeps the step-74 cell, its theory and its ISF noise tools.
+  SSPD and the NCB) and keeps the VCO cell, its theory and its ISF noise tools.
 
 **Decision proposed: 800 MHz = 50 MHz × 16 with ring B** (3-stage pseudo-differential, 5 V devices, CCO-fed).
 Margin at the worst corner: 1.10 GHz vs 0.88 GHz needed (55 MHz × 16) = 25 % for layout. The ring current is set

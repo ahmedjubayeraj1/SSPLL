@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""sscp_hv_plots.py - figures of the step-79 report (docs/img/sscp_hv_*.png). Runs four quick DC sweeps (tt, the trim
+"""sscp_hv_plots.py - figures of the Gm report (docs/img/sscp_hv_*.png). Runs four quick DC sweeps (tt, the trim
 codes) for the transfer curves; everything else comes from data/sscp_hv_sim.json and sscp_hv_noise.json."""
 import os, json
 import numpy as np

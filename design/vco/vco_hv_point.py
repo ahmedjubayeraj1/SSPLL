@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""vco_hv_point.py NAME [I0] - one design point of the step-74 redo (5 V, 3 stages, 800 MHz): current for 800 MHz
+"""vco_hv_point.py NAME [I0] - one design point of the VCO redo (5 V, 3 stages, 800 MHz): current for 800 MHz
 (tt, 27 C, 10 fF wiring, vtune 1.65 V), then ISF phase noise (thermal + flicker) at that current. -> data/vco_hv_NAME.json"""
 import sys, json, os
 import vco_hv as v

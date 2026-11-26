@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""hv_noise.py - thermal and flicker noise of the 5 V devices (g5v0d10v5) vs the 1.8 V devices, for the step-72 HV
+"""hv_noise.py - thermal and flicker noise of the 5 V devices (g5v0d10v5) vs the 1.8 V devices, for the budget
 budget. Each device is biased at g_m/I_D = 10 S/A, V_DS = 0.9 V (1.8 V) or 1.5 V (5 V), I_D = 100 uA; ngspice .noise
 gives the drain-current noise PSD S_id(f). Reported: gamma = S_id,thermal/(4kT g_m), the 1/f corner (S_flicker =
 S_thermal) and the gate-referred flicker voltage at 10 kHz. Run: python3 design/feas/hv_noise.py -> hv_noise.json"""

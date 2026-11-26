@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""refbuf_hv_sim.py - verification of the drawn 5 V REF receiver with its VDDD level shifter (step 76 redo).
+"""refbuf_hv_sim.py - verification of the drawn 5 V REF receiver with its VDDD level shifter (reference-receiver design).
 A  bias point over 5 corners x VDDA 2.97 / 3.3 / 3.63 V                                         (M10)
 B  large-signal transient: amplitude 0.4-3.3 V pp sine and a 3.3 V square at tt; corners at the VDDA and VDDD limits
    (the level shifter now runs from VDDD 1.71-1.89 V, so ss at -40 C, where the thick-oxide V_T is highest, is added);

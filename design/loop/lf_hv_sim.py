@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""lf_hv_sim.py - roadmap step 80: the loop filter in real SKY130 devices (5 V MOS capacitor, MIM, xhigh poly).
+"""lf_hv_sim.py - the loop filter in real SKY130 devices (5 V MOS capacitor, MIM, xhigh poly).
 
 Parts (python3 lf_hv_sim.py [part ...]; no argument = all; results cached in data/lf_hv_*.json):
-  load  what else hangs on vctl: the ring's tuning gates (step 74, measured by a lock-in on the running ring: a 50 mV,
-        25 MHz sine on vtune, C = I(25 MHz in phase with dv/dt) / (w * 50 mV)) and the Gm's port (step 79, AC with the
+  load  what else hangs on vctl: the ring's tuning gates (the VCO design, measured by a lock-in on the running ring: a 50 mV,
+        25 MHz sine on vtune, C = I(25 MHz in phase with dv/dt) / (w * 50 mV)) and the Gm's port (the Gm design, AC with the
         steering TG off / on). Method M24.
-  size  R1 length and C2 width for f_c = 2.5 MHz, PM = 50 deg with the step-79 measured beta (0.79 uA/rad), the
-        step-74 K_VCO (-173 MHz/V) and the step-77 packet delay (t_p = 2.62 ns), C1 kept at 2 tiles. The filter is
+  size  R1 length and C2 width for f_c = 2.5 MHz, PM = 50 deg with the Gm measured beta (0.79 uA/rad), the
+        VCO K_VCO (-173 MHz/V) and the clock-generator packet delay (t_p = 2.62 ns), C1 kept at 2 tiles. The filter is
         simulated (AC), R1 / C1 / C2 extracted, the load added, the exact sampled loop solved (method M25).
   corners  the drawn filter, AC over 5 MOS x 5 R/C corners x 3 temperatures x V_cont 1.3 / 1.8 / 2.3 V; R1, C1, C2
         extracted from each run, plus the worst deviation of the 3-element model from SPICE.
-  loop  f_c, PM, peaking, settling at the PVT points where beta (step 79), K_VCO (step 74) and t_p (step 77) are known,
-        with the trim code of step 79; robustness map PM(m) for the extreme filter corners and t_p 1.8-4.2 ns.
-  noise .noise of the filter (R1 and the MOS-capacitor channel) against 4kTR theory; jitter with the step-72 model.
+  loop  f_c, PM, peaking, settling at the PVT points where beta (Gm design), K_VCO (VCO design) and t_p (clock-generator design) are known,
+        with the trim code of the Gm design; robustness map PM(m) for the extreme filter corners and t_p 1.8-4.2 ns.
+  noise .noise of the filter (R1 and the MOS-capacitor channel) against 4kTR theory; jitter with the budget model.
   leak  DC current into the filter at 2.3 V / 1.3 V, hot corners: static phase offset and reference spur.
-  pulse one Gm packet (0.53 ns, the step-79 charge at 0.1 rad) into the drawn filter vs the 3-element model."""
+  pulse one Gm packet (0.53 ns, the Gm charge at 0.1 rad) into the drawn filter vs the 3-element model."""
 import os, sys, re, json, tempfile, subprocess
 import numpy as np
 from multiprocessing import Pool
@@ -26,14 +26,14 @@ import lf_hv as F
 import sampled_loop as sl
 DATA = os.path.join(HERE, "data")
 T, F0 = 20e-9, 800e6
-TP0 = 2.621e-9                     # step 77 HV, tt 27 C: sampling edge -> middle of the Gm pulse
-KV0 = 2*np.pi*173e6                # step 74 HV, |K_VCO| over 1.3-2.3 V, tt
-BETA0 = 0.79e-6                    # step 79 HV, final Gm at tt, V_cont 1.8 V
+TP0 = 2.621e-9                     # the clock-generator design, tt 27 C: sampling edge -> middle of the Gm pulse
+KV0 = 2*np.pi*173e6                # the VCO design, |K_VCO| over 1.3-2.3 V, tt
+BETA0 = 0.79e-6                    # the Gm design, final Gm at tt, V_cont 1.8 V
 FC, PM = 2.5e6, 50.0
 VCS = (1.3, 1.8, 2.3)
 MOS = ("tt", "ss", "ff", "sf", "fs"); RCC = ("", "ll", "hh", "hl", "lh")
 TEMPS = (-40, 27, 110)
-C_WIRE = 20e-15                    # routing on vctl (Gm -> filter -> ring, about 300 um of met2/met3): estimate until step 99
+C_WIRE = 20e-15                    # routing on vctl (Gm -> filter -> ring, about 300 um of met2/met3): estimate until the parasitic extraction
 
 
 def cache(name, fn, force=False):
@@ -193,7 +193,7 @@ def part_size(L):
 
 # ------------------------------------------------------------------ loop at PVT
 def beta_table():
-    """beta_eff at lock from the step-79 beat runs (cubic fit, as fill_doc.py), x 0.974 for the final C1 = 2.69 um node."""
+    """beta_eff at lock from the Gm beat runs (cubic fit, as fill_doc.py), x 0.974 for the final C1 = 2.69 um node."""
     det = json.load(open(os.path.join(ROOT, "design", "sscp", "data", "sscp_hv_det.json")))
     out = {}
     for r in det:
@@ -207,7 +207,7 @@ def beta_table():
 
 
 def kvco(corner, vc):
-    """local |dF/dV| of the step-74 HV ring (tuning curve, piecewise-linear derivative), rad/s/V."""
+    """local |dF/dV| of the VCO ring (tuning curve, piecewise-linear derivative), rad/s/V."""
     c = json.load(open(os.path.join(ROOT, "design", "vco", "data", "vco_hv_char_hl6.json")))["f_vs_vtune"]
     key = {"tt": "tt_27", "ss": "ss_110", "ff": "ff_-40"}[corner[:2]]
     a = np.array(c[key]); v, f = a[:, 0], a[:, 1]
@@ -215,7 +215,7 @@ def kvco(corner, vc):
     return float(2*np.pi*np.interp(vc, v, g))
 
 
-CODE = {"00": 1.0, "01": 18.51*4/3/18.51, "10": 2/3, "11": 5/3}   # slice count ratio (step 79: 0.67 / 1 / 1.33 / 1.66)
+CODE = {"00": 1.0, "01": 18.51*4/3/18.51, "10": 2/3, "11": 5/3}   # slice count ratio (the Gm design: 0.67 / 1 / 1.33 / 1.66)
 
 
 def part_loop(L, C):

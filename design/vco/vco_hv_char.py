@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """vco_hv_char.py [VARIANT] - characterisation of the chosen 5 V ring (method M1), 800 MHz design:
   1. f and ring-node voltage vs feed current at tt/27, ss/110, ff/-40 (vtune 1.65 V; wiring 10 / 15 / 5 fF per node)
-  2. f vs vtune at the 800 MHz current (tt, ss/110, ff/-40) -> K_VCO over the 1.0-2.3 V window of step 73
+  2. f vs vtune at the 800 MHz current (tt, ss/110, ff/-40) -> K_VCO over the 1.0-2.3 V window of the loop design
   3. range: current and ring node for 880 MHz at ss/110 (15 fF) and for 720 MHz at ff/-40 (5 fF); sf/fs at the nominal I
   4. power-up start-up from all-zero nodes (tt, ss/110, ff/-40), and at tt with +-2 % width mismatch in stage 1
   5. output buffer: supply current and output swing at tt / ss 110 / ff -40 (PDK MIM and poly resistor)

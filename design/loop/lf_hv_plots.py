@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""lf_hv_plots.py - figures of step 80 (loop filter in real devices): docs/img/lf_hv_*.png.
+"""lf_hv_plots.py - figures of Loop filter in real devices: docs/img/lf_hv_*.png.
 Run lf_hv_sim.py first."""
 import os, sys, json
 import numpy as np

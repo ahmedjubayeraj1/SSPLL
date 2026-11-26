@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""schematics_hv.py - step 80: xschem schematics of the main-loop filter (hierarchical, drawing checks) and the LVS
+"""schematics_hv.py - xschem schematics of the main-loop filter (hierarchical, drawing checks) and the LVS
 reference:
    sspll_lf_hv_r1      R1: three res_xhigh_po_2p85 segments drawn as the meander they are in the layout, two dummies
    sspll_lf_hv_c1tile  one C1 tile: 9 nfet_g5v0d10v5 MOS capacitors (gate = top) and the cap_mim_m3_1 above them

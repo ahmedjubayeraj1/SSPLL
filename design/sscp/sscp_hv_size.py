@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """sscp_hv_size.py - sizing of the mirror-less Gm (v2): tail units per side (MTM) and R_S length for
-G = 18.43 uS with three slices (beta 0.79 uA/rad, step 73 HV), checked at tt and at the two corners that bound G,
+G = 18.43 uS with three slices (beta 0.79 uA/rad), checked at tt and at the two corners that bound G,
 plus the speed that killed the mirror version: the output current's step response to a v1 step (ckg held on).
 -> data/sscp_hv_size.json"""
 import os, json

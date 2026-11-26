@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""schematics_hv.py - step 79: xschem schematics of the 5 V pulsed-Gm charge pump (hierarchical, drawing checks) and the
+"""schematics_hv.py - xschem schematics of the 5 V pulsed-Gm charge pump (hierarchical, drawing checks) and the
 LVS reference:
    sspll_sscp_hv_rs     degeneration resistor
    sspll_sscp_hv_slice  degenerated input pair with switched tail sinks (one Gm unit)

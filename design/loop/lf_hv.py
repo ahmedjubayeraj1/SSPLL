@@ -1,4 +1,4 @@
-"""lf_hv.py - roadmap step 80: the main-loop filter, every device 5 V-rated or passive, ground VSSA.
+"""lf_hv.py - the main-loop filter, every device 5 V-rated or passive, ground VSSA.
 
         vctl ──┬──────────────── R1 ──────────────── vz ──┬──────────┐
                │   (3 res_xhigh_po_2p85 segments in        │          │
@@ -10,9 +10,9 @@
              cap_mim_m3_1 30 x 30 um (capm top plate = vz, met3 bottom plate = VSSA): about 4.4 pF in 35 x 35 um.
    C2      = 2 cap_mim_m3_1 (top plate = vctl, bottom plate = VSSA).
 
-What happens: once per reference period the pulsed Gm (step 79) pushes a charge packet q = beta T phi_e into vctl.
+What happens: once per reference period the pulsed Gm pushes a charge packet q = beta T phi_e into vctl.
 C2 takes it first (fast step of vctl: proportional path through the zero), then it shares into C1 through R1 with time
-constant R1 C1 C2 / (C1 + C2) (pole); C1 keeps the integral (type-2 integrator). The VCO (step 74) reads vctl.
+constant R1 C1 C2 / (C1 + C2) (pole); C1 keeps the integral (type-2 integrator). The VCO reads vctl.
   Z(s) = (1 + s R1 C1) / (s (C1 + C2) (1 + s R1 C1 C2 / (C1 + C2)))
   zero f_z = 1 / (2 pi R1 C1),  pole f_p = (C1 + C2) / (2 pi R1 C1 C2)
 Every device is (model, W, nf or count, L)."""
@@ -62,7 +62,7 @@ def lvs_reference(p=D):
 
 
 def ideal(p=D, cmos_fF=287.3, r_um=701.1, r_head=139.0, mim=lambda w, l: 2.0*w*l + 0.164*2*(w + l)):
-    """Hand values (step 73 densities) of R1, C1, C2: R per segment = r_um L + r_head; C1 = NT (NMC C_mos + MIM)."""
+    """Hand values (the loop design densities) of R1, C1, C2: R per segment = r_um L + r_head; C1 = NT (NMC C_mos + MIM)."""
     rm, rw, ns, rl = p["R1"]
     R = ns*(r_um*rl + r_head)
     C1 = p["NT"]*(p["NMC"]*cmos_fF + mim(*p["MIM1"][1:]))*1e-15

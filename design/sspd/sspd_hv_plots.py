@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""sspd_hv_plots.py - figures of the step-78 HV report (docs/img/sspd_hv_*.png)."""
+"""sspd_hv_plots.py - figures of the SSPD report (docs/img/sspd_hv_*.png)."""
 import os, json
 import numpy as np
 import matplotlib; matplotlib.use("Agg")

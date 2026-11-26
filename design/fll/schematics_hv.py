@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""schematics_hv.py - step 81: xschem schematics of the FLL (hierarchical, drawing checks) and the LVS reference.
+"""schematics_hv.py - xschem schematics of the FLL (hierarchical, drawing checks) and the LVS reference.
    sspll_fll_ds       3.3 -> 1.8 V down-shifter (5 V inverter on VDDD + two 1.8 V inverters)
    sspll_fll_tspc     TSPC /2 cell (9 transistors + output inverter)
    sspll_fll_div16    down-shifter + 4 x TSPC
@@ -333,7 +333,7 @@ def logic(PXY, WXY, LXY):
 
 def top(DXY, LGXY, CPXY, LSXY):
     s = Sch("sspll_fll_hv")
-    s.text("sspll_fll_hv (step 81): clkp / 16 against refclk; PFD with dead zone and lock detector on VDDD; level shifters;",
+    s.text("sspll_fll_hv (FLL design): clkp / 16 against refclk; PFD with dead zone and lock detector on VDDD; level shifters;",
            40, -500, 0.3)
     s.text("60 uA current-steering charge pump on VDDA into the loop filter (vctl). The pump is off while lock_det = 1.", 40, -460, 0.3)
     Dv = s.sub("sspll_fll_div16.sym", DXY, "xdv", 400, 0)

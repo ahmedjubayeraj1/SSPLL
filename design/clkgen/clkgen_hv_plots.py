@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""clkgen_hv_plots.py - figures of the step-77 redo (clock generator with 3.3 V outputs): docs/img/clkgen_hv_*.png.
+"""clkgen_hv_plots.py - figures of the clock-generator redo (clock generator with 3.3 V outputs): docs/img/clkgen_hv_*.png.
 Run clkgen_hv_sim.py (and --timing), clkgen_hv_supply.py and clkgen_hv_noise.py first."""
 import os, json
 import numpy as np
@@ -65,7 +65,7 @@ style(ax[0], "Supply → sampling edge, REF_IN → cks"); ax[0].legend(frameon=F
 f = np.array(N["fL"]); L = N["L"]["3.3_typ"]
 for k, col, ls, nm in (("rx_white", P[0], "-", "receiver, white"), ("clkgen", P[1], "-", "clock generator + LS (M17)"),
                        ("vdda", P[3], "--", "VDDA 100 nV/√Hz"), ("vddd", P[2], "--", "VDDD 100 nV/√Hz"),
-                       ("sspd_buf", P[4], ":", "SSPD buffers (placeholder, step 78)"), ("chain", INK, "-", "REF chain total")):
+                       ("sspd_buf", P[4], ":", "SSPD buffers (placeholder)"), ("chain", INK, "-", "REF chain total")):
     ax[1].semilogx(f, L[k], ls, color=col, lw=2 if k == "chain" else 1.3, label=nm)
 ax[1].axhline(-155, color=P[3], ls=":"); ax[1].set_ylim(-190, -140); ax[1].set_xlabel("offset (Hz)")
 ax[1].set_ylabel("L at 50 MHz (dBc/Hz)"); style(ax[1], "REF chain phase noise, typ, 3.3 V square"); ax[1].legend(frameon=False, fontsize=7)

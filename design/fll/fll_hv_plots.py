@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""fll_hv_plots.py - figures of step 81 (FLL): docs/img/fll_hv_*.png. Run fll_hv_acq.py, fll_hv_sim.py and
+"""fll_hv_plots.py - figures of FLL: docs/img/fll_hv_*.png. Run fll_hv_acq.py, fll_hv_sim.py and
 fll_hv_closed.py first."""
 import os, sys, json
 import numpy as np

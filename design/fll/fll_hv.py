@@ -1,9 +1,9 @@
-"""fll_hv.py - roadmap step 81: the frequency-locked loop (FLL) that brings the ring to 16 x f_ref before the
+"""fll_hv.py - the frequency-locked loop (FLL) that brings the ring to 16 x f_ref before the
 sub-sampling loop takes over. Digital on VDDD / VSSD (1.8 V devices and sky130_fd_sc_hd standard cells), the charge
 pump on VDDA / VSSA (5 V devices).
 
   clkp (3.3 V, ring buffer) -> DS (3.3 -> 1.8 V down-shifter) -> 4 x TSPC /2 -> div (50 MHz)
-  refclk (1.8 V, step 76) and div -> PFD (2 x dfrtp + nand2 reset) -> UP / DN
+  refclk (1.8 V) and div -> PFD (2 x dfrtp + nand2 reset) -> UP / DN
   UP / DN -> dead zone (AND with a 0.3 ns delayed copy) -> AND NOT lock_det -> level shifters -> 5 V charge pump -> vctl
   UP / DN -> lock detector (effective window about 0.6 ns to acquire, 2 ns to hold; 16 periods in, 4 out)
            -> lock_det, fll_dir
@@ -198,7 +198,7 @@ def fll_top(p=D):
     ls = re.search(r'LS = """(.*?)"""', from_cco, re.S).group(1)
     return (div16(p) + logic() + cp(p) + ls +
             ".subckt sspll_fll_hv clkp refclk fll_en ib vctl lock_det fll_dir VDDA VDDD VSSA VSSD\n"
-            "* step 81 FLL: /16, PFD + dead zone + lock detector on VDDD; level shifters; 5 V charge pump on VDDA\n"
+            "* the FLL design FLL: /16, PFD + dead zone + lock detector on VDDD; level shifters; 5 V charge pump on VDDA\n"
             "xdv clkp div VDDD VSSD sspll_fll_div16\n"
             "xlg refclk div fll_en upg dng act lock_det fll_dir VDDD VSSD sspll_fll_logic\n"
             "xlu upg up5 up5b VDDD VDDA VSSA VSSD sspll_ls_1v8_3v3\n"

@@ -1,4 +1,4 @@
-* sky130_fd_sc_hd standard cells used by the step-81 FLL (transistor netlists, unchanged).
+* sky130_fd_sc_hd standard cells used by the FLL (transistor netlists, unchanged).
 * Source: github.com/google/skywater-pdk-libs-sky130_fd_sc_hd (cells/<cell>/<cell>_<n>.spice), Apache License 2.0.
 * Copyright 2020 The SkyWater PDK Authors. W and L are in microns x 1e6 'u' units as in the library (scale 1e-6).
 *

@@ -12,11 +12,11 @@ BLOCKS = dict(cco_hv="ref_cco_hv", clkgen_hv="ref_clkgen_hv", refbuf_hv="ref_ref
 
 if __name__ == "__main__":
     nets = G.netlists()
-    import importlib.util                 # step 80 loop filter (born after the ground split: not in the snapshot proof)
+    import importlib.util                 # the loop-filter design loop filter (born after the ground split: not in the snapshot proof)
     sp = importlib.util.spec_from_file_location("lf_sch", os.path.join(ROOT, "design", "loop", "schematics_hv.py"))
     lf = importlib.util.module_from_spec(sp); sp.loader.exec_module(lf)
     nets["ref_lf_hv"] = lf.F.lvs_reference(lf.drawn())
-    sys.path.insert(0, os.path.join(ROOT, "design", "fll"))   # step 81 FLL
+    sys.path.insert(0, os.path.join(ROOT, "design", "fll"))   # the FLL design FLL
     import fll_hv
     nets["ref_fll_hv"] = fll_hv.fll_top()
     xs = os.path.join(ROOT, "xschem")

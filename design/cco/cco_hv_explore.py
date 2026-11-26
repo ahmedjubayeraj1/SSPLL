@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""cco_hv_explore.py - choice of the output-mirror unit for the 5 V CCO (step 75 redo): for each candidate unit
+"""cco_hv_explore.py - choice of the output-mirror unit for the 5 V CCO: for each candidate unit
 (W per finger x nf, L) measure (1) compliance: output current vs ring node at the worst headroom (code 31, IBIAS 4 uA,
 ss/110 C, VDDA 2.97 V), (2) VDDA rejection |dI/dVDDA| and K_vdd = K_I x |dI/dVDDA| at tt (code 10, ring node 1.89 V),
 (3) output noise at 10 kHz / 100 kHz / 1 MHz (tt). -> data/cco_hv_explore.json"""
@@ -7,7 +7,7 @@ import json, os
 from multiprocessing import Pool
 import numpy as np
 import cco_hv as c
-KI = 0.62e12                                  # Hz/A, step 74 HV ring near 1 mA (tt)
+KI = 0.62e12                                  # Hz/A, the VCO ring near 1 mA (tt)
 CANDS = {"L2_W40": ("pfet_g5v0d10v5", 20.0, 2, 2.0), "L2_W60": ("pfet_g5v0d10v5", 20.0, 3, 2.0),
          "L3_W60": ("pfet_g5v0d10v5", 20.0, 3, 3.0), "L4_W80": ("pfet_g5v0d10v5", 20.0, 4, 4.0),
          "L4_W120": ("pfet_g5v0d10v5", 20.0, 6, 4.0)}

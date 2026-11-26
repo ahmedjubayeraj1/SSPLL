@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""fll_hv_closed.py - step 81: closed-loop transient of the transistor-level FLL with the drawn step-80 filter and a
-behavioural ring (method M27): the ring is a phase integrator, d(phi)/dt = f(V_cont) from the step-74 tuning curve
+"""fll_hv_closed.py - closed-loop transient of the transistor-level FLL with the drawn loop filter and a
+behavioural ring (method M27): the ring is a phase integrator, d(phi)/dt = f(V_cont) from the VCO tuning curve
 (tt, scaled so that 800 MHz falls at 1.8 V), squared to a 0..VDDA clock by tanh(sin). The sub-sampling loop is left
 out, so the run shows the FLL alone up to lock_det; the same case is run in the time-domain model (sspll = False) and
 the two V_cont trajectories are compared.

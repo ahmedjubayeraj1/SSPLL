@@ -1,6 +1,6 @@
 """pllmodel - phase-domain noise and jitter model for the SKY130 SSPLL + FFNC (Chipalooza #4).
 
-One model, three variants (roadmap step 8):
+One model, three variants (architecture decision):
   'type2'  classic charge-pump PLL: PFD + CP + /N in the loop. Detector noise is referred to the output x N^2.
   'sspll'  sub-sampling PLL: SSPD + CP, no divider in the loop. Detector noise is NOT multiplied by N^2.
   'ffnc'   sspll + feedforward noise cancellation (Nagam & Kinget, JSSC 2018).

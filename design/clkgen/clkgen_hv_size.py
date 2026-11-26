@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""clkgen_hv_size.py - sizing study of the 5 V side of the clock generator (step 77 redo).
+"""clkgen_hv_size.py - sizing study of the 5 V side of the clock generator.
  1. P/N ratio of a 5 V inverter for equal rise and fall delay (fan-out 1 chain)            -> 2.5
  2. always-on transmission gate in the driver's in-phase path (o) for zero skew between cks and cksb
  3. pulser C for tau = 200 ps and W_H about 2.2 ns

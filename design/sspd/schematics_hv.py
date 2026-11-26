@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""schematics_hv.py - step 78 redo (5 V devices on VDDA): xschem schematics, hierarchical, real wiring, drawing checks:
+"""schematics_hv.py - 5 V devices on VDDA: xschem schematics, hierarchical, real wiring, drawing checks:
    sspll_sspd_hv_tg / _tgh (5 V transmission gates), sspll_sspd_hv_side (isolation buffer, R_s, sampler, dummy
    sampler, hold), sspll_sspd_hv (top: p and m sides). Derived from schematics.py (13-17 Nov drawing); also writes the
    LVS reference."""
@@ -91,9 +91,9 @@ def side(p, TXY):
 def top(SXY):
     s = Sch("sspll_sspd_hv")
     s.text("sspll_sspd_hv: sub-sampling phase detector with hold. v1p - v1m (the fresh sample) goes to the pulsed Gm "
-           "(step 79), v2p - v2m (held for a whole period) to the NCB amplifier", 40, -520, 0.3)
-    s.text("clkp / clkm: the 5 V ring's buffered outputs (step 74 HV); cks/cksb, ckh/ckhb from the clock generator "
-           "(step 77 HV, 3.3 V); every device 5 V-rated on VDDA", 40, -470, 0.25)
+           "(Gm design), v2p - v2m (held for a whole period) to the NCB amplifier", 40, -520, 0.3)
+    s.text("clkp / clkm: the 5 V ring's buffered outputs (VCO design); cks/cksb, ckh/ckhb from the clock generator "
+           "(the clock-generator design, 3.3 V); every device 5 V-rated on VDDA", 40, -470, 0.25)
     P = s.sub("sspll_sspd_hv_side.sym", SXY, "xsp", 700, 0)
     M = s.sub("sspll_sspd_hv_side.sym", SXY, "xsm", 700, 600)
     s.pin("clkp", "in", 60, P["clk"][1]); s.wire((60, P["clk"][1]), P["clk"])

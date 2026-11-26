@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fill the step-77 HV doc sections that come from clkgen_hv_sim.json and the device table (SHEET, TIMING, JITTER, SIZING)."""
+"""Fill the clock-generator doc sections that come from clkgen_hv_sim.json and the device table (SHEET, TIMING, JITTER, SIZING)."""
 import os, json
 import clkgen_hv as K
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -38,7 +38,7 @@ timing += (f"\n\n**Spread over all {len(ok)} conditions (none failed):** τ {mn(
            "- t_s grows with a smaller reference amplitude (1.88 ns at 1 V sine, 2.43 ns at 0.4 V): that is the receiver's "
            "slope, not the clock generator. Only its *stability* matters, because the loop locks the VCO to whatever "
            "instant cks falls.\n"
-           "- gap1 is the time between cks/cksb settling and the Gm turning on; since step 79 it holds an RC delay of about "
+           "- gap1 is the time between cks/cksb settling and the Gm turning on; since the Gm design it holds an RC delay of about "
            "2 ns (section B2), so the Gm has recovered from the SSPD's tracking swing before it is read.\n"
            "- t_p (sample → middle of the Gm pulse) is the loop's delay; the slowest corner gives 4.15 ns (≤ 5 ns).")
 J = sim["jitter"]; S = sim["S"]
@@ -61,7 +61,7 @@ def dev(name, d):
 keys = ["INV5S", "INV5M", "INV5L", "INV5A", "INV5T", "TG5", "TG5T", "NOR5L", "NAND5L", "CG", "CH", "CDL"]
 sizing = ("| Device | Size | L | Type |\n|---|---|---|---|\n" + "\n".join(dev(k, K.D[k]) for k in keys) +
           "\n\nThe 1.8 V core (RC edge generators, gap inverters, hold latch) keeps the 13 Nov sizes of `clkgen.py`; the four "
-          "level shifters are the step-75 HV cell `sspll_ls_1v8_3v3`. All widths ≥ 0.42 µm, all 5 V lengths = 0.5 µm "
+          "level shifters are the CCO cell `sspll_ls_1v8_3v3`. All widths ≥ 0.42 µm, all 5 V lengths = 0.5 µm "
           "(PDK minimum for g5v0d10v5), MIM sides between 2 and 30 µm: inside the PDK limits (`tools/pdk_limits.py`).")
 
 s = open(DOC).read()

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""loop_hv.py - roadmap step 73 redone for the device-rule migration: loop parameters (f_c, PM, beta, R1, C1, C2)
+"""loop_hv.py - the loop design redone for the device-rule migration: loop parameters (f_c, PM, beta, R1, C1, C2)
 for 50 MHz x 16 = 800 MHz with every analog device 5 V-rated (the loop-filter MOS capacitor is now nfet_g5v0d10v5).
 
-Same method as step73_loop.py (kept for the 1.6 GHz record):
+Same method as the archived 1.6 GHz loop script (SSPLL_Personal, design/loop/) (kept for the 1.6 GHz record):
   A. f_c and PM from the jitter model (design/budget/budget_hv.py) against the proposal targets;
-  B. R1, C1, C2 for the exact sampled loop (design/loop/sampled_loop.py), packet delay from the step-77 clock generator;
+  B. R1, C1, C2 for the exact sampled loop (design/loop/sampled_loop.py), packet delay from the clock-generator clock generator;
   C. realisation with PDK-legal, tile-based devices, C-V data from design/loop/spice/run_cv_hv.sh;
   D. robustness over the loop-gain spread m and the R / C corners;
   E. requirements handed to the other steps.
@@ -20,10 +20,10 @@ import budget_hv as bud
 from pdk_limits import check
 
 T, FREF, N, F0 = 20e-9, 50e6, 16, 800e6
-KV = 2*np.pi*150e6                 # fine-tuning gain, rad/s/V (budget assumption; step 74 sets it, only beta*KV matters)
+KV = 2*np.pi*150e6                 # fine-tuning gain, rad/s/V (budget assumption; the VCO design sets it, only beta*KV matters)
 FC, PM = 2.5e6, 50.0               # chosen in section A
-TP = 0.5e-9                        # packet delay: step 77 measured t_p 0.28 ns (0.18-0.50) + one level shifter
-A, DUTY = 0.8, 0.01                # SSPD gain per side (V/rad, step-72 HV budget), Gm pulse duty tau/T (200 ps / 20 ns)
+TP = 0.5e-9                        # packet delay: the clock-generator design measured t_p 0.28 ns (0.18-0.50) + one level shifter
+A, DUTY = 0.8, 0.01                # SSPD gain per side (V/rad, budget), Gm pulse duty tau/T (200 ps / 20 ns)
 VC_WIN, VC_NOM = (1.0, 2.3), 1.65  # V_cont window and centre (VDDA/2): the 5 V MOS cap is flat above 1.0 V
 SPEC = dict(out1_typ=2.6, out2_typ=1.6, out1_max=5.0, out2_max=3.2, L300_typ=-114.0, red_typ=35.0, red_min=20.0)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""fill_doc.py - writes docs/design/sscp_hv.md from the step-79 results (rerun after any rerun of the benches)."""
+"""fill_doc.py - writes docs/design/sscp_hv.md from the Gm results (rerun after any rerun of the benches)."""
 import os, json
 import numpy as np
 import sscp_hv as C
@@ -9,7 +9,9 @@ D_ = lambda n: J("design", "sscp", "data", n)
 SIM, NZ, DET = D_("sscp_hv_sim.json"), D_("sscp_hv_noise.json"), D_("sscp_hv_det.json")
 B1 = D_("sscp_hv_buf.json") if os.path.exists(os.path.join(ROOT, "design", "sscp", "data", "sscp_hv_buf.json")) else None  # round 1: SSPLL_Personal
 B2, NS, CIN, DLY = D_("sscp_hv_buf2.json"), D_("sscp_hv_noisesize.json"), D_("sscp_hv_cin.json"), D_("sscp_hv_delay.json")
-V1DET = D_("v1_mirror/step79hv_det_first.json")
+import glob                                            # first-round detector run (v1 mirror), kept in SSPLL_Personal
+_v1 = glob.glob(os.path.join(ROOT, "design", "sscp", "data", "v1_mirror", "*det_first.json"))
+V1DET = json.load(open(_v1[0])) if _v1 else []
 S78 = J("design", "sspd", "data", "sspd_hv_sim.json"); C77 = J("design", "clkgen", "data", "clkgen_hv_sim.json")
 T = 20e-9
 dc = SIM["dc"]; tt = dc[0]
@@ -113,11 +115,11 @@ dev_tab = "| Device | Model | W per finger (µm) × units | L | Role |\n|---|---
     dev("XA1, XA2 (buffer)", Dd["BN"], "buffer input pair"), dev("XL1, XL2 (buffer)", Dd["BP"], "buffer mirror load"),
     dev("XBT (buffer)", Dd["BT"], "buffer tail", int(round(Dd["BIT"]/Dd["IT"]))),
     f"| XCDUMP | {Dd['CDUMP'][0]} | {Dd['CDUMP'][1]} × {Dd['CDUMP'][3]} µm × {Dd['CDUMP'][2]} tiles | — | dump-node decoupling, 2 pF |",
-    "| decoder | nfet_01v8 / pfet_01v8 | 0.42–0.84 | 0.15 µm | 1.8 V trim logic on VDDD + 4 level shifters (step 75 HV) |"])
+    "| decoder | nfet_01v8 / pfet_01v8 | 0.42–0.84 | 0.15 µm | 1.8 V trim logic on VDDD + 4 level shifters (CCO design) |"])
 
-doc = f"""# Step 79: pulsed-Gm charge pump (sub-sampling charge pump) in 5 V devices
+doc = f"""# The Gm design: pulsed-Gm charge pump (sub-sampling charge pump) in 5 V devices
 
-*Phase 7, roadmap step 79 (19–20 Nov 2026).* Deliverable: schematic (xschem, hierarchical, LVS-clean), sizing table,
+*Phase 7 (19–20 Nov 2026).* Deliverable: schematic (xschem, hierarchical, LVS-clean), sizing table,
 verification over PVT — and, because the charge pump only makes sense with its detector, a whole-detector bench
 (SSPD + Gm + clock generator). Design files `design/sscp/sscp_hv.py`, `sscp_hv_*.py`; schematics `xschem/sscp_hv/`;
 data `design/sscp/data/`; methods M10, M11, M16, M18 (explained in `docs/testbench_guide.md`).
@@ -128,7 +130,7 @@ Reproduce (in `design/sscp`):
 python3 sscp_hv_size.py --replica   # G sizing of the mirror-less Gm and its step response
 python3 sscp_hv_noisesize.py        # noise-driven resizing (replica size, bias current, current-source lengths)
 python3 sscp_hv_buf.py; python3 sscp_hv_buf.py --round2   # dump-buffer sizing, both rounds
-python3 sscp_hv_delay.py            # Gm recovery after the SSPD's tracking phase vs pulse delay (sets step 77's gap 1)
+python3 sscp_hv_delay.py            # Gm recovery after the SSPD's tracking phase vs pulse delay (sets the clock-generator design's gap 1)
 python3 sscp_hv_det.py              # whole detector, beat runs: beta_eff and lock point over corners and V_cont
 python3 sscp_hv_sim.py              # A DC transfer, D dump buffer, B pulsed (DC input), C noise, E VDDA     (M10, M16, M11)
 python3 sscp_hv_cin.py              # Gm input capacitance (the SSPD's C1 node)
@@ -154,8 +156,8 @@ real clock generator) the loop gain at lock is **β_eff = {b_tt*1e6:.2f} µA/rad
 worst {ow['off']['total']:.2f} / {ow['on']['total']:.2f} ps. I(VDDA) {idd*1e6:.0f} µA ({idd*3.3*1e3:.2f} mW).
 
 **This step changed two earlier blocks.** The Gm's input capacitance is {cin_tt*1e15:.1f} fF, not 8 fF, so the SSPD's C1
-shrank to keep its sampled node (step 78); and the Gm needs about 2 ns after the sample to recover from the SSPD's
-tracking swing, so the clock generator now delays the Gm pulse (step 77, section B2 there).
+shrank to keep its sampled node (SSPD design); and the Gm needs about 2 ns after the sample to recover from the SSPD's
+tracking swing, so the clock generator now delays the Gm pulse (the clock-generator design, section B2 there).
 
 ![top](../img/sch_sspll_sscp_hv.png)
 
@@ -197,7 +199,7 @@ $$i_x = I_P - I_{{N2}} = \\tfrac{{1}}{{2}}\\,G_{{pair}}\\,(v_{{1p}} - v_{{1m}}),
 
 {dly_tab}
 
-  Step 77 added an RC delay so the pulse now starts 2.36 ns after the sample (1.67–3.66 ns over corners).
+  The clock-generator design added an RC delay so the pulse now starts 2.36 ns after the sample (1.67–3.66 ns over corners).
 - **2 pF on the dump node, because the tracking current reaches it.** Without it vdump swung ±90 mV at 800 MHz and was
   up to 90 mV away from vctl when x switched; each switch then put C_x·Δv into the filter.
 - **Noise sets the bias.** The phase noise of the pump is S_φ = S_i/(4A²G²d): every current source whose noise reaches
@@ -212,7 +214,7 @@ $$i_x = I_P - I_{{N2}} = \\tfrac{{1}}{{2}}\\,G_{{pair}}\\,(v_{{1p}} - v_{{1m}}),
 | Transconductor | plain pair, degenerated pair | **degenerated pair, R_S xhigh-poly** | G within ±6 % over PVT, linear ±0.4 V |
 | Output stage | pMOS mirror, own current source per drain | **own pMOS source per drain, replica bias** | the mirror (30 MHz pole) could not follow v1 after tracking: β_eff 0.17 instead of 0.79 |
 | Pulsing | switch the tail, steer the output | **steer x between vctl and vdump; xc always on vdump** | constant bias; x + xc cancel on the dump node while v1 tracks |
-| Pulse timing | 0.6 ns after the sample, later | **2.4 ns after the sample (step 77 gap-1 delay)** | the Gm recovers from the tracking swing: 4.4 → 0.7 fC per period at lock |
+| Pulse timing | 0.6 ns after the sample, later | **2.4 ns after the sample (the clock-generator design gap-1 delay)** | the Gm recovers from the tracking swing: 4.4 → 0.7 fC per period at lock |
 | Dump node | buffer only, buffer + capacitor | **buffer + 2 pF MIM** | ±90 mV of 800 MHz ripple without it |
 | Replica | 1 half-slice, {rm_} | **{rm_} half-slices** | its noise on pb was 74 % of the output noise |
 | Current sources | pMOS 4/2, tails 1/4 µm | **pMOS 4/4, tails 1/8 µm** | less gm (and flicker) per µA: output noise −6 dB with the replica |
@@ -222,7 +224,7 @@ $$i_x = I_P - I_{{N2}} = \\tfrac{{1}}{{2}}\\,G_{{pair}}\\,(v_{{1p}} - v_{{1m}}),
 
 ## B. Whole detector: SSPD + Gm + clock generator (method M18, extended)
 
-**Bench (`sscp_hv_det.py`).** The step-78 beat bench (ring at (16 + 1/32)·f_ref behind a 5 V buffer stage, real
+**Bench (`sscp_hv_det.py`).** The SSPD beat bench (ring at (16 + 1/32)·f_ref behind a 5 V buffer stage, real
 clock generator with the gap-1 delay) with the real Gm on v1 (no placeholder load) and vctl held by an ideal source.
 Every reference period gives one sample of the ring phase and one charge packet into vctl; 32 packets cover a whole
 ring cycle. β_eff is the slope of charge per period vs phase at the zero of the charge (cubic fit within ±0.6 rad),
@@ -241,7 +243,7 @@ is 75 %: most likely the Gm recovers more slowly there (hot, slow corner; not se
 {max(z for r, b, z in det)*1e3:+.0f} mrad from the SSPD's zero crossing: inside the Gm's linear range
 (±{lin_tt:.2f} V ↔ ±{lin_tt/(2*A):.2f} rad at A = {A:.2f} V/rad).
 
-**Loop gain over PVT and the trim.** β·K_VCO with K_VCO from step 74 HV; the trim code is chosen once per chip:
+**Loop gain over PVT and the trim.** β·K_VCO with K_VCO from the VCO design; the trim code is chosen once per chip:
 
 {lg_tab}
 
@@ -334,10 +336,10 @@ generator was verified with. Input capacitance on each of v1p / v1m: {cin_tt*1e1
 
 ## I. Requirements handed on
 
-1. **Step 80 (loop filter):** current source into vctl during τ; V_cont window 1.3–2.3 V; β_eff = {b_tt*1e6:.2f} µA/rad at tt
+1. **Loop filter:** current source into vctl during τ; V_cont window 1.3–2.3 V; β_eff = {b_tt*1e6:.2f} µA/rad at tt
    (×{min(x[1] for x in LG):.2f}–{max(x[1] for x in LG):.2f} over corners before trim).
-2. **Step 78 SSPD:** Gm input {cin_tt*1e15:.1f} fF per side (C1 = 2.69 µm keeps the node).
-3. **Step 77 clock generator:** Gm pulse ≥ 1.6 ns after the sample (done: 1.67–3.66 ns).
+2. **The SSPD design SSPD:** Gm input {cin_tt*1e15:.1f} fF per side (C1 = 2.69 µm keeps the node).
+3. **The clock-generator design clock generator:** Gm pulse ≥ 1.6 ns after the sample (done: 1.67–3.66 ns).
 4. **Bias generator:** one 2 µA unit into ib.
 5. **Layout:** slices in a row, common-centroid pairs, R_S interdigitated; replica next to the slices; x short and
    symmetric to both TGs; vdump and vctl side by side; the 2 pF MIM over the slices.
@@ -348,20 +350,20 @@ generator was verified with. Input capacitance on each of v1p / v1m: {cin_tt*1e1
 |---|---|---|---|
 | Dump buffer lost tracking at ss 110 °C, V_cont 2.3 V (−92 mV) | buffer bench D | V_in,max = VDDA − V_SG + V_TN with a narrow pMOS load | BN 8/2, BP 16/2 µm |
 | Pulsed gain 39 % above G·τ, 1.4 fC at zero input | pulsed bench (DC inputs) | vdump moved with the Gm's current (buffer R_out ≈ 10 kΩ) | explained only by the whole-detector bench (next rows) |
-| Gm input 26 fF, not 8 fF | `sscp_hv_cin.py` | the pair's gate capacitance (5 slices, 4/1 µm thick oxide) | C1 of the SSPD shrunk to keep the node (step 78) |
+| Gm input 26 fF, not 8 fF | `sscp_hv_cin.py` | the pair's gate capacitance (5 slices, 4/1 µm thick oxide) | C1 of the SSPD shrunk to keep the node (SSPD design) |
 | Whole detector: β_eff 0.17 µA/rad, 4 fC at lock | `sscp_hv_det.py` | pMOS mirror pole near 30 MHz; v1 changes 0.6 ns before the pulse | no mirror: own pMOS source per drain, replica bias |
 | vdump ±90 mV at 800 MHz | locked-detector waveforms | the Gm's tracking current into the dump node | xc on vdump (cancels x), 2 pF MIM |
-| Still 4.4 fC at lock, gain 73 % | `sscp_hv_delay.py` | Gm recovery from the tracking swing (R_S × source C) | Gm pulse 2.4 ns after the sample (step 77 RC delay) |
+| Still 4.4 fC at lock, gain 73 % | `sscp_hv_delay.py` | Gm recovery from the tracking swing (R_S × source C) | Gm pulse 2.4 ns after the sample (the clock-generator design RC delay) |
 | Output noise 2.98 pA/√Hz at 1 MHz: L(300 kHz) FFNC on −123.0 | noise bench + ngspice noise summary | replica noise on pb (74 %), current-source gm | replica ×{rm_}, pMOS L 4 µm, tails L 8 µm: −6 dB |
 | Replica multiplier drawn ×1, netlist ×{m_*rm_}: LVS still "match" | review of the drawing | `lvs.sh` read only the topology line | drawing fixed; `lvs.sh` now reports property errors |
 
 ## Testbenches
 
-Set-up, method and pitfalls: `docs/testbench_guide.md`, section "5 V pulsed-Gm charge pump benches (step 79)".
+Set-up, method and pitfalls: `docs/testbench_guide.md`, section "5 V pulsed-Gm charge pump benches (Gm design)".
 
-## Interview questions (step 79)
+## Interview questions (Gm design)
 
-The answers are in the learning notebook (phase 7), step 79.
+The answers are in the learning notebook (phase 7).
 
 1. What is a pulsed-Gm charge pump and why does a sub-sampling PLL use one?
 2. Derive β = 2A·G·τ/T.
