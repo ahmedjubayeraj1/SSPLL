@@ -404,6 +404,63 @@ Each entry gives: **purpose** · **set-up and why** · **what to look at** · **
   Spectre `noise`; check whether the Cadence kit's poly resistor carries thermal noise (Spectre's own resistor with
   a voltage coefficient does). The lock-in of M24 is a `tran` plus the calculator's `integ(i*cos)`.
 
+#### FLL benches (M26, M27, step 81) — `design/fll/fll_hv_acq.py`, `fll_hv_sim.py`, `fll_hv_closed.py`
+- **Purpose.** Show three things:
+  - the FLL brings the ring to 16 × f_ref from any start (V_cont 0–3.3 V, any phase, all corners) and hands over to
+    the sub-sampling loop without a fight;
+  - each circuit does what the model assumes: divider speed, charge-pump current, dead zone, lock-detector windows;
+  - the transistor-level FLL in closed loop follows the model.
+- **M26 — fixed-step behavioural simulation of a dual-loop PLL (`fll_hv_model.py`, `fll_hv_acq.py`).**
+  - **What.** Every block reduced to its measured law, stepped every 50 ps over 6–12 µs:
+    - ring: f(V_cont) from the step-74 tuning curve;
+    - divider: an edge every 16 ring cycles, t_div later;
+    - PFD: tri-state with reset time, dead zone, and a ±I_cp pump;
+    - SSPD + Gm: the step-79 charge curve q(φ), delivered t_p after the sample;
+    - lock detector: the logic of `sspll_fll_lockdet`.
+    - The filter state is updated with the exact matrix exponential of C2 ∥ (R1 + C1) for each step.
+  - **Why.** Acquisition takes µs of 800 MHz cycles. A transistor-level PLL run of that length takes hours per case,
+    and the sweep needs 900 cases. Linear models cannot show cycle slips, harmonic locking, dead zones or the hand-over.
+  - **How it was trusted.** One case was compared with a transistor-level run (M27). The block laws come from the
+    benches below.
+  - **Sweeps.** 5 start voltages × 3 corners × 4 start phases for every parameter set: I_cp, window w_in, count,
+    gain ×0.6 / ×1.5, t_p 1.8 / 4.2 ns, t_div 0.5 / 2 ns. Pass = 800.000 MHz, lock_det high for the last 40
+    periods, and the phase settled. Lock time = the last moment the ring phase was more than 10 ps from its final
+    value.
+  - **Part E.** The same model with the FLL off, started near 700, 750, 850 and 900 MHz. It shows why the FLL is
+    needed: the sub-sampling loop locks to whatever multiple of 50 MHz is nearest.
+- **Divider bench (`fll_hv_sim.py div`).** A 0..VDDA square with 60 ps edges drives `sspll_fll_div16`, and the bench
+  checks that every output period is 16 input periods (±2 %). It bisects between 1 and 6 GHz, at 5 corners with
+  VDDD at its limits. **Why:** if the divider cannot follow the fastest ring, it outputs fewer edges. The PFD then
+  reads "too slow", pushes the ring faster still, and the loop locks up at the rail. The divider must therefore be
+  faster than the ring at its fastest (code 31, V_cont = 0) at every corner.
+- **Charge-pump bench (`fll_hv_sim.py cp`).** `sspll_fll_cp` alone. vctl is held by a source at 0.3–3.0 V, up5 and
+  dn5 are driven statically, and the source current is the pump current. Run at 3 corners × IBIAS ±20 %. Off-state
+  leakage is measured with act5b = 1 at 110 °C.
+- **Open-loop bench (`fll_hv_sim.py open`, `fll_hv.bench_open`).** The whole `sspll_fll_hv`:
+  - clkp is a square 0.2 % faster than 800 MHz, so the divider edge walks 40 ps per period across the reference
+    edge;
+  - vctl is held at 1.8 V by a source, and the charge per period is ∫i(vvc) over one period centred on the
+    reference edge;
+  - the run lasts 2.2 µs, about 110 periods.
+  - **One run gives the whole transfer:** charge vs Δt (the dead zone and the ±I_cp slope), the lock_det rise after
+    16 in-window periods, the switch to the 2 ns window, and the release after 4 out-of-window periods (hysteresis).
+- **M27 — closed loop with a behavioural ring (`fll_hv_closed.py`).**
+  - **The ring is replaced by a phase integrator.** A B-source current f(V_cont) (a `pwl` table from the step-74
+    curve) charges a 1 F capacitor, so v(phi) counts cycles. `clkp = 1.65·(1 + tanh(6·sin 2π·v(phi)))` turns it into
+    a 0..3.3 V clock.
+  - **Everything else is real:** the transistor-level FLL and the drawn step-80 filter plus 175 fF of load.
+  - **Why behavioural.** The real ring would add about 30 % of the run time and nothing the FLL test needs; the ring
+    itself was verified in step 74.
+  - **Start.** A 1 GΩ resistor to the start voltage sets the DC point (τ = 10 ms, invisible in a few µs).
+    `option interp` keeps the output file small.
+  - **Compared with:** the M26 model with the sub-sampling loop off, same start.
+- **xschem.** `xschem/fll_hv/sspll_fll_hv.sym`; the standard cells come from `sky130_stdcells/*.sym` (pins A, B, X / Y
+  and supplies as properties). Include `design/fll/stdcells/sky130_fd_sc_hd_fll.spice` (`.include`) in the testbench,
+  because the PDK installation here has no standard-cell SPICE.
+- **Cadence.** Use the kit's standard-cell views (or import the same SPICE with `spiceIn`); the divider and open-loop
+  benches are `tran`, and the charge per period is `integ(i("/vvc/PLUS") t1 t2)`. The behavioural ring is easiest as
+  Verilog-A (`V(clk) <+ 1.65*(1 + tanh(6*sin(2*`M_PI*phase)))` with `phase = idt(f(V(vctl)))`).
+
 #### moscap_hv_cv — C-V of the 5 V loop-filter capacitor (M6, step 73 redo)
 - **Purpose.** Step 73 needs the capacitance per area of the thick-oxide MOS capacitor that now forms C1, and the
   V_cont range over which it is flat. It also needs MIM1 and MIM2 for comparison.
@@ -528,6 +585,7 @@ The scripts build the circuits as strings, run them in parallel over the conditi
 | SSPD, step 78 | `sspd/sspd_hv.py`, `sspd_hv_sim.py`, `sspd_hv_size.py`, `sspd_hv_noise.py`, `sspd_hv_check.py` |
 | Pulsed-Gm charge pump, step 79 | `sscp/sscp_hv.py`, `sscp_hv_sim.py`, `sscp_hv_det.py`, `sscp_hv_delay.py`, `sscp_hv_buf.py`, `sscp_hv_cin.py`, `sscp_hv_size.py`, `sscp_hv_noise.py` |
 | Loop filter, step 80 | `loop/lf_hv.py`, `lf_hv_sim.py`, `lf_hv_plots.py`, `schematics_hv.py` |
+| FLL, step 81 | `fll/fll_hv.py`, `fll_hv_model.py`, `fll_hv_acq.py`, `fll_hv_sim.py`, `fll_hv_closed.py`, `fll_hv_plots.py`, `schematics_hv.py` |
 
 When you change a design, rerun the block's `schematics_hv.py`, then `python3 tools/lvs_hv_all.py`, then the step
 scripts: LVS first shows whether the drawing still matches what is simulated.

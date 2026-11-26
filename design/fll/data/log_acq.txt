@@ -1,0 +1,35 @@
+D: FLL loop alone (linear, exact sampled model)
+  I_cp 10 uA, K_VCO 110 MHz/V: f_c 0.44 MHz, PM 22.9
+  I_cp 10 uA, K_VCO 173 MHz/V: f_c 0.57 MHz, PM 28.2
+  I_cp 10 uA, K_VCO 250 MHz/V: f_c 0.71 MHz, PM 33.0
+  I_cp 20 uA, K_VCO 110 MHz/V: f_c 0.66 MHz, PM 31.3
+  I_cp 20 uA, K_VCO 173 MHz/V: f_c 0.88 MHz, PM 37.6
+  I_cp 20 uA, K_VCO 250 MHz/V: f_c 1.13 MHz, PM 42.7
+  I_cp 40 uA, K_VCO 110 MHz/V: f_c 1.03 MHz, PM 41.0
+  I_cp 40 uA, K_VCO 173 MHz/V: f_c 1.44 MHz, PM 46.7
+  I_cp 40 uA, K_VCO 250 MHz/V: f_c 1.92 MHz, PM 49.8
+  I_cp 60 uA, K_VCO 110 MHz/V: f_c 1.39 MHz, PM 46.2
+  I_cp 60 uA, K_VCO 173 MHz/V: f_c 1.98 MHz, PM 50.0
+  I_cp 60 uA, K_VCO 250 MHz/V: f_c 2.70 MHz, PM 50.5
+  I_cp 80 uA, K_VCO 110 MHz/V: f_c 1.74 MHz, PM 49.0
+  I_cp 80 uA, K_VCO 173 MHz/V: f_c 2.52 MHz, PM 50.6
+  I_cp 80 uA, K_VCO 250 MHz/V: f_c 3.43 MHz, PM 48.9
+A: I_cp
+  I_cp 10 uA: 60 runs, fail 19, lock time median 5.88 us, max 8.68 us, max lock_det toggles 3
+  I_cp 20 uA: 60 runs, fail 0, lock time median 3.94 us, max 6.40 us, max lock_det toggles 3
+  I_cp 40 uA: 60 runs, fail 0, lock time median 2.10 us, max 3.64 us, max lock_det toggles 3
+  I_cp 60 uA: 60 runs, fail 0, lock time median 1.41 us, max 2.76 us, max lock_det toggles 1
+  I_cp 80 uA: 60 runs, fail 0, lock time median 1.38 us, max 2.40 us, max lock_det toggles 1
+B: lock detector
+  w_in 0.4 ns, nlock 16: 60 runs, fail 0, lock time median 1.52 us, max 2.30 us, max lock_det toggles 1
+  w_in 0.6 ns, nlock 8: 60 runs, fail 4, lock time median 1.86 us, max 9.72 us, max lock_det toggles 33
+  w_in 0.6 ns, nlock 32: 60 runs, fail 0, lock time median 1.68 us, max 2.54 us, max lock_det toggles 1
+  w_in 1.0 ns, nlock 16: 60 runs, fail 0, lock time median 1.41 us, max 2.74 us, max lock_det toggles 1
+  w_in 2.0 ns, nlock 16: 60 runs, fail 0, lock time median 1.90 us, max 3.84 us, max lock_det toggles 3
+C: robustness
+  icp 3.6e-05, qscale 0.6: 60 runs, fail 0, lock time median 2.79 us, max 4.48 us, max lock_det toggles 3
+  icp 9e-05, qscale 1.5: 60 runs, fail 0, lock time median 1.29 us, max 1.46 us, max lock_det toggles 1
+  t_p 1.8e-09: 60 runs, fail 0, lock time median 1.36 us, max 2.68 us, max lock_det toggles 1
+  t_p 4.2e-09: 60 runs, fail 0, lock time median 1.36 us, max 2.66 us, max lock_det toggles 1
+  t_div 5e-10: 60 runs, fail 0, lock time median 1.74 us, max 2.38 us, max lock_det toggles 1
+  t_div 2e-09: 60 runs, fail 0, lock time median 1.51 us, max 2.84 us, max lock_det toggles 1

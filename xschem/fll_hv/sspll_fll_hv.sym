@@ -1,0 +1,47 @@
+v {xschem version=3.4.4 file_version=1.2}
+G {type=subcircuit
+format="@name @pinlist @symname"
+template="name=x1"
+}
+V {}
+S {}
+E {}
+L 4 -80 -90 80 -90 {}
+L 4 80 -90 80 90 {}
+L 4 80 90 -80 90 {}
+L 4 -80 90 -80 -90 {}
+T {@symname} 0 -7 0 0 0.2 0.2 {hcenter=true}
+T {@name} -86 -114 0 1 0.25 0.25 {}
+L 7 -100 -60 -80 -60 {}
+B 5 -102.5 -62.5 -97.5 -57.5 {name=clkp dir=in}
+T {clkp} -75 -66 0 0 0.2 0.2 {}
+L 7 -100 -20 -80 -20 {}
+B 5 -102.5 -22.5 -97.5 -17.5 {name=refclk dir=in}
+T {refclk} -75 -26 0 0 0.2 0.2 {}
+L 7 -100 20 -80 20 {}
+B 5 -102.5 17.5 -97.5 22.5 {name=fll_en dir=in}
+T {fll_en} -75 14 0 0 0.2 0.2 {}
+L 7 -100 60 -80 60 {}
+B 5 -102.5 57.5 -97.5 62.5 {name=ib dir=inout}
+T {ib} -75 54 0 0 0.2 0.2 {}
+L 7 80 -40 100 -40 {}
+B 5 97.5 -42.5 102.5 -37.5 {name=vctl dir=inout}
+T {vctl} 75 -46 0 1 0.2 0.2 {}
+L 7 80 0 100 0 {}
+B 5 97.5 -2.5 102.5 2.5 {name=lock_det dir=out}
+T {lock_det} 75 -6 0 1 0.2 0.2 {}
+L 7 80 40 100 40 {}
+B 5 97.5 37.5 102.5 42.5 {name=fll_dir dir=out}
+T {fll_dir} 75 34 0 1 0.2 0.2 {}
+L 7 -40 -110 -40 -90 {}
+B 5 -42.5 -112.5 -37.5 -107.5 {name=VDDA dir=inout}
+T {VDDA} -36 -86 0 0 0.2 0.2 {}
+L 7 0 -110 0 -90 {}
+B 5 -2.5 -112.5 2.5 -107.5 {name=VDDD dir=inout}
+T {VDDD} 4 -86 0 0 0.2 0.2 {}
+L 7 -40 90 -40 110 {}
+B 5 -42.5 107.5 -37.5 112.5 {name=VSSA dir=inout}
+T {VSSA} -36 74 0 0 0.2 0.2 {}
+L 7 0 90 0 110 {}
+B 5 -2.5 107.5 2.5 112.5 {name=VSSD dir=inout}
+T {VSSD} 4 74 0 0 0.2 0.2 {}

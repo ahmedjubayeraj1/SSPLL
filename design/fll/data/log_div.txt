@@ -1,0 +1,5 @@
+  tt 27 C VDDD 1.8: f_max 5.53 GHz, I(VDDD) at 800 MHz 103 uA
+  ss 110 C VDDD 1.71: f_max 4.28 GHz, I(VDDD) at 800 MHz 119 uA
+  ff -40 C VDDD 1.89: f_max 5.92 GHz, I(VDDD) at 800 MHz 107 uA
+  sf 110 C VDDD 1.71: f_max 4.52 GHz, I(VDDD) at 800 MHz 103 uA
+  fs -40 C VDDD 1.89: f_max 5.92 GHz, I(VDDD) at 800 MHz 99 uA

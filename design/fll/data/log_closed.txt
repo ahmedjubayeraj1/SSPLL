@@ -1,0 +1,2 @@
+  v0 1.0 V: lock_det at 0.83 us (transistor FLL), 1.24 us (model); V_cont at lock 1.797 V
+  v0 2.8 V: lock_det at 0.79 us (transistor FLL), 0.80 us (model); V_cont at lock 1.808 V

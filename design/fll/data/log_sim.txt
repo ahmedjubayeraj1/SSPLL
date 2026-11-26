@@ -1,0 +1,34 @@
+  tt 27 C VDDD 1.8: f_max 4.67 GHz, I(VDDD) at 800 MHz 67 uA
+  ss 110 C VDDD 1.71: f_max 3.50 GHz, I(VDDD) at 800 MHz 68 uA
+  ff -40 C VDDD 1.89: f_max 5.92 GHz, I(VDDD) at 800 MHz 90 uA
+  sf 110 C VDDD 1.71: f_max 3.50 GHz, I(VDDD) at 800 MHz 74 uA
+  fs -40 C VDDD 1.89: f_max 5.92 GHz, I(VDDD) at 800 MHz 76 uA
+multiprocessing.pool.RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.13/multiprocessing/pool.py", line 125, in worker
+    result = (True, func(*args, **kwds))
+                    ~~~~^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/multiprocessing/pool.py", line 48, in mapstar
+    return list(map(*args))
+  File "/home/claude/SSPLL/design/fll/fll_hv_sim.py", line 79, in _open
+    w = F.bench_open(corner, temp, vddd, vdda, eps=eps, t0v=3.4e-9, tstop=2.2e-6, tstep=10e-12)
+  File "/home/claude/SSPLL/design/fll/fll_hv.py", line 213, in bench_open
+    z = d["w.txt"]
+        ~^^^^^^^^^
+KeyError: 'w.txt'
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/claude/SSPLL/design/fll/fll_hv_sim.py", line 110, in <module>
+    r = globals()["part_" + part]()
+  File "/home/claude/SSPLL/design/fll/fll_hv_sim.py", line 99, in part_open
+    res = P.map(_open, COND[:3])
+  File "/usr/local/lib/python3.13/multiprocessing/pool.py", line 367, in map
+    return self._map_async(func, iterable, mapstar, chunksize).get()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/multiprocessing/pool.py", line 774, in get
+    raise self._value
+KeyError: 'w.txt'
