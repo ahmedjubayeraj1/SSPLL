@@ -22,6 +22,7 @@ Chipalooza Challenge #4 (Chip Foundry Sky130) entry. A ring-oscillator sub-sampl
 | `docs/design/step77_hv_clkgen.md`, `design/clkgen/`, `xschem/clkgen_hv/` | Step 77: clock generator (sample, Gm and hold pulses) |
 | `docs/design/step78_hv_sspd.md`, `design/sspd/`, `xschem/sspd_hv/` | Step 78: sub-sampling phase detector with hold |
 | `docs/design/step79_hv_sscp.md`, `design/sscp/`, `xschem/sscp_hv/` | Step 79: pulsed-Gm charge pump |
+| `docs/design/step80_hv_lf.md`, `design/loop/`, `xschem/lf_hv/` | Step 80: loop filter in real devices |
 | `docs/design/ground_split.md` | VSSA / VSSD assignment, and the proof that it changed nothing simulated |
 | `docs/testbench_guide.md` | Every testbench: what it measures, why, how it is set up and run |
 | `tools/xsch.py`, `xschem/lvs.sh`, `xschem/render.sh`, `tools/lvs_hv_all.py` | Schematic builder with drawing checks, schematic-vs-simulation LVS of every cell, PNG rendering |

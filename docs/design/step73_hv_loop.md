@@ -1,5 +1,7 @@
 # Step 73 (redo): loop parameters for 800 MHz with 5 V analog devices
 
+> **Superseded in part by step 80 (26 Nov 2026).** With the measured packet delay (2.62 ns, step 77) and the 175 fF that the ring, the Gm and the wiring add on vctl, R1 became 3 × 9.44 µm = 20.26 kΩ and the drawn C2 2 × MIM 30 × 7.74 µm = 0.960 pF; C1 is unchanged. See `step80_hv_lf.md`.
+
 *Phase 7, roadmap step 73, redone for the device-rule migration (18 Nov 2026).*
 
 **Basis**

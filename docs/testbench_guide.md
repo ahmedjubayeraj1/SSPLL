@@ -357,6 +357,53 @@ Each entry gives: **purpose** · **set-up and why** · **what to look at** · **
   - E: `ac` with `acm=1` on VDDA.
   - B: a transient and the calculator's `integ(i(vvc) t1 t2)` per period.
 
+#### 5 V loop-filter benches (M24, M25, step 80) — `design/loop/step80hv_sim.py`
+- **Purpose.** Prove four things about the filter as it is built from PDK devices:
+  - its three elements R1, C1, C2 have the values the loop needs, with everything else on vctl counted;
+  - those values hold over corners, temperature and V_cont well enough that PM ≥ 45° after the trim;
+  - the 3-element model used by the loop analysis describes the real network;
+  - its noise and leakage are what the budget assumes.
+- **M24 — large-signal-averaged port capacitance (part `load`).**
+  - **What.** The capacitance that a slow signal sees at an input whose devices are switching fast: here the ring's
+    tuning gates, whose capacitance follows the 800 MHz swing.
+  - **Why not AC.** An AC analysis linearises at one DC point, which is one instant of the oscillation. The filter sees
+    the charge per volt averaged over many cycles.
+  - **How.** Transient of the running ring (`vco_hv.netlist`, hl6, 0.994 mA) with vtune = V_cont + 50 mV·sin(2π·25 MHz·t).
+    After 40 ns of start-up, the current out of the vtune source is multiplied by cos(ωt) and sin(ωt) and integrated
+    over 400 ns (10 sine periods, about 320 ring periods). C = in-phase amplitude/(ω·50 mV); G = quadrature
+    amplitude/50 mV.
+  - **Choices.** 25 MHz is far below 800 MHz (the ring current averages out) and far above the loop bandwidth.
+    50 mV is small enough to be linear and large enough to beat numerical noise. The window holds whole periods of
+    the sine, so the DC and the 800 MHz terms integrate to zero.
+  - The Gm port is a plain AC at its operating point (it has no fast internal waveform when ckg is static), with the
+    steering TG off and on, weighted by the duty τ/T.
+- **M25 — passive-network extraction and exact sampled loop (parts `size`, `corners`, `loop`).**
+  - **DUT.** `sspll_lf_hv` alone: vctl driven by `vvc` (DC = V_cont, AC = 1). The admittance Y = −I(vvc).
+  - **Analysis.** `ac dec 10 1e4 5e7`, then a least-squares fit of Y = sC2 + 1/(R1 + 1/(sC1)) on log-magnitude and
+    phase. The fit returns R1, C1, C2 and the worst relative error of the model below 25 MHz.
+  - **Sweep.** 5 MOS × 5 R/C corner sections (e.g. `ss_hh`) × −40 / 27 / 110 °C × V_cont 1.3 / 1.8 / 2.3 V. The MOS
+    capacitor follows the MOS letter, R1 and the MIMs follow the R/C letters.
+  - **Loop.** The extracted values plus the M24 load go into `sampled_loop.py` (matrix-exponential solution over one
+    reference period with the packet injected t_p after the sample). It gives f_c, PM, closed-loop peaking, f_3dB and
+    the settling of a 1 rad step.
+  - **Sizing.** With C1 fixed, a 2-variable solver finds R1 and C2 for f_c = 2.5 MHz and PM = 50°. The R1 segment
+    length and C2 width are updated from the result (699.2 Ω/µm, MIM 2.0 fF/µm² + 0.164 fF/µm), and the
+    simulate–fit–solve loop repeats until f_c is within 5 kHz and PM within 0.1°.
+- **Noise (part `noise`).** `iin` (AC 1) into vctl, a 1 TΩ `noisy=0` resistor to a 1.8 V source for the DC point,
+  `.noise v(vctl) iin`. **`option sparse` is required:** ngspice's KLU solver does not support noise. Run twice:
+  drawn R1, and R1 replaced by an ideal resistor of the fitted value. The SKY130 poly resistors are behavioural, so
+  ngspice gives them **no thermal noise**: only the second run shows 4kTR1.
+- **Leakage (part `leak`).** `op` with vctl held at 1.3 / 2.3 V, hot corners. The current into the filter is its
+  leakage.
+- **Packet (part `pulse`).** A 0.53 ns current pulse carrying the charge of 0.1 rad into the drawn filter plus the
+  175 fF load. Compared with the closed-form response of the 3-element model. **Start from the operating point:** with
+  `uic` the MOS capacitor's internal charge is not at equilibrium, and vctl drifts by millivolts.
+- **xschem.** `xschem/lf_hv/sspll_lf_hv.sym`; `vsource` on vctl with `value="dc 1.8 ac 1"`; an `.ac` and a
+  `.control` block with the fit done in Python on the `wrdata` output.
+- **Cadence.** The same circuit with `vdc` (`acm=1`); Spectre `ac`, then `xf` or the calculator for Y. For noise use
+  Spectre `noise`; check whether the Cadence kit's poly resistor carries thermal noise (Spectre's own resistor with
+  a voltage coefficient does). The lock-in of M24 is a `tran` plus the calculator's `integ(i*cos)`.
+
 #### moscap_hv_cv — C-V of the 5 V loop-filter capacitor (M6, step 73 redo)
 - **Purpose.** Step 73 needs the capacitance per area of the thick-oxide MOS capacitor that now forms C1, and the
   V_cont range over which it is flat. It also needs MIM1 and MIM2 for comparison.
@@ -480,6 +527,7 @@ The scripts build the circuits as strings, run them in parallel over the conditi
 | Clock generator, step 77 | `clkgen/clkgen_hv.py`, `step77hv_sim.py`, `step77hv_size.py`, `step77hv_noise.py`, `step77hv_supply.py` |
 | SSPD, step 78 | `sspd/sspd_hv.py`, `step78hv_sim.py`, `step78hv_size.py`, `step78hv_noise.py`, `step78hv_check.py` |
 | Pulsed-Gm charge pump, step 79 | `sscp/sscp_hv.py`, `step79hv_sim.py`, `step79hv_det.py`, `step79hv_delay.py`, `step79hv_buf.py`, `step79hv_cin.py`, `step79hv_size.py`, `step79hv_noise.py` |
+| Loop filter, step 80 | `loop/lf_hv.py`, `step80hv_sim.py`, `step80hv_plots.py`, `schematics_hv.py` |
 
 When you change a design, rerun the block's `schematics_hv.py`, then `python3 tools/lvs_hv_all.py`, then the step
 scripts: LVS first shows whether the drawing still matches what is simulated.
