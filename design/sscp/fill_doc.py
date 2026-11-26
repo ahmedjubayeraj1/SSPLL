@@ -7,7 +7,8 @@ HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.pat
 J = lambda *p: json.load(open(os.path.join(ROOT, *p)))
 D_ = lambda n: J("design", "sscp", "data", n)
 SIM, NZ, DET = D_("sscp_hv_sim.json"), D_("sscp_hv_noise.json"), D_("sscp_hv_det.json")
-B1, B2, NS, CIN, DLY = D_("sscp_hv_buf.json"), D_("sscp_hv_buf2.json"), D_("sscp_hv_noisesize.json"), D_("sscp_hv_cin.json"), D_("sscp_hv_delay.json")
+B1 = D_("sscp_hv_buf.json") if os.path.exists(os.path.join(ROOT, "design", "sscp", "data", "sscp_hv_buf.json")) else None  # round 1: SSPLL_Personal
+B2, NS, CIN, DLY = D_("sscp_hv_buf2.json"), D_("sscp_hv_noisesize.json"), D_("sscp_hv_cin.json"), D_("sscp_hv_delay.json")
 V1DET = D_("v1_mirror/step79hv_det_first.json")
 S78 = J("design", "sspd", "data", "sspd_hv_sim.json"); C77 = J("design", "clkgen", "data", "clkgen_hv_sim.json")
 T = 20e-9
@@ -79,7 +80,7 @@ var_tab = "| Variant (first Gm, no dump capacitor) | worst |vdump − vctl| | pe
     f"| {tag} | {max(abs(r['err']) for r in B['res'] if r['tag'] == tag)*1e3:.1f} mV | "
     f"{max(r['peak_db'] for r in B['res'] if r['tag'] == tag):.2f} dB | "
     f"{min(r['f3db'] for r in B['res'] if r['tag'] == tag)/1e6:.0f} MHz |"
-    for B in (B1, B2) for tag in dict.fromkeys(r["tag"] for r in B["res"]))
+    for B in (B1, B2) if B for tag in dict.fromkeys(r["tag"] for r in B["res"]))
 pul_tab = "| Input v1p − v1m | V_cont | charge per period | average current | τ (ckg) |\n|---|---|---|---|---|\n" + "\n".join(
     f"| {r['vd']:+.1f} V | {r['vc']} V | {r['q']*1e15:+.2f} fC | {r['i_avg']*1e9:+.2f} nA | {r['tau']*1e12:.0f} ps |" for r in SIM["pulsed"])
 ns_tab = "| Variant | R_S L (µm) | G ss / ff | linear range tt | noise 10 k / 100 k / 1 MHz (pA/√Hz) |\n|---|---|---|---|---|\n" + "\n".join(
