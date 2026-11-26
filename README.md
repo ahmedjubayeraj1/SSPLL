@@ -28,7 +28,6 @@ Chipalooza Challenge #4 (Chip Foundry Sky130) entry. A ring-oscillator sub-sampl
 | `tools/xsch.py`, `xschem/lvs.sh`, `xschem/render.sh`, `tools/lvs_hv_all.py` | Schematic builder with drawing checks, schematic-vs-simulation LVS of every cell, PNG rendering |
 | `tools/ground_split_check.py`, `tools/pdk_limits.py` | Netlist equivalence and node-count check; PDK size limits |
 | `models/` | Phase-domain PLL model (`pllmodel`) and self-test |
-| `docs/book/` | The design documentation (outline stage); `mkdocs.yml` builds it as a site |
 
 ## Reproduce
 
