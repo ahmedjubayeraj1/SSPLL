@@ -15,7 +15,7 @@ iib  0 ibias 6u
 vt   vtest 0 1.45
 ven  pll_en 0 1.8
 vvt  vtest_en 0 0
-Bring vring 0 I = pwl(v(vring), 0,0, 1.38,0.9m, 1.51,1.3m, 1.627,1.7m, 1.737,2.1m, 1.817,2.4m, 1.95,2.9m, 2.2,3.9m)
+Bring vring 0 I = pwl(v(vring), 0,0, 1.303,0.9m, 1.449,1.3m, 1.58,1.7m, 1.70,2.1m, 1.785,2.4m, 1.93,2.9m, 2.07,3.4m, 2.21,3.9m)
 vc0 code0 0 1.8
 vc1 code1 0 1.8
 vc2 code2 0 1.8

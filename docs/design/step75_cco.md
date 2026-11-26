@@ -15,6 +15,25 @@ An **active clamp** referenced to the 1.8 V rail keeps the ring node at ≤ 1.79
 −120.0 dBc/Hz** (FFNC off / on). The 1:25 ratio lowers the power to **9.15 mW typ, 13.64 mW worst** (was 9.55 / 14.26):
 the worst-case power is no longer at risk. Seven 1.8 → 3.3 V level shifters bring the control bits into the VDDA domain.
 
+## Correction, 15 Nov 2026: base units 13 → 11, after the step-74 re-run
+The step-74 ring was re-simulated with the PDK `.spiceinit`. Its lowest point, 1.44 GHz at ff/−40 °C (5 fF), now needs
+**0.89 mA** (was 0.97), and its highest point, 1.76 GHz at ss/110 °C (10 fF), needs **1.93 mA** (was 2.02). With
+13 base units, code 0 at IBIAS +20 % gave 1.02 mA, too high by 0.13 mA ≈ 160 MHz, more than the ±75 MHz fine tune.
+**NBASE = 11** centres the range: I_out = 62.5 µA × (11 + code).
+
+| Quantity (all re-simulated) | 13 base units, first ring data | **11 base units, corrected ring** |
+|---|---|---|
+| tt code 0 / 10 / 31 | 0.837 / 1.471 / 2.791 mA | **0.710 / 1.344 / 2.666 mA** |
+| code 0, IBIAS 6 µA, all corners (must be ≤ 0.89 mA) | ≤ 1.02 mA (≤ 0.97 needed) | **≤ 0.865 mA** |
+| code 31, IBIAS 4 µA, all corners (must be ≥ 1.93 mA) | ≥ 2.20 mA (≥ 2.02 needed) | **≥ 2.104 mA** |
+| Ring node, abuse case (code 31, IBIAS 6 µA, ss/110 °C, 3.63 V) | 1.793 V | **1.785 V** |
+| Output noise at 1 MHz / 10 kHz | 8.9 / 132 pA/√Hz | **8.7 / 122 pA/√Hz** |
+| Supply → current | ≤ 0.25 µA/mV | **≤ 0.24 µA/mV** |
+| 1.6 GHz needs (tt) | code ≈ 10 | code ≈ 10 (1.352 mA) |
+
+Figures, schematics (`sspll_cco_dac`: base switch and unit m = 11) and LVS were regenerated. The tables below
+keep the first-run numbers; every conclusion holds with the values above.
+
 ![CCO top](../img/step75_sch_cco.png)
 
 ## What happens, how, why

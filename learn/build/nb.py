@@ -25,6 +25,28 @@ $H(s) = \\Phi_{out}/\\Phi_{in}$. Frequencies $f$ in Hz, angular $\\omega = 2\\pi
 Design numbers are the submitted proposal's: $f_{REF} = 50$ MHz, $N = 32$, $f_{out} = 1.6$ GHz, $f_c \\approx 2.5$ MHz."""
 
 
+V2 = os.environ.get("SSPLL_V2") == "1"     # build version 2 (teacher's layer) instead of version 1
+MISSING = []
+
+
+def _explain(text):
+    """Version 2: after every paragraph that holds display equations, insert their 'Reading the equation' boxes."""
+    from v2_eq import EXPLAIN
+    groups = {}                                   # paragraph end -> boxes, in order
+    for m in re.finditer(r"\$\$(.+?)\$\$", text, re.S):
+        eq = m.group(1)
+        box = next((b for k, b in EXPLAIN if k in eq), None)
+        if box is None:
+            MISSING.append(eq.strip()[:70]); continue
+        end = text.find("\n\n", m.end())
+        end = len(text) if end < 0 else end
+        if box not in groups.setdefault(end, []):
+            groups[end].append(box)
+    for end in sorted(groups, reverse=True):
+        text = text[:end] + "\n\n" + "\n\n".join(groups[end]) + text[end:]
+    return text
+
+
 class Book:
     def __init__(self, title, intro):
         self.cells = [nbf.v4.new_markdown_cell(f"# {title}\n\n{intro}\n\n{HOWTO}"),
@@ -49,7 +71,10 @@ class Book:
             self.cells.append(nbf.v4.new_markdown_cell("\n\n".join(parts)))
 
     def md(self, text):
-        self.cells.append(nbf.v4.new_markdown_cell(text.strip("\n")))
+        text = text.strip("\n")
+        if V2:
+            text = _explain(text)
+        self.cells.append(nbf.v4.new_markdown_cell(text))
 
     def code(self, text):
         self.cells.append(nbf.v4.new_code_cell(text.strip("\n")))
@@ -66,6 +91,17 @@ class Book:
         toc = ["## Contents", ""] + [f"- [Step {n} — {t}](#{a})" for n, t, a in self.toc]
         toc += ["", f"*{len(self.toc)} steps, {self.nq} interview questions.*"]
         self.cells[1] = nbf.v4.new_markdown_cell("\n".join(toc))
+        if V2:
+            from v2_teach import intro
+            stem = os.path.splitext(os.path.basename(path))[0]
+            path = os.path.join(os.path.dirname(path), stem + "_v2.ipynb")
+            src = self.cells[0]["source"].split("\n", 1)
+            self.cells[0] = nbf.v4.new_markdown_cell(src[0] + " — version 2 (teacher's edition)\n" + src[1])
+            t = intro(stem)
+            if t:
+                self.cells.insert(1, nbf.v4.new_markdown_cell(t))
+            if MISSING:
+                print("  equations without a v2 box:", *MISSING, sep="\n    ")
         nb = nbf.v4.new_notebook(); nb["cells"] = self.cells
         nb["metadata"]["kernelspec"] = {"name": "python3", "display_name": "Python 3", "language": "python"}
         nbf.write(nb, path)

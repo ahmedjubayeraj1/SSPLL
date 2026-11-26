@@ -426,3 +426,38 @@ PROBLEMS += [
   "NA = sqrt(S/(2 NT)) mis-computed by hand (2.64 instead of 0.836 mV)",
   "corrected; habit: noiseless baseline run + comparison with the ideal circuit before trusting a noise result", "fixed"),
 ]
+
+
+# ------------------------------------------------------------------------------------------------ step-74 re-run (15 Nov)
+PROBLEMS = [p if not (p[0] == 74 and p[1] == "simulation setup") else
+            p[:6] + ("fixed - step 74 re-run with .spiceinit; CCO NBASE 13 -> 11; loop Gm unit 28.3 -> 26.0 uS",) for p in PROBLEMS]
+PROBLEMS += [
+ (75, "range", "Code 0 too high at ff/-40 C with IBIAS +20 % after the corrected ring data",
+  "ring needs 0.89 mA for 1.44 GHz (was 0.97); code 0 gave up to 1.02 mA (13 base units) = ~160 MHz too fast",
+  "the corrected ring is faster per mA", "NBASE 13 -> 11: code 0 <= 0.865 mA, code 31 >= 2.104 mA (needs 1.93)", "fixed"),
+ (73, "loop gain", "K_VCO is -326 MHz/V instead of the assumed -300", "corrected step-74 f(vtune)",
+  "only beta x K_VCO sets f_c and PM", "Gm unit g_m 28.3 -> 26.0 uS (3 units = 78.1 uS) - requirement on step 79; R1, C1, C2 unchanged", "fixed (requirement)"),
+]
+RESULTS += [
+ ("VCO current for 1.6 GHz, tt (corrected)", 1.352, None, "mA", "info", 74, "was 1.437 mA without .spiceinit"),
+ ("VCO 1/f3 corner (corrected)", 0.60, 0.6, "MHz", "max", 74, "at the requirement, no margin"),
+ ("VCO L(1 MHz) thermal (corrected)", -98.66, -98.35, "dBc/Hz", "max", 74, ""),
+ ("K_VCO average 0.6-1.2 V, tt (corrected)", -326, None, "MHz/V", "info", 74, "ss -223, ff -484"),
+ ("Ring node at 1.76 GHz, ss/110 C, 10 fF (corrected)", 1.649, 1.8, "V", "max", 74, "1.93 mA"),
+ ("CCO code 0, ff/-40 C, IBIAS 6 uA (NBASE 11)", 0.865, 0.89, "mA", "max", 75, ""),
+ ("CCO code 31, ss/110 C, IBIAS 4 uA (NBASE 11)", 2.104, 1.93, "mA", "min", 75, ""),
+ ("Ring node abuse case (NBASE 11, corrected ring)", 1.785, 1.8, "V", "max", 75, "active clamp"),
+]
+_set("RMS jitter, FFNC on", "typ, 10 kHz-40 MHz", 1.261, source="steps 74-76, corrected ring, NBASE 11 (REF 3.3 V pp)")
+_set("RMS jitter, FFNC off", "typ", 1.965, source="steps 74-76, corrected ring, NBASE 11 (REF 3.3 V pp)")
+_set("Phase noise 300 kHz, FFNC off", "typ", -110.8, source="steps 74-76, corrected (REF 3.3 V pp)")
+_set("Phase noise 300 kHz, FFNC on", "typ", -120.7, source="steps 74-76, corrected (REF 3.3 V pp); -118.2 at 1 V pp")
+_set("Power, FFNC on", "typ", 8.91, source="ring 1.352 mA (corrected) via 1:25 CCO, receiver 0.254 mW")
+_set("Power, FFNC on", "max over PVT", 13.40, source="ring 1.93 mA at ss/110 C (corrected), 1:25 CCO, receiver 0.39 mW; others typ x1.3")
+_set("Power, FFNC off", "typ", 7.46, source="as above minus NCB")
+_set("Power, FFNC off", "max over PVT", 11.32, source="as above minus NCB")
+_set("Jitter FoM", "typ", -228.5, source="1.261 ps, 8.91 mW")
+_set("Ring supply node", "absolute limit, any code/corner", 1.649, source="step 74 corrected: 1.76 GHz at ss/110 C, 10 fF/node")
+_set("Ring supply node", "abuse: code 31, IBIAS +20 %, ss/110 C", 1.785, source="step 75 clamp, NBASE 11, corrected ring I-V")
+_set("Output frequency range", "1.44-1.76 GHz reachable", 2.02, source="step 74 corrected: ss/110 C at 2.4 mA, 10 fF")
+MARGIN = list(_m.values())

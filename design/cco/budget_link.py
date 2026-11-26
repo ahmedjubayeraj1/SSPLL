@@ -8,8 +8,8 @@ for p in ("models", "learn", "design/budget"):
 import pllmodel as pm
 import step72_budget as b
 
-KI_TT = 0.847e12          # Hz/A, step 74 (tt, 27 C, 1.3-1.7 mA)
-RING = (-98.71, 0.57e6)   # step-74 ring
+KI_TT = 0.843e12          # Hz/A, step 74 re-run (tt, 27 C, 1.3-1.7 mA)
+RING = (-98.66, 0.60e6)   # step-74 ring (re-run with the PDK .spiceinit, 15 Nov: 1.352 mA for 1.6 GHz)
 
 
 def cco_jitter(fs, Si, corner="typ", KI=KI_TT):
