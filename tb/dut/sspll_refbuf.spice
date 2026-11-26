@@ -1,0 +1,56 @@
+* sspll_refbuf (step 76): ports REF_IN refclk ib pll_en VDDA VDDL VDDD VSS
+.subckt sspll_ls_1v8_3v3 in out outb VDDD VDDA VSS
+* 1.8 V -> 3.3 V level shifter: thin-oxide input inverter on VDDD, thick-oxide cross-coupled pMOS load,
+* thick-oxide pull-downs driven by in / inb, thick-oxide output inverters (out follows in, outb is its inverse)
+xpi inb in VDDD VDDD sky130_fd_pr__pfet_01v8 w=1 l=0.15 nf=1 m=1
+xni inb in VSS VSS sky130_fd_pr__nfet_01v8 w=0.5 l=0.15 nf=1 m=1
+xp1 x y VDDA VDDA sky130_fd_pr__pfet_g5v0d10v5 w=1 l=0.5 nf=1 m=1
+xp2 y x VDDA VDDA sky130_fd_pr__pfet_g5v0d10v5 w=1 l=0.5 nf=1 m=1
+xn1 x in VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=3 l=0.5 nf=1 m=1
+xn2 y inb VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=3 l=0.5 nf=1 m=1
+xpo out x VDDA VDDA sky130_fd_pr__pfet_g5v0d10v5 w=2 l=0.5 nf=1 m=1
+xno out x VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=1 l=0.5 nf=1 m=1
+xpb outb y VDDA VDDA sky130_fd_pr__pfet_g5v0d10v5 w=2 l=0.5 nf=1 m=1
+xnb outb y VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=1 l=0.5 nf=1 m=1
+.ends
+.subckt sspll_refbuf_rb a b VSS
+* R_B: 10 segments of res_xhigh_po_0p35, L = 87.48 um each
+xr0 a n1 VSS sky130_fd_pr__res_xhigh_po_0p35 l=87.48 mult=1 m=1
+xr1 n1 n2 VSS sky130_fd_pr__res_xhigh_po_0p35 l=87.48 mult=1 m=1
+xr2 n2 n3 VSS sky130_fd_pr__res_xhigh_po_0p35 l=87.48 mult=1 m=1
+xr3 n3 n4 VSS sky130_fd_pr__res_xhigh_po_0p35 l=87.48 mult=1 m=1
+xr4 n4 n5 VSS sky130_fd_pr__res_xhigh_po_0p35 l=87.48 mult=1 m=1
+xr5 n5 n6 VSS sky130_fd_pr__res_xhigh_po_0p35 l=87.48 mult=1 m=1
+xr6 n6 n7 VSS sky130_fd_pr__res_xhigh_po_0p35 l=87.48 mult=1 m=1
+xr7 n7 n8 VSS sky130_fd_pr__res_xhigh_po_0p35 l=87.48 mult=1 m=1
+xr8 n8 n9 VSS sky130_fd_pr__res_xhigh_po_0p35 l=87.48 mult=1 m=1
+xr9 n9 b VSS sky130_fd_pr__res_xhigh_po_0p35 l=87.48 mult=1 m=1
+.ends
+.subckt sspll_refbuf_s1 vin s1 ib en enb VDDA VSS
+* S1: current-reuse inverter, header = MH units mirrored from the bias diode, C_H decouples the header node
+xpd ib ib VDDA VDDA sky130_fd_pr__pfet_g5v0d10v5 w=2.000 l=4.0 nf=1 m=1 ad=0.5800 as=0.5800 pd=4.580 ps=4.580
+xph vh ib VDDA VDDA sky130_fd_pr__pfet_g5v0d10v5 w=2.000 l=4.0 nf=1 m=24 ad=0.5800 as=0.5800 pd=4.580 ps=4.580
+xch vh VDDA sky130_fd_pr__cap_mim_m3_1 w=30.0 l=30.0 m=1
+xp1 s1 vin vh vh sky130_fd_pr__pfet_g5v0d10v5 w=120.000 l=1.0 nf=12 m=1 ad=17.4000 as=20.3000 pd=123.480 ps=144.060
+xn1 s1 vin VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=120.000 l=1.0 nf=12 m=1 ad=17.4000 as=20.3000 pd=123.480 ps=144.060
+xpen ib en VDDA VDDA sky130_fd_pr__pfet_g5v0d10v5 w=2.000 l=0.5 nf=1 m=1 ad=0.5800 as=0.5800 pd=4.580 ps=4.580
+xns1 s1 enb VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=2.000 l=0.5 nf=1 m=1 ad=0.5800 as=0.5800 pd=4.580 ps=4.580
+.ends
+.subckt sspll_refbuf REF_IN refclk ib pll_en VDDA VDDL VDDD VSS
+xrpu VDDA REF_IN VSS sky130_fd_pr__res_xhigh_po_0p35 l=87.48 mult=1 m=1
+xrpd REF_IN VSS VSS sky130_fd_pr__res_xhigh_po_0p35 l=87.48 mult=1 m=1
+xcac vin REF_IN sky130_fd_pr__cap_mim_m3_1 w=30.0 l=30.0 m=2
+xrb vin s1 VSS sspll_refbuf_rb
+xs1 vin s1 ib en enb VDDA VSS sspll_refbuf_s1
+xls pll_en en enb VDDD VDDA VSS sspll_ls_1v8_3v3
+xp2 s2 s1 VDDA VDDA sky130_fd_pr__pfet_g5v0d10v5 w=2.000 l=0.5 nf=1 m=1 ad=0.5800 as=0.5800 pd=4.580 ps=4.580
+xn2 s2 s1 VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=1.000 l=0.5 nf=1 m=1 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
+xpl s3 s2 VDDL VDDL sky130_fd_pr__pfet_g5v0d10v5 w=2.000 l=0.5 nf=1 m=1 ad=0.5800 as=0.5800 pd=4.580 ps=4.580
+xnl s3 s2 VSS VSS sky130_fd_pr__nfet_g5v0d10v5 w=1.000 l=0.5 nf=1 m=1 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
+xpei enl pll_en VDDL VDDL sky130_fd_pr__pfet_01v8 w=1.000 l=0.15 nf=1 m=1 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
+xnei enl pll_en VSS VSS sky130_fd_pr__nfet_01v8 w=0.500 l=0.15 nf=1 m=1 ad=0.1450 as=0.1450 pd=1.580 ps=1.580
+xpb xb s3 VDDL VDDL sky130_fd_pr__pfet_01v8 w=4.000 l=0.15 nf=1 m=1 ad=1.1600 as=1.1600 pd=8.580 ps=8.580
+xpb2 refclk enl xb VDDL sky130_fd_pr__pfet_01v8 w=4.000 l=0.15 nf=1 m=1 ad=1.1600 as=1.1600 pd=8.580 ps=8.580
+xnb refclk s3 VSS VSS sky130_fd_pr__nfet_01v8 w=1.000 l=0.15 nf=1 m=1 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
+xnb2 refclk enl VSS VSS sky130_fd_pr__nfet_01v8 w=1.000 l=0.15 nf=1 m=1 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
+.ends

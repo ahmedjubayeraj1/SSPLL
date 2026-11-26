@@ -1,0 +1,42 @@
+* tb_cco_dc - method M10: CCO output current for every cco_code (step 75)
+* Run:  tb/run.sh tb/cco/tb_cco_dc.spice ss 110      (try also ff -40, and edit vdda / iib for the other corners)
+* The ring is replaced by an ideal 1.45 V source "vr": its current is the CCO output. This isolates the current
+* source from its load; method M12 (tb_cco_clamp) puts the real ring characteristic back.
+.lib __PDK__/libs.tech/ngspice/sky130.lib.spice __CORNER__
+.temp __TEMP__
+.include __DUT__/sspll_cco.spice
+vdda VDDA 0 3.3           ; 3.3 V analog supply (change to 2.97 / 3.63 for the supply corners)
+vddd VDDD 0 1.8           ; 1.8 V digital supply (drives the level shifters)
+vddl VDDL 0 1.8           ; regulated 1.8 V rail (clamp reference)
+iib  0 ibias 5u           ; IBIAS: 5 uA flowing INTO the block (current source from node 0 to ibias)
+vt   vtest 0 1.45         ; VTEST pad (not used here)
+ven  pll_en 0 1.8         ; block enabled
+vvt  vtest_en 0 0         ; VTEST injection off
+vr   vring 0 1.45         ; the ring node held at its typical voltage; -i(vr) = current delivered by the CCO
+vc0 code0 0 0
+vc1 code1 0 0
+vc2 code2 0 0
+vc3 code3 0 0
+vc4 code4 0 0
+x1 VDDA VDDD VDDL 0 vring ibias vtest code0 code1 code2 code3 code4 pll_en vtest_en sspll_cco
+.control
+echo "RESULT code  I_out(A)"
+foreach c 0 1 2 4 8 10 13 16 24 31
+  let b0 = $c % 2
+  let b1 = floor($c/2) % 2
+  let b2 = floor($c/4) % 2
+  let b3 = floor($c/8) % 2
+  let b4 = floor($c/16) % 2
+  alter vc0 dc = $&b0*1.8          ; each code bit is a 0 / 1.8 V level on its pin
+  alter vc1 dc = $&b1*1.8
+  alter vc2 dc = $&b2*1.8
+  alter vc3 dc = $&b3*1.8
+  alter vc4 dc = $&b4*1.8
+  op
+  let iout = i(vr)                  ; positive = current delivered into the ring node
+  echo "RESULT $c $&iout"
+  destroy all
+end
+echo "(ideal: 62.5 uA x (13 + code) at IBIAS = 5 uA)"
+.endc
+.end
