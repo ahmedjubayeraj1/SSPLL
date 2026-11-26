@@ -521,3 +521,87 @@ _set("Phase noise 300 kHz, FFNC off", "typ", -110.9, source="steps 74-77 simulat
 _set("Phase noise 300 kHz, FFNC on", "typ", -121.0, source="steps 74-77 simulated (REF 3.3 V pp); -118.4 at 1 V pp")
 _set("Jitter FoM", "typ", -228.5, source="1.254 ps, 8.91 mW")
 MARGIN = list(_m.values())
+
+
+# ------------------------------------------------------------------------------------------------ step 78 (SSPD) + step-77 revision
+STEPS = [s if s[0] != 77 else (77, s[1], "done (revised in step 78)", s[3],
+         "order sample -> Gm -> hold (hold-trigger latch); t_s 228 ps, gaps 171/318 ps (>= 110), tau 200 ps (106-405), "
+         "W_H 2.16 ns (>= 1.51), t_p 0.28 ns (<= 0.50), jitter 0.15 ps (-163.4 dBc/Hz), 82 uW; 5 cells LVS-clean") for s in STEPS]
+STEPS.append((78, "SSPD with hold: sampler, dummy sampler, isolation buffers", "done", "docs/design/step78_sspd.md",
+              "A 0.514 V/rad (0.35-0.77 over MOS+R/C corners, +-1.5 % over temperature), alpha 0.473, kick <= 2.3 fs "
+              "(spur <= -134 dBc), dummy: f_ref supply current 0.76 vs 42 uA, buffer jitter 0.080 ps, 0.47 mW; LVS-clean"))
+METHODS += [
+ ("M18", "Beat-frequency characteristic of a sampling phase detector", "78",
+  "the sampled characteristic v1(phi) over a whole VCO cycle, the detector gain A at the lock point, the hold memory "
+  "alpha, the sample common mode and the power, in one transient",
+  "a phase sweep would need one run per phase; with the VCO at (32 + 1/nb) f_ref the sampling phase slides by 2 pi/nb "
+  "each reference period, so nb + 2 periods cover the characteristic with the real clock generator and switches",
+  "VCO = ideal squares behind an acbuf-like inverter, starting at t = 0; each cks falling edge is a sample with phase "
+  "2 pi f_vco t mod 2 pi; v1 read mid-Gm-pulse, v2 after the hold; line fit within +-0.35 rad of the rising zero "
+  "crossing (taken modulo 2 pi) gives 2A; least squares v2[k] = a v1[k] + b v2[k-1] gives alpha = b",
+  "design/sspd/sspd.py characteristic(), step78_sim.py; tb/sspd/tb_sspd_char.spice + tb/sspd_char.py",
+  "32 points per cycle (+-0.1 rad resolution); the ideal VCO has no noise; the Gm and NCB inputs are capacitor "
+  "placeholders until steps 79/82"),
+ ("M19", "Kick-back by differential transient (switching vs not switching)", "78",
+  "the disturbance the sampler puts on the VCO output: clkp edge shift, a reference-spur estimate, the voltage "
+  "glitch, and the supply-current component at f_ref (with and without the dummy sampler)",
+  "the effect is femtoseconds, far below any absolute accuracy of a transient; the difference of two runs on the same "
+  "time grid that differ only in the switching cancels everything else",
+  "locked frequency 32 f_ref, VCO phase near the lock point; run a: clock generator on; run b: refclk = 0 (sampler "
+  "tracks); clkp edge times a - b -> phase 2 pi f0 dt -> Fourier component at f_ref -> 20 log(a1/2) dBc",
+  "design/sspd/sspd.py kick(), step78_extra.py; tb/sspd/tb_sspd_kick.spice + tb/sspd_kick.py",
+  "VCO output modelled by an ideal source behind a driver (the ring and acbuf would attenuate it further); one "
+  "operating point"),
+]
+DEVICES += [
+ ("SSPD side", "XB1 n / p", "nfet_01v8 / pfet_01v8", "0.42 / 0.84", 1, 0.15, "isolation buffer input"),
+ ("SSPD side", "XB2 n / p", "nfet_01v8 / pfet_01v8", "2 / 4", 1, 0.15, "drives R_s + C"),
+ ("SSPD side", "XRS", "res_xhigh_po_0p69", 0.69, 1, 0.6, "R_s 2.16 kOhm"),
+ ("SSPD tg", "XN / XP", "nfet_01v8_lvt / pfet_01v8", "3 / 1.5", 1, 0.15, "sampling and dummy TG"),
+ ("SSPD tgh", "XN / XP", "nfet_01v8_lvt / pfet_01v8", "1 / 1", 1, 0.15, "hold TG"),
+ ("SSPD side", "XC1, XC2", "cap_mim_m3_1", 4, 1, 4, "34.7 fF each"),
+ ("SSPD side", "XCD", "cap_mim_m3_1", 4.35, 1, 4.35, "40.7 fF dummy = C1 + Gm input"),
+ ("Clock generator", "hlatch NOR x3", "nfet_01v8 / pfet_01v8", "0.84 / 1.68", 1, 0.15, "hold trigger latch (step 78)"),
+]
+PROBLEMS += [
+ (78, "loop", "Charge-sharing pole inside the loop", "the Gm read C2 (after the hold transfer) in the step-77 order",
+  "v2[k] = (1 - alpha) v1[k] + alpha v2[k-1], alpha ~ 0.5: pole z = 0.5, 16 deg lag at f_c = f_ref/20; not in step 73",
+  "clock order changed to sample -> Gm (reads C1) -> hold; t_p 2.63 -> 0.28 ns (+~1.5 deg PM)", "fixed (step 77 revised)"),
+ (77, "timing", "Hold pulser did not fire after the reorder", "no ckh pulse when triggered by the end of the 200 ps Gm pulse",
+  "the 2.6 ns RC node is reset only while the pulser input is low: 200 ps is not enough",
+  "NOR latch set by ckg, reset while cks = 1: its output stays high until refclk falls, RC reset ~10 ns", "fixed"),
+ (77, "simulation", "ngspice aborted (timestep too small) with tr = 410 ps", "refclk source breakpoint at exactly 15 ns",
+  "PWL/pulse corner coinciding with the KLU solver step control", "retry with tran 2p when the run ends early", "fixed"),
+ (78, "power", "SSPD power above the step-72 allocation", "0.47 mW (0.26 mA) vs 0.12 mA for SSPD + clock generator",
+  "the buffer must swing ~46 fF per side at 1.6 GHz (C dV f) plus its own capacitance; dummy keeps it constant",
+  "C1 100 -> 35 fF (0.70 -> 0.47 mW, kT/C still negligible); further options: 20 fF, re-balance with measured acbuf "
+  "currents, NCB current", "open - power review after step 82"),
+ (78, "method", "Negative A at the ss corners", "fit gave A = -0.34 at ss/110 C",
+  "the rising zero crossing straddled 2 pi in the sorted phases", "phase difference taken modulo 2 pi", "fixed"),
+ (78, "budget", "Renamed budget key double-counted the reference", "jitter 1.254 -> 1.293 ps after adding the SSPD term",
+  "system() overwrites the step-72 allocation by its key; a new name kept the placeholder too",
+  "keep the allocation key; SSPD buffer term added inside it", "fixed"),
+ (78, "spread", "A follows the R/C corner", "0.352 (ss_hh) to 0.771 V (ff_ll)", "A = VDD/(2 w0 R_s C1)",
+  "within icp_trim (A tau K_VCO x0.69-1.41); temperature drift only +-1.5 %", "accepted (trim)"),
+]
+RESULTS = [r for r in RESULTS if not r[0].startswith("Clock gen t_p")]
+RESULTS += [
+ ("Clock gen t_p (sample -> Gm pulse centre), worst (revised order)", 0.50, 5.0, "ns", "max", 77, "tt 0.28 ns"),
+ ("SSPD gain A, tt", 0.514, 0.5, "V/rad", "info", 78, "target 0.5"),
+ ("SSPD gain A, worst (ss_hh -40 C)", 0.352, 0.35, "V/rad", "min", 78, "ff_ll 110 C: 0.771"),
+ ("SSPD hold memory alpha", 0.473, None, "-", "info", 78, "C2/(C1 + C2)"),
+ ("SSPD kick-back, clkp edge shift", 2.3, None, "fs", "info", 78, "spur estimate <= -134 dBc"),
+ ("SSPD supply current at f_ref (with dummy)", 0.76, None, "uA", "info", 78, "42 uA without"),
+ ("SSPD isolation-buffer jitter (differential)", 0.080, None, "ps", "info", 78, "-169.0 dBc/Hz at 50 MHz"),
+ ("SSPD power, tt", 0.47, 0.216, "mW", "max", 78, "allocation (SSPD + clkgen 0.12 mA x 1.8 V); over - see power review"),
+]
+_set("RMS jitter, FFNC on", "typ, 10 kHz-40 MHz", 1.256, source="steps 74-78 simulated (REF 3.3 V pp); 1.329 ps at 1 V pp")
+_set("RMS jitter, FFNC off", "typ", 1.964, source="steps 74-78 simulated (REF 3.3 V pp)")
+_set("Phase noise 300 kHz, FFNC off", "typ", -110.9, source="steps 74-78 simulated (REF 3.3 V pp)")
+_set("Phase noise 300 kHz, FFNC on", "typ", -120.9, source="steps 74-78 simulated (REF 3.3 V pp); -118.4 at 1 V pp")
+_set("Power, FFNC on", "typ", 9.53, source="as before + SSPD 0.26 mA and clock gen 0.05 mA instead of 0.12 mA allocated (x 3.3 V)")
+_set("Power, FFNC on", "max over PVT", 14.23, source="as before + SSPD 0.32 mA (ff_ll 110 C) and clock gen 0.06 mA (x 3.63 V)")
+_set("Power, FFNC off", "typ", 8.08, source="as above minus NCB")
+_set("Power, FFNC off", "max over PVT", 12.15, source="as above minus NCB")
+_set("Jitter FoM", "typ", -228.2, source="1.256 ps, 9.53 mW")
+MARGIN = list(_m.values())

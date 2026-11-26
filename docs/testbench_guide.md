@@ -333,15 +333,15 @@ step 78/79 draws a bigger switch, rerun the deck.
 | Name | trig | targ | What it is |
 |---|---|---|---|
 | t_s | refclk rise | cks fall | sampling instant after the reference edge |
-| gap1 | cks fall | ckh rise | sw1 open before sw2 closes (no charge sharing with the VCO) |
+| gap1 | cks fall | ckg rise | sw1 open before the Gm reads C1 (order revised in step 78) |
+| gap2 | ckg fall | ckh rise | Gm off before sw2 shares C1 onto C2 |
 | W_H | ckh rise | ckh fall | hold-transfer time (C1 → C2 must settle) |
-| gap2 | ckh fall | ckg rise | sw2 open before the Gm current flows |
 | tau | ckg rise | ckg fall | Gm pulse width (sets β with g_m and A) |
 | t_p | cks fall | ckg middle | loop delay; requirement ≤ 5 ns |
 | power | — | — | average I(vdd) × 1.8 V over 5 periods |
 
-- **Result (tt, 27 °C):** `t_s 226 ps, gap1 198 ps, W_H 2.151 ns, gap2 182 ps, tau 202 ps, t_p 2.632 ns, power
-  78 µW`. (gap1 of the deck is measured from cks to ckh, the script from the later of cks/cksb: 186 ps.)
+- **Result (tt, 27 °C, revised order):** `t_s 228 ps, gap1 182 ps, W_H 2.160 ns, gap2 318 ps, tau 200 ps, t_p 0.282 ns,
+  power 82 µW`. (gap1 of the deck is measured from cks, the script from the later of cks/cksb: 171 ps.)
 - **Corners.** Change `__CORNER__` / `.temp` in `run.sh` or the deck. **For this block use the combined MOS + R/C
   corners** of the PDK (`ss_hh`, `ff_ll`, `hl`, `lh`, …), not only `ss`/`ff`: the pulse widths are R × C, and the
   plain `ss`/`ff` sections keep R and C typical. Worst cases found: τ = 106 ps (`ff_ll`, 110 °C) to 408 ps (`ss_hh`,
@@ -377,6 +377,50 @@ step 78/79 draws a bigger switch, rerun the deck.
     That is why it runs 248 ns. Another seed or a shorter run works around it.
 - **In Cadence.** Spectre *transient noise* (noisefmax 500 GHz) needs no injected sources; better, **pss + pnoise**
   (sampled jitter at the cks crossing) gives the jitter directly. Use either as the cross-check.
+
+### Step 78 — SSPD with hold (`tb/sspd/`)
+
+The DUT is `sspll_sspd` together with the real clock generator `sspll_clkgen` (both from `tb/dut/`), so the switches
+see the real clock edges and gaps. The "VCO" is two ideal squares behind an inverter like the acbuf output stage
+(2 / 4 µm), giving clkp / clkm realistic edges and source resistance, plus 10 fF of other loads (NCB, divider).
+Placeholders: 6 fF on v1p / v1m (Gm input, step 79) and 4 fF on v2p / v2m (NCB amplifier). Three separate supplies
+(VDD for the SSPD, VCK for the clock generator, VDRV for the drivers) so the SSPD current is measured alone.
+
+#### tb_sspd_char — the sampled characteristic by a beat run (M18)
+- **Idea.** We want v1 as a function of the VCO phase at the sampling instant. Instead of 32 runs at 32 phases, run the
+  VCO at (32 + 1/32)·f_ref: every reference period the sample lands 1/32 of a VCO cycle further along the waveform, so
+  one 34-period transient (680 ns) sweeps the whole characteristic. The VCO squares start at t = 0, so the phase of
+  each sample is simply 2π f_vco t_sample (mod 2π).
+- **Post-processing.** `python3 tb/sspd_char.py tb/out/tb_sspd_char/w.txt`:
+  - every falling edge of cks is a sample; v1p − v1m is read in the middle of the Gm pulse (what the Gm sees), v2 0.5 ns
+    after the hold pulse;
+  - the rising zero crossing of v1(φ) is the lock point (it may straddle 2π: the script takes the phase difference
+    modulo 2π — forgetting this gave negative A at the ss corners in the first version);
+  - a line fit within ±0.35 rad gives 2A; a least-squares fit v2[k] = a·v1[k] + b·v2[k−1] gives α = b (and a + b = 1);
+  - power = 1.8 V × the average SSPD supply current.
+- **Result (tt).** `A = 0.504 V/rad, alpha = 0.473, v1 range ±1.110 V, CM 0.722 V, power 0.470 mW` (the design script
+  gives A = 0.514: its drivers have the PDK area parameters).
+- **Corners.** `tb/run.sh tb/sspd/tb_sspd_char.spice ss_hh -40` etc.; for 45 / 55 MHz change `.param fref`. Use the
+  combined MOS + R/C corners: A follows 1/(R_s C1).
+
+#### tb_sspd_kick — kick-back and the dummy sampler (M19)
+- **Idea.** Compare two runs that differ only in whether the sampler switches. At f = 32·f_ref (locked) with the VCO
+  phase set near the lock point: run **a** with the clock generator running, run **b** with refclk held at 0 (the
+  sampler tracks, nothing switches). The deck does both in one `.control` block (`alter @vin[pulse] = [...]` sets the
+  refclk amplitude to 0 between the two `tran`).
+- **Post-processing.** `python3 tb/sspd_kick.py tb/out/tb_sspd_kick/a.txt tb/out/tb_sspd_kick/b.txt`: clkp edge times
+  (both edges) of a minus b; their component at f_ref, as phase 2π f0 Δt, gives the spur estimate 20 log(a1/2); the
+  largest |Δv| on clkp; the f_ref component of the SSPD supply current; v1p − v1m after a sample (≈ 0 means the run sits
+  at the lock point).
+- **Result.** `clkp edge shift max 2.30 fs, spur estimate −134.4 dBc, max |dv(clkp)| 0.262 mV, SSPD current at f_ref
+  0.69 µA, v1 after the sample 31 mV`. Without the dummy (CD made 2 × 2 µm in the DUT netlist) the f_ref current is
+  ~42 µA.
+- **Pitfall.** Femtosecond differences need the same time grid in both runs: same `tran 1p` and `option interp`.
+
+#### Isolation-buffer jitter (M17, design script only)
+`buf_jitter()` in `design/sspd/sspd.py`: a flat copy of driver → XB1 → XB2 → R_s → 45 fF, trnoise currents at b1 and b2
+of the trip-point size (2.43 and 5.11 pA/√Hz), 312 edges at 1.6 GHz, 4th-order detrend, noiseless baseline. Result
+0.113 ps per side (baseline 0.0001 ps); the differential crossing has 0.113/√2 = 0.080 ps.
 
 ---
 
@@ -429,6 +473,7 @@ and save the numbers to `design/<block>/data/*.json`. The plots in `docs/img/` c
 | CCO | `cco.py`, `step75_sim.py`, `step75_noise.py`, `clamp_ring.py` |
 | Reference buffer | `refbuf.py` (op, tran, noise_s1, input_noise, tnoise), `step76_sim.py`, `tn_run.py`, `step76_noise.py` |
 | Clock generator | `clkgen.py` (cells, tran, inv_noise), `step77_sim.py` (timing over 21 conditions, jitter) |
+| SSPD | `sspd.py` (cells, bench, characteristic, kick, buf_jitter), `step78_sim.py` (17 conditions), `step78_extra.py` |
 
 When you change a design, run `python3 tb/make_dut.py` and rerun the decks first: they are the quickest way to see
 whether anything moved.

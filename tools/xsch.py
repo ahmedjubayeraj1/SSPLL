@@ -22,6 +22,7 @@ SYM = {  # pin offsets at rot = 0, flip = 0 (from the PDK / xschem library symbo
     "sky130_fd_pr/cap_mim_m3_1.sym": {"c0": (0, -30), "c1": (0, 30)},
     "sky130_fd_pr/res_xhigh_po_2p85.sym": {"P": (0, -30), "M": (0, 30), "B": (-20, 0)},
     "sky130_fd_pr/res_xhigh_po_0p35.sym": {"P": (0, -30), "M": (0, 30), "B": (-20, 0)},
+    "sky130_fd_pr/res_xhigh_po_0p69.sym": {"P": (0, -30), "M": (0, 30), "B": (-20, 0)},
     "devices/ipin.sym": {"p": (0, 0)}, "devices/opin.sym": {"p": (0, 0)}, "devices/iopin.sym": {"p": (0, 0)},
     "devices/lab_pin.sym": {"p": (0, 0)}, "devices/isource.sym": {"p": (0, -30), "m": (0, 30)},
     "devices/vsource.sym": {"p": (0, -30), "m": (0, 30)}, "devices/capa.sym": {"p": (0, -30), "m": (0, 30)},

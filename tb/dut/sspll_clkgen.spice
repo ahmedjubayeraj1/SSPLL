@@ -42,24 +42,34 @@ xx4nb out dly VSS VSS sky130_fd_pr__nfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 
 xx4pa x4_x inb VDD VDD sky130_fd_pr__pfet_01v8 w=1.680 l=0.15 nf=1 m=1 ad=0.4872 as=0.4872 pd=3.940 ps=3.940
 xx4pb out dly x4_x VDD sky130_fd_pr__pfet_01v8 w=1.680 l=0.15 nf=1 m=1 ad=0.4872 as=0.4872 pd=3.940 ps=3.940
 .ends
+.subckt sspll_ckg_hlatch s r out VDD VSS
+* NOR latch q = set by s, reset by r; out = q AND NOT s
+xxl1na q r VSS VSS sky130_fd_pr__nfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
+xxl1nb q qb VSS VSS sky130_fd_pr__nfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
+xxl1pa xl1_x r VDD VDD sky130_fd_pr__pfet_01v8 w=1.680 l=0.15 nf=1 m=1 ad=0.4872 as=0.4872 pd=3.940 ps=3.940
+xxl1pb q qb xl1_x VDD sky130_fd_pr__pfet_01v8 w=1.680 l=0.15 nf=1 m=1 ad=0.4872 as=0.4872 pd=3.940 ps=3.940
+xxl2na qb s VSS VSS sky130_fd_pr__nfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
+xxl2nb qb q VSS VSS sky130_fd_pr__nfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
+xxl2pa xl2_x s VDD VDD sky130_fd_pr__pfet_01v8 w=1.680 l=0.15 nf=1 m=1 ad=0.4872 as=0.4872 pd=3.940 ps=3.940
+xxl2pb qb q xl2_x VDD sky130_fd_pr__pfet_01v8 w=1.680 l=0.15 nf=1 m=1 ad=0.4872 as=0.4872 pd=3.940 ps=3.940
+xxl3na out qb VSS VSS sky130_fd_pr__nfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
+xxl3nb out s VSS VSS sky130_fd_pr__nfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
+xxl3pa xl3_x qb VDD VDD sky130_fd_pr__pfet_01v8 w=1.680 l=0.15 nf=1 m=1 ad=0.4872 as=0.4872 pd=3.940 ps=3.940
+xxl3pb out s xl3_x VDD sky130_fd_pr__pfet_01v8 w=1.680 l=0.15 nf=1 m=1 ad=0.4872 as=0.4872 pd=3.940 ps=3.940
+.ends
 .subckt sspll_clkgen refclk cks cksb ckh ckhb ckg ckgb VDD VSS
 xxi0n r1 refclk VSS VSS sky130_fd_pr__nfet_01v8 w=1.000 l=0.15 nf=1 m=1 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
 xxi0p r1 refclk VDD VDD sky130_fd_pr__pfet_01v8 w=2.000 l=0.15 nf=1 m=1 ad=0.5800 as=0.5800 pd=4.580 ps=4.580
 xxi1n r2 r1 VSS VSS sky130_fd_pr__nfet_01v8 w=1.000 l=0.15 nf=1 m=1 ad=0.2900 as=0.2900 pd=2.580 ps=2.580
 xxi1p r2 r1 VDD VDD sky130_fd_pr__pfet_01v8 w=2.000 l=0.15 nf=1 m=1 ad=0.5800 as=0.5800 pd=4.580 ps=4.580
 xds r2 cksb cks VDD VSS sspll_ckg_drv
-xxi2n h1 r2 VSS VSS sky130_fd_pr__nfet_01v8 w=0.420 l=0.15 nf=1 m=1 ad=0.1218 as=0.1218 pd=1.420 ps=1.420
-xxi2p h1 r2 VDD VDD sky130_fd_pr__pfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
-xxi3n h2 h1 VSS VSS sky130_fd_pr__nfet_01v8 w=0.420 l=0.15 nf=1 m=1 ad=0.1218 as=0.1218 pd=1.420 ps=1.420
-xxi3p h2 h1 VDD VDD sky130_fd_pr__pfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
-xph h2 ph VDD VSS sspll_ckg_pulse_h
-xdh ph ckh ckhb VDD VSS sspll_ckg_drv
-xxi4n g1 ph VSS VSS sky130_fd_pr__nfet_01v8 w=0.420 l=0.15 nf=1 m=1 ad=0.1218 as=0.1218 pd=1.420 ps=1.420
-xxi4p g1 ph VDD VDD sky130_fd_pr__pfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
-xxi5n g2 g1 VSS VSS sky130_fd_pr__nfet_01v8 w=0.420 l=0.15 nf=1 m=1 ad=0.1218 as=0.1218 pd=1.420 ps=1.420
-xxi5p g2 g1 VDD VDD sky130_fd_pr__pfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
-xxi6n g3 g2 VSS VSS sky130_fd_pr__nfet_01v8 w=0.420 l=0.15 nf=1 m=1 ad=0.1218 as=0.1218 pd=1.420 ps=1.420
-xxi6p g3 g2 VDD VDD sky130_fd_pr__pfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
-xpg g3 pg VDD VSS sspll_ckg_pulse_g
+xxi2n g1 r2 VSS VSS sky130_fd_pr__nfet_01v8 w=0.420 l=0.15 nf=1 m=1 ad=0.1218 as=0.1218 pd=1.420 ps=1.420
+xxi2p g1 r2 VDD VDD sky130_fd_pr__pfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
+xxi3n g2 g1 VSS VSS sky130_fd_pr__nfet_01v8 w=0.420 l=0.15 nf=1 m=1 ad=0.1218 as=0.1218 pd=1.420 ps=1.420
+xxi3p g2 g1 VDD VDD sky130_fd_pr__pfet_01v8 w=0.840 l=0.15 nf=1 m=1 ad=0.2436 as=0.2436 pd=2.260 ps=2.260
+xpg g2 pg VDD VSS sspll_ckg_pulse_g
 xdg pg ckg ckgb VDD VSS sspll_ckg_drv
+xhl ckg cks hin VDD VSS sspll_ckg_hlatch
+xph hin ph VDD VSS sspll_ckg_pulse_h
+xdh ph ckh ckhb VDD VSS sspll_ckg_drv
 .ends

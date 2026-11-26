@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """schematics.py - step 77 xschem schematics (hierarchical, real wiring, drawing checks):
-   sspll_ckg_drv (complementary driver), sspll_ckg_pulse_h / _g (RC pulsers), sspll_clkgen (top)."""
+   sspll_ckg_drv (complementary driver), sspll_ckg_pulse_h / _g (RC pulsers), sspll_ckg_hlatch (hold trigger,
+   added in step 78), sspll_clkgen (top)."""
 import os, sys
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(ROOT, "tools")); sys.path.insert(0, HERE)
@@ -92,34 +93,54 @@ def pulser(p, nm):
     return s
 
 
-def top(p, DXY, PXY):
+def hlatch(p):
+    s = Sch("sspll_ckg_hlatch")
+    s.text("sspll_ckg_hlatch: NOR latch, q set by s (ckg, the Gm pulse) and reset by r (cks = 1 while refclk is low); "
+           "out = q AND NOT s rises when the Gm pulse ends and triggers the hold pulser", 40, -520, 0.3)
+    a1, b1, o1 = nor2(s, "X1", 400, 0, p["NOR"])          # q  = NOR(r, qb)
+    a2, b2, o2 = nor2(s, "X2", 400, 900, p["NOR"])        # qb = NOR(s, q)
+    a3, b3, o3 = nor2(s, "X3", 1400, 450, p["NOR"])       # out = NOR(qb, s)
+    s.text("cross-coupled nets q and qb and the second use of s are joined by name (labels)", 40, -470, 0.25)
+    s.pin("r", "in", 60, a1[1]); s.wire((60, a1[1]), a1)
+    s.pin("s", "in", 60, a2[1]); s.wire((60, a2[1]), a2)
+    def stub(pt, name, dx=-80):
+        s.wire(pt, (pt[0] + dx, pt[1])); s.label(name, pt[0] + dx, pt[1])
+    stub(b1, "qb", -120); stub(b2, "q", -120); stub(a3, "qb"); stub(b3, "s", -120)
+    s.wire(o1, (980, o1[1])); s.label("q", 980, o1[1], flip=1)
+    s.wire(o2, (980, o2[1])); s.label("qb", 980, o2[1], flip=1)
+    s.wire(o3, (1700, o3[1])); s.pin("out", "out", 1700, o3[1], flip=1)
+    s.pin("VDD", "inout", 60, -400); s.wire((60, -400), (140, -400)); s.label("VDD", 140, -400, flip=1)
+    s.pin("VSS", "inout", 60, 1300); s.wire((60, 1300), (140, 1300)); s.label("VSS", 140, 1300, flip=1)
+    return s
+
+
+def top(p, DXY, PXY, LXY):
     s = Sch("sspll_clkgen")
-    s.text("sspll_clkgen: refclk (step 76) -> sampling pair cks/cksb (sw1 samples at the refclk rising edge), hold "
-           "pulse ckh/ckhb (sw2), Gm pulse ckg/ckgb (tau = 200 ps, t_p ~ 2.6 ns after the sampling edge)", 40, -460, 0.3)
+    s.text("sspll_clkgen: refclk (step 76) -> sampling pair cks/cksb (sw1 samples at the refclk rising edge), "
+           "Gm pulse ckg/ckgb (tau = 200 ps, reads C1 right after the sample), then hold pulse ckh/ckhb (sw2, C1 -> C2)", 40, -460, 0.3)
     s.text("all devices 1.8 V core (VDD = VDDL, the regulated rail); supplies of the sub-cells connected by name", 40, -420, 0.25)
     s.pin("refclk", "in", 60, 0)
     i0, o0 = inverter(s, "XI0", 260, 0, p["INVM"]); i1, o1 = inverter(s, "XI1", 520, 0, p["INVM"])
     s.wire((60, 0), i0); s.wire(o0, i1)
     DS = s.sub("sspll_ckg_drv.sym", DXY, "xds", 1100, 0)
     s.wire(o1, (640, 0), DS["in"])
-    # row 2: gap 1, hold pulser, hold driver
+    # row 2: gap 1, Gm pulser, Gm driver
     j2, q2 = inverter(s, "XI2", 260, 560, p["INVS"]); j3, q3 = inverter(s, "XI3", 520, 560, p["INVS"])
     s.wire((640, 0), (640, 280), (160, 280), (160, 560), j2); s.wire(q2, j3)
-    PH = s.sub("sspll_ckg_pulse_h.sym", PXY, "xph", 820, 560)
-    DH = s.sub("sspll_ckg_drv.sym", DXY, "xdh", 1240, 560)
-    s.wire(q3, PH["in"]); s.wire(PH["out"], (1020, PH["out"][1]), (1020, DH["in"][1]), DH["in"])
-    # row 3: gap 2, Gm pulser, Gm driver
-    j4, q4 = inverter(s, "XI4", 260, 1120, p["INVS"]); j5, q5 = inverter(s, "XI5", 520, 1120, p["INVS"])
-    j6, q6 = inverter(s, "XI6", 780, 1120, p["INVS"])
-    s.wire((1020, PH["out"][1]), (1020, 840), (160, 840), (160, 1120), j4)
-    s.wire(q4, j5); s.wire(q5, j6)
-    PG = s.sub("sspll_ckg_pulse_g.sym", {k: v for k, v in PXY.items()}, "xpg", 1080, 1120)
-    DG = s.sub("sspll_ckg_drv.sym", DXY, "xdg", 1500, 1120)
-    s.wire(q6, PG["in"]); s.wire(PG["out"], DG["in"])
-    for D_, a, b in ((DS, "cksb", "cks"), (DH, "ckh", "ckhb"), (DG, "ckg", "ckgb")):
+    PG = s.sub("sspll_ckg_pulse_g.sym", PXY, "xpg", 820, 560)
+    DG = s.sub("sspll_ckg_drv.sym", DXY, "xdg", 1240, 560)
+    s.wire(q3, PG["in"]); s.wire(PG["out"], (1020, PG["out"][1]), (1020, DG["in"][1]), DG["in"])
+    # row 3: hold trigger latch (set by ckg, reset by cks), hold pulser, hold driver
+    HL = s.sub("sspll_ckg_hlatch.sym", LXY, "xhl", 380, 1120)
+    PH = s.sub("sspll_ckg_pulse_h.sym", {k: v for k, v in PXY.items()}, "xph", 1080, 1120)
+    DH = s.sub("sspll_ckg_drv.sym", DXY, "xdh", 1500, 1120)
+    s.wire(HL["out"], PH["in"]); s.wire(PH["out"], DH["in"])
+    s.wire(HL["s"], (HL["s"][0] - 60, HL["s"][1])); s.label("ckg", HL["s"][0] - 60, HL["s"][1])
+    s.wire(HL["r"], (HL["r"][0] - 60, HL["r"][1])); s.label("cks", HL["r"][0] - 60, HL["r"][1])
+    for D_, a, b in ((DS, "cksb", "cks"), (DG, "ckg", "ckgb"), (DH, "ckh", "ckhb")):
         s.wire(D_["o"], (1900, D_["o"][1])); s.pin(a, "out", 1900, D_["o"][1], flip=1)
         s.wire(D_["ob"], (1900, D_["ob"][1])); s.pin(b, "out", 1900, D_["ob"][1], flip=1)
-    for X in (DS, DH, DG, PH, PG):
+    for X in (DS, DH, DG, PH, PG, HL):
         s.wire(X["VDD"], (X["VDD"][0], X["VDD"][1] - 20)); s.label("VDD", X["VDD"][0], X["VDD"][1] - 20)
         s.wire(X["VSS"], (X["VSS"][0], X["VSS"][1] + 20)); s.label("VSS", X["VSS"][0], X["VSS"][1] + 20)
     s.pin("VDD", "inout", 60, -320); s.wire((60, -320), (140, -320)); s.label("VDD", 140, -320, flip=1)
@@ -132,10 +153,12 @@ if __name__ == "__main__":
     DXY = symbol(os.path.join(OUT, "sspll_ckg_drv.sym"), "sspll_ckg_drv", **DRV_PINS)
     PXY = symbol(os.path.join(OUT, "sspll_ckg_pulse_h.sym"), "sspll_ckg_pulse_h", **PUL_PINS)
     symbol(os.path.join(OUT, "sspll_ckg_pulse_g.sym"), "sspll_ckg_pulse_g", **PUL_PINS)
+    LXY = symbol(os.path.join(OUT, "sspll_ckg_hlatch.sym"), "sspll_ckg_hlatch", left=[("s", "in"), ("r", "in")],
+                 right=[("out", "out")], top=[("VDD", "inout")], bottom=[("VSS", "inout")])
     symbol(os.path.join(OUT, "sspll_clkgen.sym"), "sspll_clkgen", left=[("refclk", "in")],
            right=[("cks", "out"), ("cksb", "out"), ("ckh", "out"), ("ckhb", "out"), ("ckg", "out"), ("ckgb", "out")],
            top=[("VDD", "inout")], bottom=[("VSS", "inout")])
     for name, sch in (("sspll_ckg_drv", drv(K.D)), ("sspll_ckg_pulse_h", pulser(K.D, "h")),
-                      ("sspll_ckg_pulse_g", pulser(K.D, "g")), ("sspll_clkgen", top(K.D, DXY, PXY))):
+                      ("sspll_ckg_pulse_g", pulser(K.D, "g")), ("sspll_ckg_hlatch", hlatch(K.D)), ("sspll_clkgen", top(K.D, DXY, PXY, LXY))):
         errs = sch.save(os.path.join(OUT, name + ".sch"))
         print(name, ":", "\n  ".join(errs) or "drawing check clean")

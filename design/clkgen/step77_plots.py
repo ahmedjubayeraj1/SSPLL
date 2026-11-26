@@ -28,13 +28,13 @@ w = json.load(open(wf)); s = json.load(open(os.path.join(HERE, "data", "step77_s
 fig, ax = plt.subplots(figsize=(12, 4.2))
 t = np.array(w["t"])*1e9
 for i, (k, lab) in enumerate((("refclk", "refclk (input)"), ("cks", "cks: sw1 tracks while high"),
-                              ("ckh", "ckh: hold transfer"), ("ckg", "ckg: Gm pulse"))):
+                              ("ckg", "ckg: Gm pulse (reads C1)"), ("ckh", "ckh: hold transfer C1 → C2"))):
     ax.plot(t, np.array(w[k]) + 2.2*(3 - i), color=P[i], lw=1.6)
-    ax.text(5.0, 2.2*(3 - i) + 1.95, lab, color=P[i], fontsize=8.5)
-ax.axvline(5.42, color=MUTED, lw=0.8, ls=":")
-ax.text(5.47, -0.55, "sampling instant: cks falls 226 ps after the refclk crossing", color=MUTED, fontsize=8)
-ax.set_xlim(4.5, 9.5); ax.set_yticks([]); ax.set_xlabel("time (ns), tt, 27 °C, VDDL 1.8 V")
-style(ax, "Clock generator timing: sample → (gap) → hold pulse 2.15 ns → (gap) → Gm pulse 202 ps; t_p = 2.63 ns")
+    ax.text(4.55, 2.2*(3 - i) + 0.3, lab, color=P[i], fontsize=8.5)
+ax.axvline(5.0 + 0.1875 + 0.228, color=MUTED, lw=0.8, ls=":")
+ax.text(5.47, -0.8, "sampling instant: cks falls 228 ps after the refclk crossing", color=MUTED, fontsize=8)
+ax.set_xlim(4.5, 9.5); ax.set_ylim(-1.0, 8.6); ax.set_yticks([]); ax.set_xlabel("time (ns), tt, 27 °C, VDDL 1.8 V")
+style(ax, "Clock generator timing (order revised in step 78): sample → gap → Gm pulse 200 ps → gap → hold pulse 2.16 ns; t_p = 0.28 ns")
 fig.tight_layout(); fig.savefig(os.path.join(IMG, "step77_timing.png"), dpi=150)
 
 tm = s["timing"]
@@ -43,7 +43,7 @@ lab = [f"{r['corner']} {r['temp']}°C {r['vdd']}V" + ("" if r["f"] == 50e6 else 
 fig, ax = plt.subplots(1, 3, figsize=(13, 5.2), sharey=True)
 y = np.arange(len(tm))
 for a, k, sc, lim, ttl, c in ((ax[0], "tau", 1e12, (150, 250), "Gm pulse width τ (ps)", P[0]),
-                              (ax[1], "t_p", 1e9, (None, 5), "t_p (ns), limit 5 ns", P[1]),
+                              (ax[1], "t_p", 1e12, (None,), "t_p (ps); limit 5 ns, far off-scale", P[1]),
                               (ax[2], "gap1", 1e12, (100, None), "non-overlap gaps (ps), ≥ 100", P[2])):
     a.scatter([r[k]*sc for r in tm], y, color=c, s=18, zorder=3, label="gap 1" if k == "gap1" else None)
     if k == "gap1":
