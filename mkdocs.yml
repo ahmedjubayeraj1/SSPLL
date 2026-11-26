@@ -22,7 +22,6 @@ nav:
       - "16. Future scope": book/16_future_scope.md
       - "Appendix A. Tools and how to reproduce everything": book/A_reproduce.md
       - "Appendix B. SKY130 device rules used": book/B_sky130_rules.md
-      - "Appendix C. ngspice vs Spectre correlation": book/C_correlation.md
       - "Appendix D. References and glossary": book/D_references.md
   - Project files:
       - Constraints: chipalooza4-constraints.md

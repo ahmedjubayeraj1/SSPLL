@@ -32,5 +32,4 @@
 
 ## Existing material
 
-- [../../correlation/STEP7.md](../../correlation/STEP7.md)
-- [../../tools/cadence/README.md](../../tools/cadence/README.md)
+- [../testbench_guide.md](../testbench_guide.md)

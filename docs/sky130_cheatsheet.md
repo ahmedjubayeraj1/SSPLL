@@ -83,6 +83,6 @@ Area for 20 pF: MIM 10,000 um2 (needs several 30x30 um tiles); 1.8 V MOS cap abo
 - MIM caps above 30 x 30 um must be tiled; large LDO MIMs need re-planning.
 - A MOS capacitor must stay biased above about 0.6 V or most of its capacitance disappears.
 - The Cadence-compatible SKY130 kit may use slightly different R and C values; step 7 measured it (LF cell +41% with the
-  kit's models) and replaced the kit's models by the frozen ones in Spectre - see correlation/STEP7.md.
+  kit's models) and replaced the kit's models by the frozen ones in Spectre - see correlation/STEP7.md (private repo SSPLL_Personal, same path).
 - Process corners tt/ss/ff/sf/fs do **not** move R or C. R/C spread is in the ll/hh/hl/lh sections (and ss_hh, ff_ll ...):
-  about +/-8..16% R and +/-12..14% MIM C at 27 C, on top of the R temperature coefficient (correlation/STEP7.md section 3).
+  about +/-8..16% R and +/-12..14% MIM C at 27 C, on top of the R temperature coefficient (correlation/STEP7.md section 3, in SSPLL_Personal).

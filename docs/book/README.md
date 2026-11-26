@@ -25,7 +25,6 @@ Each topic is written as: **What happens** (the observation), **How it happens**
 | [16. Future scope](16_future_scope.md) | Phase 12 (steps 128-132) | outline |
 | [Appendix A. Tools and how to reproduce everything](A_reproduce.md) | Phase 0 (steps 3-5, 7, 9) | outline |
 | [Appendix B. SKY130 device rules used](B_sky130_rules.md) | Phase 0 (step 5) | outline |
-| [Appendix C. ngspice vs Spectre correlation](C_correlation.md) | Phase 0 (step 7) | outline |
 | [Appendix D. References and glossary](D_references.md) | all phases | outline |
 
 Chapters 2–7 will be written from the project's theory notebooks (Phases 1–6).

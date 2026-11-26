@@ -140,7 +140,7 @@ def optimum_fc(d, variant, fcs=None, **kw):
 # Basis of the submitted proposal (final revision 13 Nov 2026, "Design basis" tab): ring phase noise from the
 # ngspice ISF with model noise, -97.5 dBc/Hz at 1 MHz scaled to the 10 fF power basis (-0.85 dB), plus a CCO/supply
 # allowance (+1 dB typ, +4 dB pess) and the ISF flicker corner (1.1 MHz typ, 2x pess). Gives 2.29 / 1.40 ps (spec 2.3 / 1.4).
-# The ISF basis is pessimistic: Spectre transient noise puts the ring near -99 dBc/Hz (tools/cadence/pnoise/RESULT.md).
+# The ISF basis is pessimistic: Spectre transient noise puts the ring near -99 dBc/Hz (tools/cadence/pnoise/RESULT.md, in SSPLL_Personal).
 TYP = Design(fref=50e6, N=32, fc=2.5e6, pm=50, vco1M=-97.5 - 0.85 + 1, fc3=1.10e6, ref=-152, ref_fc1=30e3,
              pd=-130, ncb=-150, ncb_fc1=1e6, gerr=0.10)
 PESS = TYP.but(vco1M=-97.5 - 0.85 + 4, fc3=2.2e6, ref=-148, ref_fc1=100e3, pd=-125, ncb=-146, ncb_fc1=3e6, gerr=0.30)

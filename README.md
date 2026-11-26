@@ -26,7 +26,6 @@ Chipalooza Challenge #4 (Chip Foundry Sky130) entry. A ring-oscillator sub-sampl
 | `docs/testbench_guide.md` | Every testbench: what it measures, why, how it is set up and run |
 | `tools/xsch.py`, `xschem/lvs.sh`, `xschem/render.sh`, `tools/lvs_hv_all.py` | Schematic builder with drawing checks, schematic-vs-simulation LVS of every cell, PNG rendering |
 | `tools/ground_split_check.py`, `tools/pdk_limits.py` | Netlist equivalence and node-count check; PDK size limits |
-| `correlation/`, `tools/cadence/` | ngspice vs Cadence/Spectre device correlation, frozen Spectre models and benches |
 | `models/` | Phase-domain PLL model (`pllmodel`) and self-test |
 | `docs/book/` | The design documentation (outline stage); `mkdocs.yml` builds it as a site |
 

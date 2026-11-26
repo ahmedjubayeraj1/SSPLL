@@ -23,4 +23,3 @@
 - [../../versions.txt](../../versions.txt)
 - [../../tools/](../../tools/)
 - [../../models/README.md](../../models/README.md)
-- [../../tools/cadence/README.md](../../tools/cadence/README.md)
