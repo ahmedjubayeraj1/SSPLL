@@ -1,0 +1,29 @@
+* tb_refbuf_tnoise - method M15: per-edge jitter by transient noise (step 76)
+* Run:  tb/run.sh tb/refbuf/tb_refbuf_tnoise.spice tt 27 ;  python3 tb/edges.py tb/out/tb_refbuf_tnoise/edges.txt
+* The circuit itself is noiseless in a transient. We add its white noise as a random voltage in series with the
+* source: trnoise(NA NT 0 0) is white Gaussian noise of rms NA, a new sample every NT. Single-sided PSD = 2 NA^2 NT.
+* For the receiver's pad-referred plateau S = (3.74 nV/rtHz)^2 and NT = 10 ps: NA = sqrt(1.40e-17/2e-11) = 0.836 mV.
+* 300 output edges are written to a file; edges.py fits the ideal edge grid and reports the rms deviation (jitter).
+* Runtime: ~10 min. Change .param vpp for 3.3 V pp or 0.4 V pp.
+.param vpp=1.0 na=0.836m
+.lib __PDK__/libs.tech/ngspice/sky130.lib.spice __CORNER__
+.temp __TEMP__
+.include __DUT__/sspll_refbuf.spice
+vdda VDDA 0 3.3            ; 3.3 V analog supply
+vddl VDDL 0 1.8            ; regulated 1.8 V rail (output stages)
+vddd VDDD 0 1.8            ; 1.8 V digital supply (level shifter input side)
+iib  ib 0 2.5u             ; bias generator: pulls 2.5 uA OUT of the bias diode (current from node ib to 0)
+ven  pll_en 0 1.8          ; enabled
+vsrc padx 0 sin(1.65 {vpp/2} 50meg)
+vn   padx padn trnoise({na} 10p 0 0)
+rs   padn pad0 50
+x1 pad0 refclk ib pll_en VDDA VDDL VDDD 0 sspll_refbuf
+cl refclk 0 50f
+.ic v(x1.vin)=0.862 v(x1.s1)=0.862
+.options seed=1
+.control
+tran 10p 6.4u 0.4u 10p              ; 20 cycles to settle (not saved) + 300 cycles
+wrdata edges.txt v(refclk)
+echo "RESULT now run: python3 tb/edges.py tb/out/tb_refbuf_tnoise/edges.txt"
+.endc
+.end

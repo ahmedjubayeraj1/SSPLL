@@ -1,0 +1,34 @@
+site_name: SSPLL + FFNC for SKY130 (Chipalooza #4)
+repo_url: https://github.com/ahmedjubayeraj1/SSPLL
+docs_dir: docs
+nav:
+  - Home: book/README.md
+  - Documentation:
+      - "1. Introduction and specification": book/01_introduction.md
+      - "2. PLL fundamentals": book/02_pll_fundamentals.md
+      - "3. Type-I PLL: operation, limitations, solutions": book/03_type1_pll.md
+      - "4. Type-II charge-pump PLL: operation, limitations, solutions": book/04_type2_pll.md
+      - "5. Sub-sampling PLL": book/05_sspll.md
+      - "6. Voltage-controlled delay line (noise-cancellation block)": book/06_vcdl.md
+      - "7. Feedforward noise cancellation": book/07_ffnc.md
+      - "8. System design and design calculations": book/08_system_design.md
+      - "9. Circuit design, block by block": book/09_circuit_design.md
+      - "10. Testbenches": book/10_testbenches.md
+      - "11. Pre-layout simulation results": book/11_prelayout_results.md
+      - "12. Layout": book/12_layout.md
+      - "13. Parasitic extraction and post-layout verification": book/13_postlayout_results.md
+      - "14. Harness integration and tape-out": book/14_tapeout.md
+      - "15. Measurement plan and results": book/15_measurement.md
+      - "16. Future scope": book/16_future_scope.md
+      - "Appendix A. Tools and how to reproduce everything": book/A_reproduce.md
+      - "Appendix B. SKY130 device rules used": book/B_sky130_rules.md
+      - "Appendix C. ngspice vs Spectre correlation": book/C_correlation.md
+      - "Appendix D. References and glossary": book/D_references.md
+  - Project files:
+      - Constraints: chipalooza4-constraints.md
+      - Architecture decision (step 8): architecture_decision.md
+      - SKY130 cheat sheet: sky130_cheatsheet.md
+markdown_extensions:
+  - tables
+  - toc:
+      permalink: true

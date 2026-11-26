@@ -1,0 +1,12 @@
+block,typ_off_ps,typ_on_ps,pess_off_ps,pess_on_ps
+"XO (crystal oscillator, board)",0.2022,0.3098,0.2100,0.2769
+REF receiver + clock generator edge,0.2022,0.3098,0.3328,0.4389
+SSPD sampler (kT/C),0.0142,0.0220,0.0203,0.0274
+pulsed-Gm charge pump,0.0369,0.0530,0.0646,0.0822
+loop-filter resistor R1,0.2779,0.1475,0.2779,0.1574
+ring VCO core,1.8693,1.1305,2.3004,1.3959
+CCO current DAC + mirror,0.9036,0.5608,1.3464,0.8443
+NCB delay line (intrinsic),0.0000,0.0309,0.0000,0.0567
+LDO noise through the NCB,0.0000,0.0263,0.0000,0.0607
+aliasing of VCO noise (k = 1..3),0.0000,0.1901,0.0000,0.1765
+TOTAL,2.1146,1.3591,2.7095,1.7323
