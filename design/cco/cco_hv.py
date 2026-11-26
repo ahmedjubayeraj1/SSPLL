@@ -44,14 +44,14 @@ xnb outb y VSSA VSSA sky130_fd_pr__nfet_g5v0d10v5 w=1 l=0.5 nf=1 m=1
 """
 
 D = dict(
-    UP=("pfet_g5v0d10v5", 20.0, 2, 2.0),     # mirror unit pMOS (sized in step75hv_explore.py)
+    UP=("pfet_g5v0d10v5", 20.0, 2, 2.0),     # mirror unit pMOS (sized in cco_hv_explore.py)
     UN=("nfet_g5v0d10v5", 1.0, 1, 4.0),      # DAC / bias unit nMOS (2.5 uA)
     SW=("nfet_g5v0d10v5", 1.0, 1, 0.5),      # DAC unit switch
     NOUT=17, NBASE=14, R_F=10e6, C_F=10.92e-12,
     RSEG=("res_xhigh_po_0p35", 20, 87.48), CTILE=("cap_mim_m3_1", 6, 30.0),
     TGN=("nfet_g5v0d10v5", 2.0, 1, 0.5), TGP=("pfet_g5v0d10v5", 2.0, 1, 0.5), RINJ=("res_xhigh_po_0p35", 1, 3.39),
     PEN=("pfet_g5v0d10v5", 2.0, 1, 0.5), NEN=("nfet_g5v0d10v5", 2.0, 1, 0.5),
-    # cascode (step75hv_casc.py, step75hv_headroom.py): MC 80 um per output unit, gate vcas = VDDA - V_SG(MB) carried by
+    # cascode (cco_hv_casc.py, cco_hv_headroom.py): MC 80 um per output unit, gate vcas = VDDA - V_SG(MB) carried by
     # KB DAC units, RC-filtered; C_F 6 tiles and CCAS 4 tiles keep both gates on VDDA at high frequency
     CASC=("pfet_g5v0d10v5", 20.0, 4, 0.5), MB=("pfet_g5v0d10v5", 4.0, 1, 4.0), KB=4,
     RCAS=("res_xhigh_po_0p35", 8, 87.48), CCAS=("cap_mim_m3_1", 4, 30.0))
@@ -115,7 +115,7 @@ def full(p):
     c += _cascode(p, "VDDA", "VSSA", "vring", "ibias", en="en")
     # R_F: body terminal on VDDA (the serpentine is drawn over an n-well tied to VDDA). With the body on VSS, the
     # poly-to-substrate capacitance (~60 fF) pulls the gate node towards VSSA at high frequency, so the gate stops
-    # following VDDA and VDDA ripple becomes current ripple (step 75 HV: 34 -> see step75hv_casc.py).
+    # following VDDA and VDDA ripple becomes current ripple (step 75 HV: 34 -> see cco_hv_casc.py).
     model, nseg, L = p["RSEG"]
     nodes = ["vgr"] + [f"rf{i}" for i in range(1, nseg)] + ["vgo"]
     for i in range(nseg):

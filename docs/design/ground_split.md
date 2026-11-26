@@ -72,9 +72,9 @@ instance lines checked: 49; node-count mismatches: 0
 ```
 
 **Benches.** Benches that instantiate a mixed cell now pass two ground nodes (`... 0 0 sspll_clkgen_hv`). The three benches that flatten a cell body into the top level got 0 V sources `vssa VSSA 0 0` and `vssd VSSD 0 0`:
-- `step76hv_noise.py`
-- `step77hv_sim.py`
-- `step77hv_size.py`
+- `refbuf_hv_noise.py`
+- `clkgen_hv_sim.py`
+- `clkgen_hv_size.py`
 
 All results of steps 74–79 therefore stand unchanged.
 

@@ -5,7 +5,7 @@
 | `pllmodel/` | the model: loop transfer, noise sources, FFNC path, jitter, bandwidth optimum; design points `TYP`, `PESS` (proposal basis), `TYPE2_*` (Type-II baseline) |
 | `template.ipynb` | template notebook: loop, phase noise, jitter, bandwidth sweep, FFNC gain error, plugging in simulated curves. Copy it for each study |
 | `make_template.py` | writes `template.ipynb` (edit cells there) |
-| `step8_variants.py` | Type-II vs SSPLL vs SSPLL + FFNC table and figure (step 8) |
+| `arch_variants.py` | Type-II vs SSPLL vs SSPLL + FFNC table and figure (step 8) |
 | `selftest.py` | checks the install and that the model reproduces the proposal (2.29 / 1.40 ps) |
 | `requirements.txt` | numpy, scipy, matplotlib, JupyterLab |
 

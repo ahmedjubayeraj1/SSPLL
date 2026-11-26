@@ -15,7 +15,7 @@ Keep it for the review.
 
 ## Prediction → specification
 
-Predictions come from the system model `design/budget/hv_system.py`, which uses the measured blocks of steps 73–79 (`design/sscp/data/step79hv_noise.json`).
+Predictions come from the system model `design/budget/hv_system.py`, which uses the measured blocks of steps 73–79 (`design/sscp/data/sscp_hv_noise.json`).
 Conditions: typical = tt, 3.3 V square reference; maximum = worst case or the pessimistic chain.
 
 | Row | Pre-layout | With margin | Proposal before | Proposal now |

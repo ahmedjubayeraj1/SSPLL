@@ -4,10 +4,10 @@ redo put in place of its allocation. Each design step from 76 on calls system() 
 report the same, cumulative system number.
 
 Measured blocks used (update this list when a step is finished):
-  step 73 HV  loop filter R1, C1, C2                       design/loop/data/step73_hv_design.json
-  step 74 HV  ring thermal L and 1/f^3 corner (hl6)        design/vco/data/step74hv_hl6.json
-  step 75 HV  CCO output-current noise, K_vdd(f)           design/cco/data/step75hv_noise.json, step75hv_sim.json
-  step 76 HV  REF receiver L(f) + its supply terms         design/refbuf/data/step76hv_noise.json (when present)
+  step 73 HV  loop filter R1, C1, C2                       design/loop/data/loop_hv_design.json
+  step 74 HV  ring thermal L and 1/f^3 corner (hl6)        design/vco/data/vco_hv_hl6.json
+  step 75 HV  CCO output-current noise, K_vdd(f)           design/cco/data/cco_hv_noise.json, cco_hv_sim.json
+  step 76 HV  REF receiver L(f) + its supply terms         design/refbuf/data/refbuf_hv_noise.json (when present)
 Corners: typ (tt, VDDA noise 100 nV/rtHz), pess (ring +3 dB / corner x2, VDDA 300 nV/rtHz, K_vdd at ss/110 C, 3.13 V),
 worst (as pess with VDDA at 2.97 V)."""
 import os, sys, json
@@ -16,12 +16,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 for q in ("models", "learn", "design/budget"):
     sys.path.insert(0, os.path.join(ROOT, q))
 import pllmodel as pm
-import step72_hv_budget as b
+import budget_hv as b
 J = lambda *p: json.load(open(os.path.join(ROOT, *p)))
-RING = J("design", "vco", "data", "step74hv_hl6.json")
-L73 = J("design", "loop", "data", "step73_hv_design.json")
-CCO = J("design", "cco", "data", "step75hv_noise.json")
-CSIM = J("design", "cco", "data", "step75hv_sim.json")
+RING = J("design", "vco", "data", "vco_hv_hl6.json")
+L73 = J("design", "loop", "data", "loop_hv_design.json")
+CCO = J("design", "cco", "data", "cco_hv_noise.json")
+CSIM = J("design", "cco", "data", "cco_hv_sim.json")
 KI = 0.62e12
 REFNAME = "REF receiver + clock gen + level shifter"
 

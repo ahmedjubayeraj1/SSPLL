@@ -27,11 +27,11 @@ N5, P5 = "nfet_g5v0d10v5", "pfet_g5v0d10v5"
 D = dict(
     B1=((N5, 0.6, 1, 0.5), (P5, 1.5, 1, 0.5)),         # isolation buffer, first inverter (small load on clkp)
     B2=((N5, 2.0, 1, 0.5), (P5, 5.0, 1, 0.5)),         # second inverter, drives R_s + C
-    RS=("res_xhigh_po_0p35", 0.35, 1, 0.6),            # series resistor: A = 0.81 V/rad at tt (step78hv_size.py)
+    RS=("res_xhigh_po_0p35", 0.35, 1, 0.6),            # series resistor: A = 0.81 V/rad at tt (sspd_hv_size.py)
     SWN=(N5, 3.0, 1, 0.5), SWP=(P5, 6.0, 1, 0.5),       # sampling / dummy TG
     HWN=(N5, 1.0, 1, 0.5), HWP=(P5, 2.0, 1, 0.5),       # hold TG
     # C1 resized after step 79: the Gm's measured input capacitance is 26.5 fF at tt (final mirror-less Gm,
-    # step79hv_cin.py; 24-29 fF over corners and codes), not the 8 fF placeholder. C1 = 2.69 x 2.69 um (16.2 fF) keeps
+    # sscp_hv_cin.py; 24-29 fF over corners and codes), not the 8 fF placeholder. C1 = 2.69 x 2.69 um (16.2 fF) keeps
     # C1 + C_Gm = 42.7 fF, so the sampled node, A, alpha, kT/C and power stay where they were, and the dummy CD
     # (= C1 + C_Gm) stays 4.4 x 4.4 um. (The step-78 verification ran with 2.73 um + a 26.0 fF load: the same 42.7 fF.)
     C1=("cap_mim_m3_1", 2.69, 1, 2.69), C2=("cap_mim_m3_1", 4.0, 1, 4.0),   # 16.2 / 34.6 fF
@@ -193,7 +193,7 @@ def buf_chain(p=D, vdda=3.3, extra="", fin=0.8e9, tstop=60e-9, nt=None, cload=No
 def buf_jitter(p=D, S=None, seed=1, scale=1.0, nt=1e-12, tstop=200e-9):
     """Method M17 on the isolation buffer: trnoise currents of XB1's and XB2's trip-point noise at b1 and b2;
     rms jitter of the filtered crossing at f (both edges, detrended). clkp itself is common with the ring output."""
-    import step77hv_sim as S77
+    import clkgen_hv_sim as S77
     m = _m
     inv = lambda size: m("n", "y", "a", "0", "0", size[0]) + m("p", "y", "a", "VDD", "VDD", size[1])
     S = S or {k: S77.stage_S(inv(p[k]), 3.3)[0] for k in ("B1", "B2")}
