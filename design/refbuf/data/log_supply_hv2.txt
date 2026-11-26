@@ -1,0 +1,16 @@
+vdda 1.0 V pp sine   f_m  0.00 MHz:   253.8 ps/V
+vdda 1.0 V pp sine   f_m  1.00 MHz:   299.2 ps/V
+vdda 1.0 V pp sine   f_m  5.00 MHz:   532.4 ps/V
+vdda 3.3 V pp square f_m  0.00 MHz:    60.1 ps/V
+vdda 3.3 V pp square f_m  0.30 MHz:   137.5 ps/V
+vdda 3.3 V pp square f_m  1.00 MHz:    66.8 ps/V
+vdda 3.3 V pp square f_m  5.00 MHz:    42.2 ps/V
+vdda 3.3 V pp square f_m 20.00 MHz:    31.1 ps/V
+vddd 1.0 V pp sine   f_m  0.00 MHz:   149.8 ps/V
+vddd 1.0 V pp sine   f_m  1.00 MHz:   145.2 ps/V
+vddd 1.0 V pp sine   f_m  5.00 MHz:   152.2 ps/V
+vddd 3.3 V pp square f_m  0.00 MHz:   155.4 ps/V
+vddd 3.3 V pp square f_m  0.30 MHz:   260.8 ps/V
+vddd 3.3 V pp square f_m  1.00 MHz:   174.6 ps/V
+vddd 3.3 V pp square f_m  5.00 MHz:   159.0 ps/V
+vddd 3.3 V pp square f_m 20.00 MHz:   159.0 ps/V

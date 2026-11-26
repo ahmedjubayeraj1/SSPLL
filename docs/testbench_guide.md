@@ -1,0 +1,533 @@
+# Testbench guide: how every simulation in this project is set up, why, and how to rebuild it yourself
+
+This guide covers every testbench of the 5 V-device design (steps 72–79) and is extended with each new block. Every
+bench is built as a netlist string by the block's script (`design/<block>/<block>_hv.py`) and run over corners,
+temperatures, supplies and codes by the step scripts (`design/<block>/step7Xhv_*.py`), which save their numbers in
+`design/<block>/data/*.json`. For each bench the entry says what it measures, why it is set up that way, what to look
+at, the result, the pitfalls, and how to rebuild it in xschem and Cadence. The method numbers (M1, M2, …) are the
+measurement methods; each step note in `docs/design/` explains the methods it uses.
+
+---
+
+## 1. What a testbench is
+
+A testbench is a circuit around the **device under test (DUT)**. It has four parts, and every bench here is written
+in this order:
+
+| Part | Question it answers | Example |
+|---|---|---|
+| **Models and conditions** | which process corner, which temperature? | `.lib …/sky130.lib.spice ss` and `.temp 110` |
+| **Stimulus and supplies** | what drives the DUT? | supplies, bias current, input signal (sine, pulse, DC level, code bits) |
+| **Load and environment** | what does the DUT drive, what is it connected to? | capacitive load of the next block, an ideal stand-in for a block not designed yet |
+| **Analysis and measurement** | what do we compute, and which number comes out? | `.op`, `.dc`, `.ac`, `.noise`, `.tran` + `meas`, `print`, `wrdata` |
+
+**Golden rule: replace every neighbour by the simplest thing that behaves like it at the port**, and say so. The ring
+is tested with an *ideal current source* instead of the current DAC, so we see the ring alone. The current DAC is
+tested with an *ideal voltage source* instead of the ring, so we see the current source alone. Then one bench closes
+the gap by putting the real neighbour back (for example the whole-detector bench M22 of step 79: phase detector,
+clock generator and charge pump together).
+
+**Always load the PDK `.spiceinit`.** Every run copies it next to the netlist; without it the sky130 models give
+different results.
+
+## 2. The analysis toolbox (what each analysis is good for)
+## 3. The analysis toolbox (what each analysis is good for)
+
+| Analysis | What it computes | Use it for | Spectre / ADE equivalent |
+|---|---|---|---|
+| `op` | DC operating point | bias points, currents, region of every device (`show all`) | dc (save oppoint) |
+| `dc src a b step` | operating point while sweeping a source | I–V curves, compliance, transfer curves | dc sweep |
+| `ac dec n f1 f2` | small-signal response around the op | gain, bandwidth, supply rejection (put `ac 1` on the supply) | ac |
+| `noise v(out) src dec n f1 f2` | noise density at an output, every device's noise through its exact transfer | noise of biased analog blocks; needs `option sparse` with the sky130 setup | noise |
+| `tran step stop` | time-domain, large-signal | oscillators, switching, delay, duty, start-up | tran |
+| `trnoise(...)` source | a random noise voltage or current in a transient | jitter of switching circuits (ngspice has no device noise in transients) | tran with noise enabled (`noisefmax`), or pss + pnoise |
+| `meas` | one number from a result: `when`, `find … at`, `trig … targ`, `avg`, `pp`, `max` | delays, frequencies, levels | calculator / OCEAN |
+| `.control` loops: `foreach`, `alter`, `destroy all` | sweeps without re-reading the netlist | f(I), f(vtune), code sweeps | parametric analysis |
+
+Two ngspice details you will meet:
+- After a new analysis, the old results belong to an older *plot*. Keep numbers you still need in shell variables:
+  `set a = "$&x"`, used later as `$a`.
+- `option sparse` is needed for `.noise` (the KLU solver selected by `.spiceinit` fails on it).
+
+---
+
+
+---
+
+## 3. The testbenches, block by block
+
+Each entry gives: **purpose** · **set-up and why** · **what to look at** · **result (tt, 27 °C unless noted)** · **pitfalls**.
+
+#### 5 V ring VCO benches (M1, M2, step 74 redo) — `design/vco/vco_hv.py`
+- **Purpose.** Size the 3-stage 5 V ring for 800 MHz, measure its phase noise, tuning and range, and prove that it starts.
+- **Common setup (`netlist()`).**
+  - Three `dcell` instances; stage 3 feeds back crossed (outp → inm, outm → inp).
+  - An ideal current source `ivco` stands for the CCO and feeds the ring's supply node `vddvco`, with 0.5 pF of decoupling.
+  - `vtn` sets vtune. `vdda` (3.3 V, or 2.97 / 3.63 V at the corners) feeds the six AC-coupled buffers, each loaded with 15 fF.
+  - `cpar` adds wiring capacitance on every node: 10 fF at tt, 15 at ss, 5 at ff.
+  - `.ic` starts the ring differentially; `uic` skips the operating point.
+- **Read-out.**
+  - f = (r1 − r0)/(t_b − t_a) from the rising zero crossings of vd = v(vop) − v(vom).
+  - The average ring-node voltage (`vdd_avg`) is the voltage the CCO must supply.
+  - `ibuf` = average i(vdda), the buffer current.
+- **Benches built on it.**
+  - **`step74hv_point.py`** (find the current, then the ISF):
+    - A secant search on log f vs log I finds the current for 800 MHz.
+    - `isf_noise()` injects ±4 fC at 12 phases into node p1 (24 runs), each 1 ps wide, and reads the shift of a later zero crossing: h = −2π·Δt/T/(2q).
+    - The bias of every device touching p1 is saved over one period (`@m…[vgs]`, `[vds]`). Their noise comes from tables of a W = 1 µm device on a V_GS × V_DS grid up to 3.3 V (`noise_table()`, ngspice `.noise`: white part at 1 GHz, flicker coefficient from 1 kHz).
+    - L_th and L_fl follow from the ISF formulas; the 1/f³ corner is where they are equal.
+  - **`step74hv_char.py`:**
+    - f vs I at three corners;
+    - f vs vtune at the 800 MHz current;
+    - the currents for 880 MHz (ss/110 °C) and 720 MHz (ff/−40 °C), with the secant search;
+    - sf/fs;
+    - buffer current and swing (`buffer_current()`: one buffer with the PDK MIM and poly resistor, driven by a 1.6 V square wave).
+  - **`step74hv_startup.py`:**
+    - All nodes and `vddvco` start at 0 V, and the current ramps up over 2 ns.
+    - Start-up time = when |vd| first exceeds 1 V. The frequency is counted over 10 periods after 40 ns, and the swing is measured over 40–60 ns.
+    - Repeated with ±2 % width mismatch in stage 1 (`mism=`).
+- **Pitfalls.**
+  - Do not count zero crossings from t = 0 at power-up: vd chatters around 0 V at numerical-noise level and gives nonsense frequencies.
+  - Make the window long enough for r1 cycles at the lowest frequency (60 ns).
+  - The injection runs save only `v(vop) v(vom) v(vddvco) vdda#branch`. Every vector a `meas` uses must be in that list.
+
+#### 5 V CCO benches (M10, M11, M13, step 75 redo) — `design/cco/cco_hv.py`
+- **Purpose.** Prove that the CCO delivers the ring's current range at every corner, that it stays a current source up to the ring-node voltage, that VDDA noise does not reach the ring (there is no LDO), and that its own noise fits the budget.
+- **Common setup (`tb()`).**
+  - The drawn circuit `full()`: 7 level shifters, DAC, MREF, R_F (PDK xhigh-poly, body VDDA), C_F (MIM), MOUT, cascode MC, MB, R_CAS, C_CAS, enable devices and the VTEST gate.
+  - Ideal `vdda` (3.3 V, or 2.97 / 3.63 V), ideal `vddd` 1.8 V, current source `iib` 5 µA (4 / 6 µA for IBIAS ±20 %).
+  - The ring is replaced by an ideal voltage source `vr` at the ring-node voltage of the corner (tt 1.89 V, ss/110 °C 2.37 V, ff/−40 °C 1.60 V). `i(vr)` is the output current.
+  - Code bits come from ideal 1.8 V sources through the level shifters, as on the chip.
+- **Why the ring is a voltage source.** The CCO's job is to deliver a current into a node whose voltage the ring decides. A voltage source at the worst-case node voltage tests the current source under exactly that drain voltage. For supply rejection it is the worst case: a real ring node has a finite impedance that would absorb part of the current ripple.
+- **Benches.**
+  - **A — DC (`op`, `step75hv_sim.py`).** 5 corners × VDDA 2.97/3.63 V × IBIAS 4/5/6 µA × code 0/10/31, plus a code sweep at tt. Pass: code 31 at IBIAS 4 µA ≥ 1.462 mA and code 0 at IBIAS 6 µA ≤ 0.704 mA, each within the fine-tune range.
+  - **B — compliance (`dc vr 0 2.8 0.1`).** Current vs ring-node voltage at the least headroom (ss/110 °C, 2.97 V, code 31, IBIAS 4 µA). Pass: ≤ 3 % drop at 2.37 V.
+  - **C — supply rejection (`ac` with `vdda dc 3.3 ac 1`).** |i(vr)| per volt of VDDA from 100 Hz to 100 MHz. K_vdd = K_I·|dI/dVDDA| with K_I from step 74 (0.62 / 0.41 / 0.85 GHz/mA). Pass: ≤ 5 MHz/V at 1 MHz (tt).
+  - **`step75hv_vdda.py`.** Bench C at 1 MHz for VDDA 2.97…3.63 V at three operating points, combined with `op` to read the current. Shows where the cascode loses saturation.
+  - **D — disable and VTEST (`op`).** pll_en = 0: output current ≈ 0. vtest_en = 1 with vtest 10 mV above the ring node: current step = 10 mV / R_INJ.
+  - **E — level shifter (`tran`).** One `sspll_ls_1v8_3v3` with 20 fF loads, a 1.8 V pulse in, delays read with `meas ... when v(out)=VDDA/2`, levels with `max`/`min`. ss/110 °C and ff/−40 °C, VDDA 2.97/3.63 V, VDDD 1.71/1.89 V.
+  - **Noise (`cco_hv.noise()`).** `.noise v(o) iib dec 10 1e3 1e8`: the ring source `vr` is split by an ammeter `vm`, and a CCVS `h1 o 0 vm 1` turns the output current into a voltage, so `onoise_spectrum` is in A/√Hz. Pass: ≤ 7.05 pA/√Hz at 1 MHz.
+  - **`step75hv_noise.py`.** Puts the noise spectrum and K_vdd(f) into the step-72 HV phase-domain model with the step-74 HV ring and the step-73 HV filter (typ / pess / worst).
+- **Pitfalls.**
+  - ngspice prints the pMOS-output current with a sign; plots use |I|.
+  - Give R_F's and R_CAS's xhigh-poly segments their body terminal (3rd pin) explicitly: on VSS it costs 7× in supply rejection.
+  - `.noise` needs the `.spiceinit` of the PDK in the run directory; `noise()` copies it.
+  - A PSR run with code 31 at IBIAS 5 µA at ss pushes 1.8 mA, more than any corner needs: do not use that point for the budget.
+- **xschem.** `xschem/cco_hv/sspll_cco_hv.sym` in a testbench with `vsource` for VDDA (value `dc 3.3 ac 1` for C), `isource` for IBIAS, `vsource` at the ring pin, and a `code_shown` block with the `.control` lines above. Cadence: the same with `vdc`/`idc`, an `ac` analysis with `acm=1` on VDDA, and `noise` with the output as `i(vr)` (Spectre supports current outputs directly).
+
+#### 5 V REF receiver benches (M10, M14–M17, M21, step 76 redo) — `design/refbuf/refbuf_hv.py`
+- **Purpose.** Prove that the receiver turns any 0.4–3.3 V pp reference into a clean refclk edge on VDDD at every corner, that its own noise and the noise it picks up from VDDA and VDDD stay inside the REF-chain allocation (−155 dBc/Hz at 50 MHz), and that it starts and stops cleanly.
+- **Common setup (`head()`).**
+  - The drawn circuit `full()`: pad divider (2 × 500 kΩ xhigh-poly), C_AC (2 MIM tiles), R_B (10 segments), S1 with header and C_H, S2 on VDDA, the 5 V level-shift inverter and the 1.8 V NOR on VDDD, the enable level shifter.
+  - Ideal `vdda`, `vddd`, `iib` (2.5 µA out of the bias diode), `ven` for pll_en, 50 fF load on refclk (the clock-generator input).
+  - Reference source `vsrc` + 50 Ω (`src()`): a sine of V_pp around VDDA/2, or a square with 0.5 ns edges (a CMOS crystal oscillator).
+  - `.ic` puts vin and s1 at the self-bias point from `op()`, so a run does not have to wait 4 µs for the AC-coupled input to settle.
+- **Benches.**
+  - **A — bias (`op`).** 6 corners (incl. ss/−40 °C, the slowest thick-oxide level shifter) × VDDA 2.97/3.3/3.63 V: v(vin) = trip point, I(VDDA).
+  - **B — large signal (`tran`, M16).** 14 cycles; the last 5 give delay pad → refclk (both at mid-level: VDDA/2 and VDDD/2), duty, 10–90 % rise, average supply currents and power. Amplitude sweep at tt, corners at both supply limits (VDDA 2.97 V with VDDD 1.71 V, 3.63 V with 1.89 V), 45 / 55 MHz.
+  - **C — supply sensitivity (`supply_dc`, `supply_mod`, M21).** DC: delay with VDDA (or VDDD) +10 mV minus nominal, each at its own settled bias. AC: two transients from the same start, one with a 10 mV sine on the rail at f_m and one without; the edge-by-edge difference is fitted to a sinusoid at f_m. Edges are read where refclk crosses VDDD/2 *at that instant*, because the clock generator on VDDD switches there.
+  - **D — start-up (`startup`).** pll_en steps at 0.5 µs; refclk edges counted at 0.9 V; settled = first edge after which every period is within 2 % of T. While disabled: I(VDDA), I(VDDD), refclk level.
+  - **Noise (`step76hv_noise.py`).** S1 gate-referred `.noise` at the self-bias point (M14); per-edge jitter of S1 with the white plateau injected at the pad by `trnoise` (M15); the output chain S2 → level shifter → NOR with a `trnoise` current of each stage's trip-point noise at its output (M17, flat copy of the top cell so the sources can reach the nodes, `save` of the two vectors only); supply terms L = (2π f_ref)²·K(f)²·S_v/2.
+- **Pitfalls.**
+  - A single modulated run fitted to "line + sinusoid" read 345 ps/V at 0.3 MHz instead of 35: the AC-coupled self-bias still drifts for microseconds after the start and the fit took the drift for ripple. The differential (modulated − unmodulated) form removes the drift exactly.
+  - Reading the VDDD edge at a fixed 0.9 V added a false 80 ps/V (half the ripple divided by the edge slope): the receiving gate's threshold moves with VDDD.
+  - A long trnoise transient with every node saved ran out of memory and stopped after 28 edges without an error message: `save` only the vectors you need, and check the edge count.
+- **xschem.** `xschem/refbuf_hv/sspll_refbuf_hv.sym` with `vsource` on VDDA, VDDD (value `dc 1.8` or `sin(1.8 10m 1e6 0.4u)` for C), an `isource` from ib to ground, `vsource` + `res` 50 Ω on REF_IN, `capa` 50 fF on refclk, and a `code_shown` block with the `.control` lines above. Cadence: the same with `vsin`/`vpulse`, `idc`, `vdc`; the supply ripple with `vsin` (delay 0.4 µs) and the edge times from the calculator's `cross()` on refclk − VDDD/2.
+
+#### 5 V clock-generator benches (M16, M17, M21, step 77 redo) — `design/clkgen/clkgen_hv.py`
+- **Purpose.** Prove four things:
+  - the three clock pairs have the right order, gaps and widths at every corner on a 3.3 V swing:
+    - cks/cksb for the sampling switch;
+    - ckg/ckgb for the Gm pulse;
+    - ckh/ckhb for the hold transfer;
+  - the product τ·K_VCO, which sets the loop gain, stays near its nominal value;
+  - the sampling edge adds almost no jitter;
+  - VDDD noise no longer moves the sampling edge.
+- **Why the receiver is always in front.**
+  - Since this redo, the two inputs come from different places:
+    - the sampling edge comes from `refhv` (the receiver's S2 output on VDDA);
+    - the Gm and hold timing come from `refclk` (on VDDD).
+  - The relative timing of the two inputs is part of what is being verified. An ideal source on each would hide exactly the errors we look for.
+  - So every timing bench drives REF_IN through 50 Ω and the real step-76 receiver (`tran()`).
+- **Common setup (`tran()`).**
+  - The receiver `xrx` (flat netlist from `refbuf_hv.full()`) runs on `vdda`/`vddd`.
+  - The clock generator `x1` runs on its own sources `vdda2`/`vddd2` at the same voltages, so its power can be read alone.
+  - Loads equal the gate capacitance of what each output drives:
+    - **60 fF** on cks/cksb (the 5 V sampling switch, step 78);
+    - **40 fF** on ckg/ckgb/ckh/ckhb.
+
+    If step 78 or 79 draws bigger switches, rerun with the new loads.
+  - `.ic` puts the receiver's AC-coupled input at its self-bias point, so there is no 4 µs wait.
+  - The run is 4 cycles with `tran 2p`. Every edge is read in the **last** cycle at VDDA/2, because all outputs swing 0–3.3 V.
+- **Read-out** (all from one run):
+
+| Name | from → to | Meaning | Requirement |
+|---|---|---|---|
+| t_s | REF_IN rise → cks fall | sampling instant | only stable, not small |
+| skew_s | cks fall → cksb rise | complementary sampling pair | ≤ ±30 ps |
+| gap1 | later of cks/cksb → ckg rise | switch open before Gm reads C | > 0 at every corner |
+| τ | ckg rise → ckg fall | Gm pulse width | τ·K_VCO within ±15 % |
+| skew_g | ckg rise → ckgb fall | complementary Gm pair | small vs τ |
+| gap2 | later ckg/ckgb fall → ckh rise | Gm off before C1 → C2 sharing | > 50 ps |
+| W_H | ckh rise → ckh fall | hold transfer time | ≥ 5 τ_settle of C1–C2 |
+| t_p | cks fall → middle of ckg | loop delay | ≤ 5 ns |
+| power | — | avg I(vdda2)·VDDA + I(vddd2)·VDDD | — |
+
+- **Benches (`step77hv_sim.py`).**
+  - **A — timing (M16).** 25 conditions:
+    - tt at nominal, at each supply limit, and at −40/110 °C;
+    - ss/ff with matching supply limits;
+    - **ss_hh / ff_ll** (MOS and R/C together, because τ is set by an R·C);
+    - sf/fs and hl/lh;
+    - 45/55 MHz;
+    - the reference as a 3.3 V square, a 1 V sine, and a 0.4 V sine (the smallest allowed REF_IN amplitude).
+  - **B — τ·K_VCO.**
+    - Normalise τ at each corner to τ at tt.
+    - Normalise K_VCO at that corner to K_VCO at tt (step 74 HV: 173 / 110 / 250 MHz/V).
+    - Multiply the two. The loop sees the product, so a long τ where the VCO is weak partly cancels.
+  - **C — sampling-edge jitter (M17).** Same method as step 76:
+    - Build a flat copy of the receiver and the cks path (INV5S → INV5M → INV5L).
+    - Put a white `trnoise` current at refhv, c1, c2 and cks. Each equals the trip-point noise of the stage that drives the node.
+    - `path_noise()` gets those densities from `.noise` on one inverter biased at its own V_M.
+    - NT = 4 ps, so NA = √(S_i/(2·NT)).
+    - Measure 80 edges after 20 settling cycles.
+    - Subtract a **noiseless baseline** run (all NA × 10⁻⁶) in quadrature.
+    - Only S1's white jitter is left out here; step 76 covers it.
+  - **D — supply sensitivity (M21, `step77hv_supply.py`).**
+    - Path: REF_IN → cks, with the receiver and the clock generator on the **same** rails.
+    - AC: two runs from the same start. One has a 10 mV sine on VDDA (or VDDD) at f_m = 1, 5 or 20 MHz; the other has none.
+    - The edge-by-edge difference is fitted to a sinusoid at f_m.
+    - DC: a +10 mV step, with each run starting from its own settled bias.
+    - cks is read at VDDA/2 of that instant.
+  - **Noise budget (`step77hv_noise.py`).**
+    - The REF chain at 50 MHz is the sum of:
+      - S1 white (step 76);
+      - clock-generator white (from C, 1/f corner 30 kHz);
+      - the VDDA and VDDD terms with the combined K(f) from D;
+      - the SSPD buffer floor.
+    - This chain then goes into the system model (`hv_system.py`) as the reference.
+- **Results (tt, 27 °C).**
+  - Timing:
+    - t_s 425 ps, skew_s −11 ps, gap1 2.36 ns (the RC delay added after step 79);
+    - τ 528 ps (322–951 ps over corners);
+    - gap2 177 ps (min 108 ps, fs);
+    - W_H 1.84 ns (1.20–3.31 ns; the hold ends ≤ 8.2 ns after the sample);
+    - t_p 2.62 ns (≤ 4.15 ns).
+  - Power 0.72 mW.
+  - τ·K_VCO: 0.89 (ff_ll) to 1.14 (ss_hh).
+  - Sampling-edge jitter 78 fs → −169.2 dBc/Hz.
+  - Supply: VDDD 2.1 ps/V (was 377 via refclk), VDDA 148–175 ps/V (3.3 V square) and 323–1410 ps/V (1 V sine); REF chain -164.2 dBc/Hz typ.
+- **Pitfalls.**
+  - A 1.8 V-to-3.3 V level shifter cannot pass a 200–500 ps pulse at ss: the pulse is filtered away. So only **edges** cross the domains here:
+    - `edges_g/h` make a start edge and a stop edge on VDDD;
+    - each edge is level-shifted;
+    - the pulse is rebuilt on VDDA as start AND NOT stop in `pout5`.
+  - Read the pulse widths only at the **combined** corners. Plain ss/ff keep R and C typical and miss the τ extremes.
+  - In the old architecture the sampling edge came through a VDDD level shifter and moved 376 ps/V with VDDD. Keep that result (`step77hv_supply_via_vddd.json`) to compare with.
+  - `tran()` asserts that every edge exists in the last cycle. A StopIteration means a pulse vanished; the bench reports it as `failed` instead of stopping the pool.
+- **xschem.**
+  - Place `xschem/clkgen_hv/sspll_clkgen_hv.sym` behind `xschem/refbuf_hv/sspll_refbuf_hv.sym`.
+  - Sources: `vsource` + `res` 50 Ω on REF_IN; `isource` 2.5 µA on ib; `vsource` on VDDA/VDDD, with separate ones for the clock generator so its power can be read.
+  - Loads: `capa` 60 fF on cks/cksb and 40 fF on the others.
+  - A `code_shown` block holds the `tran` and `meas` lines.
+- **Cadence.**
+  - The same circuit with `vpulse`/`vsin`, `idc`, `vdc`.
+  - Read the edges with the calculator's `cross(sig 1.65 n "rising"/"falling")` and `delay()`.
+  - For C: transient noise, or pss + pnoise at the cks crossing.
+  - For D: `vsin` with a delay on the rail.
+
+#### 5 V SSPD benches (M17, M18, M19, M21, step 78 redo) — `design/sspd/sspd_hv.py`
+- **Purpose.** Prove four things:
+  - the 5 V sampler has the detector gain the loop was designed for (A = 0.8 V/rad), at every corner;
+  - the hold has the expected first-order memory;
+  - switching the sampler does not disturb the ring;
+  - the isolation buffers add little reference-like noise.
+- **Common setup (`bench()`).**
+  - DUT `sspll_sspd_hv` (both sides) plus the step-77 HV clock generator, which makes all six clock phases from ideal edges:
+    - refhv: 0–VDDA, the receiver's S2 node;
+    - refclk: 0–VDDD, 0.2 ns later, as the receiver makes it.
+  - The "ring": two ideal complementary 0/VDDA squares (60 ps edges), each behind a 5 V inverter sized like the ring's buffer output stage (1.2/3 µm). So clkp/clkm have a realistic source impedance, which matters for the kick-back.
+  - Loads: 26 fF on each v1 (the first Gm's measured input; the final Gm has 26.5 fF with C1 0.5 fF larger, the same node) and 4 fF on each v2 (the NCB input).
+- **Benches (`step78hv_sim.py`).**
+  - **A — sampled characteristic (M18, `characteristic`).**
+    - **Beat.** The ring runs at f = (16 + 1/32)·f_ref, so the sampling instant slides 2π/32 of a ring cycle per period. One 34-period run sweeps the whole characteristic: no phase sweep with 32 separate runs.
+    - **Readings.**
+      - v1p − v1m in the middle of each Gm pulse (what the Gm will read);
+      - v2p − v2m 0.5 ns after each hold pulse;
+      - A = half the slope of a line fit within ±0.35 rad of the zero crossing;
+      - α and the hold DC gain from a least-squares fit of v2[k] = a·v1[k] + b·v2[k−1];
+      - power = VDDA × average I(VDDA) of the SSPD.
+    - **Conditions.** 18 in total:
+      - tt at VDDA 2.97/3.3/3.63 V;
+      - VDDD 1.71 V;
+      - −40/110 °C;
+      - ss_hh/ff_ll at both temperatures and both supply limits;
+      - ss, ff, sf, fs, hl, lh;
+      - 45/55 MHz.
+  - **B — kick-back (M19, `kick`).**
+    - The ring runs at exactly 16·f_ref, with the sampling instant on the zero crossing (locked).
+    - Run 1: the clock generator switches.
+    - Run 2: the reference is held, so the sampler tracks and nothing switches.
+    - The difference of the clkp edge times is the kick-back. Its f_ref component, as the phase deviation 2π·f_0·Δt, gives the spur estimate 20·log(a1/2).
+    - A third run with a 2 × 2 µm dummy capacitor (no real dummy) gives the f_ref supply current without the dummy sampler.
+  - **C — isolation-buffer jitter (M17, `buf_jitter`).**
+    - Flat path: ring buffer stage → XB1 → XB2 → R_s → C.
+    - White `trnoise` currents at b1 and b2, each the trip-point noise of the inverter driving that node.
+    - 800 MHz input, then a 4th-order detrend.
+    - Run the noiseless baseline (sources × 10⁻⁶) and subtract it in quadrature.
+    - The differential crossing sees σ/√2 (the two sides are independent).
+  - **D — buffer supply sensitivity (M21 DC form, `buf_supply`).** Delay of the flat buffer path at VDDA and VDDA + 10 mV. The DC form is enough here: plain inverters have no bias loop or coupling capacitor, so their sensitivity is flat in frequency.
+  - **Noise budget (`step78hv_noise.py`).** The step-77 REF chain with the SSPD-buffer placeholder replaced by C and D. Then the system model, with the measured A and C_s (kT/C).
+- **Results (tt, 27 °C, 3.3 V).**
+  - A 0.811 V/rad (0.536–1.145 over the 18 conditions); α 0.451; hold DC gain 1.004.
+  - CM 1.66 V; power 1.03 mW.
+  - Kick-back 69 fs (spur −99 dBc); f_ref supply current 0.80 µA with the dummy vs 27.9 µA without.
+  - Buffer jitter 83 fs per side (−171.6 dBc/Hz); buffer VDDA 22 ps/V.
+- **Pitfalls.**
+  - Use the combined MOS + R/C corners. A is set by R_s·C1, and plain ss/ff keep R and C typical.
+  - A is proportional to VDDA. Always pair the slow corner with VDDA 2.97 V, or the minimum A is missed.
+  - In the kick-back runs, read the edges of clkp (the shared buffer output), not of b1. The kick-back that matters is what reaches the ring side.
+  - The beat run's first two periods carry the start-up of the RC nodes: they are skipped (s < 2T).
+- **xschem.**
+  - Place `xschem/sspd_hv/sspll_sspd_hv.sym` and `xschem/clkgen_hv/sspll_clkgen_hv.sym`.
+  - Sources: `vsource` pulse for refhv, refclk, vp and vm, each behind an inverter from the PDK symbols (5 V devices).
+  - Loads: `capa` on v1/v2.
+  - A `code_shown` block with `tran 2p 680n` and `wrdata`.
+  - Post-processing as in `characteristic()`.
+- **Cadence.**
+  - The same with `vpulse`.
+  - Characteristic: read v1p − v1m at the Gm-pulse times with the calculator's `value(sig time)` on a time list, or run pss with the beat frequency as the fundamental.
+  - Kick-back: two transients and `cross()` on clkp.
+  - Buffer jitter: transient noise or pss + pnoise.
+
+#### 5 V pulsed-Gm charge pump benches (M10, M11, M16, M18, step 79) — `design/sscp/sscp_hv.py`
+- **Purpose.** Prove six things:
+  - with its real detector in front, the Gm gives the loop gain step 73 HV designed for (β = 2A·G·τ/T = 0.79 µA/rad), and the lock point sits inside the Gm's linear range;
+  - G holds over corners, V_cont and the trim codes;
+  - steering the output between the filter and the dump node leaves little charge per period;
+  - the dump node is held at V_cont over the whole window;
+  - the pump's noise and its VDDA rejection fit the budget;
+  - the trim decoder sets the right number of slices.
+- **The most important lesson of this step: test a block with its real neighbour.**
+  - The first Gm passed every bench with DC sources on v1.
+  - Only the whole-detector bench (bench B below) showed what the SSPD's real waveform does to it: v1 tracks the 800 MHz ring for half of every period.
+  - That bench found three faults: the mirror was too slow, the dump node rippled, and the Gm needs recovery time.
+- **Common setup (`head()`).**
+  - DUT `sspll_sscp_hv`: five slices, the replica bias, two steering TGs, the dump buffer and 2 pF.
+  - v1p/v1m are ideal sources around 0.503·VDDA (the SSPD's sampled common mode).
+  - vctl is an ideal source at V_cont. The current into it, `i(vvc)`, is the current into the loop filter. A source is used because the filter holds V_cont nearly constant over one period, and the source measures every femtocoulomb.
+  - ib: 2 µA from an ideal current source (the bias generator's unit).
+  - e1–e5 and eb1–eb5: ideal sources at the code's pattern (00 → 3 slices, 01 → 4, 10 → 2, 11 → 5).
+- **Benches.**
+  - **B — whole detector (M18 extended, `step79hv_det.py`).**
+    - Setup: the step-78 beat bench (ring at (16 + 1/32)·f_ref behind a 5 V buffer stage, the real clock generator) with the real Gm on v1 instead of the placeholder capacitor.
+    - Readings:
+      - every period, the charge into vctl (integral of `i(vvc)` from 1 ns before the sample over one period);
+      - the ring phase at the sample;
+      - vdump − vctl just before the pulse.
+    - β_eff = (slope of charge vs phase at the charge's zero) / T, from a cubic fit within ±0.6 rad. The zero itself is the lock point.
+    - Conditions: tt at V_cont 1.3 / 1.8 / 2.3 V, ss_hh 110 °C at 2.97 V, ff_ll −40 °C at 3.63 V.
+  - **Recovery sweep (`step79hv_delay.py`).** The locked detector with ckg/ckgb from ideal sources at 0.7 / 2 / 3 / 4.5 ns after the sample. Two lock phases give the gain per volt; the charge at lock gives the static error. This set step 77's gap-1 delay.
+  - **A — DC transfer (M10, `dc_transfer`).**
+    - ckg held high, so x is connected to vctl.
+    - `dc` sweep of v1p − v1m over ±0.8 V.
+    - G = the slope at 0 V; offset = −I(0)/G; linear range = where the slope stays within 10 % of G.
+    - Conditions: 11 corners at V_cont 1.8 V; V_cont 1.3 / 2.3 V at tt, ss 110 °C and ff −40 °C; codes 01/10/11 at tt.
+  - **D — dump buffer (`buffer_check`).** `op` gives vdump − vctl; `ac` with 1 V on vctl gives |vdump/vctl| (peaking, f_3dB). 5 corners × V_cont 1.3 / 1.8 / 2.3 V.
+  - **Pulsed with DC inputs (M16, `pulsed`).** The real clock generator makes ckg/ckgb from ideal refhv/refclk edges; v1 is DC. Integrate `i(vvc)` over 4 periods. This isolates the steering: switch injection and dump error, without the Gm's recovery.
+  - **C — noise (M11, `noise`).**
+    - `.noise` of the current into vctl: vvc is split by an ammeter `vmeas`, and a CCVS `h1` turns that current into a voltage.
+    - In the system the current noise is gated with duty d = τ/T, so it becomes S_φ = S_i/(4A²G²d) (`step79hv_noise.py`).
+    - To find the devices responsible: `noise ... 1` (one summary point per decade) and `setplot noise2; print all` give each device's integrated contribution (`step79hv_noisesize.py` uses this breakdown).
+  - **E — VDDA rejection (M11, `psr`).** `ac` with 1 V on VDDA and zero input gives |i(vvc)| per volt; it acts only during the pulse, so S_φ = |Y|²S_v/(2AG)². The same run's `op` gives I(VDDA).
+  - **Input capacitance (`step79hv_cin.py`).** `ac` with 1 V on v1p gives C_in = Im(I)/(2πf) at 50–200 MHz, for every code, ckg on/off, three corners. The SSPD's C1 is sized with it.
+- **Results (tt, 27 °C, final design).** G 18.51 µS (17.5–19.6 over corners and V_cont); offset ≤ 12 mV; linear ±0.38 V at tt (≥ ±0.23 V); codes ×0.67 / 1 / 1.33 / 1.66. Whole detector: β_eff 0.81 µA/rad at tt (0.79 with the final C1), lock point −74 to −129 mrad, β_eff 0.69–0.81 over the corners. Dump buffer ≤ 11.7 mV, f_3dB ≥ 5 MHz with 2 pF. Pulsed with DC inputs: 9.0 fC/V (G·τ = 9.5), +0.58 / +0.24 / −0.11 fC at V_cont 1.3 / 1.8 / 2.3 V. Noise 3.9 / 1.48 pA/√Hz at 10 kHz / 1 MHz → 224 fs in the system. VDDA → 1.08 µA/V at 1 MHz (6 fs). C_in 26.5 fF. I(VDDA) 90 µA.
+- **Pitfalls.**
+  - A DC-input bench cannot reveal a slow internal node: the node is always settled. Test with the real waveform (bench B) before believing a pulsed circuit.
+  - Sign: `dc_transfer` records −i(vvc), the current the source pushes *out* into the circuit. With v1p > v1m the Gm pushes current into vctl, so that slope is negative (G is reported as its magnitude). The loop polarity follows from this sign.
+  - In bench A ckg is a static 3.3 V, so the dump path plays no part; bench D covers it separately.
+  - `lvs.sh` used to read only netgen's topology line. A multiplier drawn ×1 against ×12 in the netlist still read "match"; the script now also prints netgen's property errors.
+- **xschem.**
+  - `xschem/sscp_hv/sspll_sscp_hv_top.sym` (with the decoder) or `sspll_sscp_hv.sym` (enables as pins).
+  - `vsource` for v1p/v1m, vctl and VDDA; `isource` for ib.
+  - For C: an ammeter `vsource 0` in series with vctl and a `ccvs`.
+  - Bench B: the step-78 bench schematic with this symbol on v1.
+- **Cadence.**
+  - The same with `vdc`/`idc`; Spectre `noise` takes `i(vvc)` as the output directly, and its noise summary sorts the contributors.
+  - E: `ac` with `acm=1` on VDDA.
+  - B: a transient and the calculator's `integ(i(vvc) t1 t2)` per period.
+
+#### 5 V loop-filter benches (M24, M25, step 80) — `design/loop/step80hv_sim.py`
+- **Purpose.** Prove four things about the filter as it is built from PDK devices:
+  - its three elements R1, C1, C2 have the values the loop needs, with everything else on vctl counted;
+  - those values hold over corners, temperature and V_cont well enough that PM ≥ 45° after the trim;
+  - the 3-element model used by the loop analysis describes the real network;
+  - its noise and leakage are what the budget assumes.
+- **M24 — large-signal-averaged port capacitance (part `load`).**
+  - **What.** The capacitance that a slow signal sees at an input whose devices are switching fast: here the ring's
+    tuning gates, whose capacitance follows the 800 MHz swing.
+  - **Why not AC.** An AC analysis linearises at one DC point, which is one instant of the oscillation. The filter sees
+    the charge per volt averaged over many cycles.
+  - **How.** Transient of the running ring (`vco_hv.netlist`, hl6, 0.994 mA) with vtune = V_cont + 50 mV·sin(2π·25 MHz·t).
+    After 40 ns of start-up, the current out of the vtune source is multiplied by cos(ωt) and sin(ωt) and integrated
+    over 400 ns (10 sine periods, about 320 ring periods). C = in-phase amplitude/(ω·50 mV); G = quadrature
+    amplitude/50 mV.
+  - **Choices.** 25 MHz is far below 800 MHz (the ring current averages out) and far above the loop bandwidth.
+    50 mV is small enough to be linear and large enough to beat numerical noise. The window holds whole periods of
+    the sine, so the DC and the 800 MHz terms integrate to zero.
+  - The Gm port is a plain AC at its operating point (it has no fast internal waveform when ckg is static), with the
+    steering TG off and on, weighted by the duty τ/T.
+- **M25 — passive-network extraction and exact sampled loop (parts `size`, `corners`, `loop`).**
+  - **DUT.** `sspll_lf_hv` alone: vctl driven by `vvc` (DC = V_cont, AC = 1). The admittance Y = −I(vvc).
+  - **Analysis.** `ac dec 10 1e4 5e7`, then a least-squares fit of Y = sC2 + 1/(R1 + 1/(sC1)) on log-magnitude and
+    phase. The fit returns R1, C1, C2 and the worst relative error of the model below 25 MHz.
+  - **Sweep.** 5 MOS × 5 R/C corner sections (e.g. `ss_hh`) × −40 / 27 / 110 °C × V_cont 1.3 / 1.8 / 2.3 V. The MOS
+    capacitor follows the MOS letter, R1 and the MIMs follow the R/C letters.
+  - **Loop.** The extracted values plus the M24 load go into `sampled_loop.py` (matrix-exponential solution over one
+    reference period with the packet injected t_p after the sample). It gives f_c, PM, closed-loop peaking, f_3dB and
+    the settling of a 1 rad step.
+  - **Sizing.** With C1 fixed, a 2-variable solver finds R1 and C2 for f_c = 2.5 MHz and PM = 50°. The R1 segment
+    length and C2 width are updated from the result (699.2 Ω/µm, MIM 2.0 fF/µm² + 0.164 fF/µm), and the
+    simulate–fit–solve loop repeats until f_c is within 5 kHz and PM within 0.1°.
+- **Noise (part `noise`).** `iin` (AC 1) into vctl, a 1 TΩ `noisy=0` resistor to a 1.8 V source for the DC point,
+  `.noise v(vctl) iin`. **`option sparse` is required:** ngspice's KLU solver does not support noise. Run twice:
+  drawn R1, and R1 replaced by an ideal resistor of the fitted value. The SKY130 poly resistors are behavioural, so
+  ngspice gives them **no thermal noise**: only the second run shows 4kTR1.
+- **Leakage (part `leak`).** `op` with vctl held at 1.3 / 2.3 V, hot corners. The current into the filter is its
+  leakage.
+- **Packet (part `pulse`).** A 0.53 ns current pulse carrying the charge of 0.1 rad into the drawn filter plus the
+  175 fF load. Compared with the closed-form response of the 3-element model. **Start from the operating point:** with
+  `uic` the MOS capacitor's internal charge is not at equilibrium, and vctl drifts by millivolts.
+- **xschem.** `xschem/lf_hv/sspll_lf_hv.sym`; `vsource` on vctl with `value="dc 1.8 ac 1"`; an `.ac` and a
+  `.control` block with the fit done in Python on the `wrdata` output.
+- **Cadence.** The same circuit with `vdc` (`acm=1`); Spectre `ac`, then `xf` or the calculator for Y. For noise use
+  Spectre `noise`; check whether the Cadence kit's poly resistor carries thermal noise (Spectre's own resistor with
+  a voltage coefficient does). The lock-in of M24 is a `tran` plus the calculator's `integ(i*cos)`.
+
+#### moscap_hv_cv — C-V of the 5 V loop-filter capacitor (M6, step 73 redo)
+- **Purpose.** Step 73 needs the capacitance per area of the thick-oxide MOS capacitor that now forms C1, and the
+  V_cont range over which it is flat. It also needs MIM1 and MIM2 for comparison.
+- **Setup.** `design/loop/spice/moscap_hv_cv.sp`, three independent one-device circuits, each driven by its own source (DC bias + AC 1):
+  - X1: nfet_g5v0d10v5, W = L = 10 µm. Gate on the source; drain, source and body on ground. This is the capacitor exactly as it sits in the tile.
+  - X2: cap_mim_m3_1, 30 × 30 µm.
+  - X3: cap_mim_m3_2, 30 × 30 µm.
+- **How it works.**
+  - At each DC point, `ac lin 1 1e6 1e6` gives the small-signal current, and C = −Im(I)/(2π·1 MHz).
+  - 1 MHz is well below any RC corner of a 100 µm² gate, so the result is the pure capacitance.
+  - `foreach` steps the bias from 0 to 3.3 V with `alter`.
+  - `run_cv_hv.sh` loops over tt/ss/ff and −40/27/110 °C and appends `corner,temp,vg,c_mos_fF,c_mim1_fF,c_mim2_fF` to `design/loop/data/moscap_hv_cv.csv`.
+- **Result (tt, 27 °C).**
+  - MOS: 2.87 fF/µm² at 1.65 V; 2.81 at 1.0 V; 2.90 at 2.3 V; 1.3 at 0 V.
+  - MIM1 and MIM2: 1.820 pF per 30 × 30 µm each.
+  - Over 1.0–2.3 V and all corners the MOS cap stays within ×0.93–1.06 of its value at 1.65 V.
+- **Run.** `PDK_ROOT=/path/to/pdk design/loop/spice/run_cv_hv.sh` (about 20 s).
+- **Pitfall.** Tie the body to the source/drain (ground). A floating or separately biased body changes the curve.
+
+#### Device noise at fixed g_m/I_D — 5 V vs 1.8 V devices (M20, step 72 redo)
+- **Purpose.** The step-72 budget for 800 MHz assumes that a ring built from 5 V devices can reach the step-74 FoM.
+  This bench checks that assumption at the device level: thermal-noise factor γ, 1/f corner and flicker voltage for
+  each device family and length used in the analog blocks.
+- **Setup.** `design/feas/hv_noise.py`, one transistor, with no testbench schematic:
+  - The gate is driven by `vg` (DC bias plus AC 1); the drain is held at V_DS by `vd`. That is 0.9 V for 1.8 V devices and 1.5 V for 5 V devices; a pMOS is referred to its own source supply.
+  - A CCVS `h1 o 0 vd 1` turns the drain current into the output voltage `v(o)`, so `.noise v(o) vg` gives the drain-current noise PSD directly (onoise) and the gate-referred voltage (inoise).
+- **How the operating point is set.**
+  - One `dc vg` sweep on a 10 µm device gives I_D(V_GS), and g_m/I_D = d ln I_D/dV_GS.
+  - The script takes the V_GS where g_m/I_D falls to 10, searching above the g_m/I_D peak so that the leakage region at low V_GS is skipped.
+  - It then scales W to 100 µA, in fingers of at most 40 µm, because the model bins end near 100 µm.
+  - Equal g_m/I_D and current mean equal g_m, so every remaining difference is the device's own noise.
+- **Read-out.**
+  - γ = onoise²(1 GHz)/(4kT·g_m), with g_m = √(onoise²/inoise²) at 1 GHz.
+  - The 1/f corner is the frequency where onoise² is twice its 1 GHz value.
+  - v_n(10 kHz) = inoise at 10 kHz.
+- **Result (tt, 27 °C).**
+  - 5 V nMOS, L = 0.5 µm: γ 1.10, corner 50 MHz.
+  - 5 V nMOS, L = 1 µm: γ 1.46, corner 2.5 MHz.
+  - 5 V pMOS, L = 0.5 µm: γ 0.53, corner 2.0 MHz.
+  - 5 V pMOS, L = 1 µm: γ 0.55, corner 0.2 MHz.
+  - 1.8 V nMOS, L = 0.15 µm: γ 1.87, corner 158 MHz.
+  - 1.8 V pMOS, L = 0.15 µm: γ 1.22, corner 1.0 MHz.
+- **Run.** `python3 design/feas/hv_noise.py` → `design/feas/hv_noise.json`, about 1 min.
+- **Pitfalls.**
+  - One `.op` per V_GS point means one PDK load per point: 600 launches took more than 10 min. Use one `dc` sweep per device.
+  - A high-V_T device can show g_m/I_D < 10 at V_GS = 0.3 V because of leakage. Search above the peak.
+  - Very wide devices fall outside the model bins and give an empty `.noise` output. Use `m` fingers.
+
+### Grounds in the benches: VSSA and VSSD (24 Nov 2026)
+
+Since the ground split, see `docs/design/ground_split.md`:
+- Every 5 V cell has VSSA (analog ground), VSSD (digital ground), or both.
+- A mixed cell (level shifter, receiver, clock generator, CCO, charge-pump decoder and top) has both, side by side in its port list. A bench passes two ground nodes to it: `x1 ... VDDD VDDA 0 0 sspll_clkgen_hv`.
+- A bench that pastes a cell's body at the top level must define both nets: `vssa VSSA 0 0` and `vssd VSSD 0 0`.
+
+**Why ideal 0 V on both.** Pre-layout there is nothing between the two grounds. A noise or bounce model now would be a guess, because the ground resistance, the package and the digital current are only known after layout. With both at 0 V, a bench simulates exactly the circuit it did before the split. Method M23 proves this by comparing the netlists with VSSA = VSSD, so steps 74–79 needed no re-run.
+
+**Post-layout.** The top-level bench replaces the two ideal grounds with:
+- the extracted VSSA and VSSD;
+- a package model on each: about 1–2 nH bond wire plus its resistance, to the harness ground;
+- the real digital switching current.
+
+Only then can ground bounce appear in the sampling-edge jitter and the charge-pump error.
+
+**Pitfalls.**
+- A bench that still passes one ground node to a mixed cell fails with a node-count error in ngspice. `tools/ground_split_check.py check` finds such lines without running anything.
+- In a flattened body, VSSA or VSSD left undefined is a floating node, not ground. ngspice does not always complain; the operating point just goes wrong.
+
+---
+
+---
+
+## 4. Drawing a testbench in xschem (same recipe for every bench)
+1. `xschem --rcfile xschem/xschemrc` → *File → New schematic*, save it as `xschem/tb/tb_<name>.sch`.
+2. **DUT:** *Insert symbol* (Shift-I) → `xschem/<block>_hv/sspll_<cell>.sym`. Its pins are the same as the `.subckt`
+   line in the block's reference netlist `xschem/netlist/ref_<block>_hv.spice` (written by `tools/lvs_hv_all.py`).
+3. **Sources:** from `devices/`: `vsource.sym` (supplies, DC levels, `sin(…)`, `pulse(…)`, `pwl(…)`, `trnoise(…)` in
+   the *value* field), `isource.sym` (IBIAS, an ideal current DAC), `capa.sym` (loads), `res.sym` (50 Ω source
+   impedance), `gnd.sym`. Watch the source arrow: it shows the current direction. For a behavioural neighbour use
+   `bsource.sym` with `VALUE="I = pwl(v(node), …)"`.
+4. **Grounds:** a mixed cell has VSSA and VSSD pins; connect both (to `gnd.sym` before layout).
+5. **Labels:** `lab_pin.sym` on every net you want to plot or measure.
+6. **Models and corner:** the `sky130_fd_pr/corner.sym` symbol, which holds the `.lib … tt` line, or a `code_shown.sym`
+   block with `.lib`, `.temp` and `.param` lines.
+7. **Analysis:** a second `code_shown.sym` block, with the property `value=` holding the whole `.control … .endc`
+   section. Set `only_toplevel=true`.
+8. *Netlist* → *Simulate* (or `ngspice -b` on the netlist in `xschem/simulations/`). Load the `.raw` file in xschem's
+   graph (`devices/launcher.sym` + `graph.sym`) to look at waveforms.
+
+## 5. The same testbenches in Cadence Virtuoso (Spectre)
+1. Import the DUT: the reference netlists `xschem/netlist/ref_<block>_hv.spice` (hierarchical, same cell names as the
+   schematics), or redraw from the xschem PNGs in `docs/img/`. Then create a testbench cell with `analogLib` sources
+   (`vdc`, `idc`, `vsin`, `vpulse`, `vpwl`, `cap`, `res`).
+2. ADE L / Explorer → *Setup → Model Libraries*: the kit's `sky130.lib.scs`, section `tt` (or `ss`, `ff`…).
+   *Setup → Temperature*.
+3. Analyses, by the table in section 2:
+   - `dc` with *save DC operating point* for M10;
+   - `ac` with the AC magnitude on the supply source for supply rejection;
+   - `noise`, output = the net or the probe current, input source = the one with AC magnitude, for M3/M11/M14;
+   - `tran` for M1/M13/M16.
+4. **Transient noise (M15, M17).** Spectre can do device noise in transient: *tran → Transient Noise → noisefmax*
+   (e.g. 50 GHz), *noiseseed*. No injected source is needed, which makes it a good cross-check of the ngspice method.
+   Better still for jitter: **pss + pnoise** with *jitter* output.
+5. **Measurements.** The ADE *Calculator*: `cross()` for edge times, `frequency()`, `average()`, `delay()`,
+   `dutyCycle()`, `riseTime()`. Save them as outputs and sweep with *Parametric Analysis*. Corners go in the *Corners*
+   setup.
+6. **Ring start-up.** Use *ic* on the ring nodes (Simulation → Convergence Aids → Initial Condition) or a short
+   current pulse.
+
+## 6. From one bench to the full characterisation
+The scripts build the circuits as strings, run them in parallel over the conditions, and save the numbers to
+`design/<block>/data/*.json`. The plots in `docs/img/` come from those files.
+
+| Block | Scripts (`design/<block>/`) |
+|---|---|
+| Budget, step 72 | `budget/step72_hv_budget.py`, `hv_system.py`, `step72_hv_plots.py`; devices `feas/hv_noise.py`, `feas/hv_vco.py` |
+| Loop, step 73 | `loop/step73_hv_loop.py`, `step73_hv_plots.py` |
+| Ring VCO, step 74 | `vco/vco_hv.py`, `step74hv_point.py`, `step74hv_char.py`, `step74hv_startup.py`, `step74hv_system.py` |
+| Current DAC, step 75 | `cco/cco_hv.py`, `step75hv_sim.py`, `step75hv_noise.py`, `step75hv_casc.py`, `step75hv_headroom.py`, `step75hv_vdda.py` |
+| REF receiver, step 76 | `refbuf/refbuf_hv.py`, `step76hv_sim.py`, `step76hv_noise.py`, `step76hv_supply.py` |
+| Clock generator, step 77 | `clkgen/clkgen_hv.py`, `step77hv_sim.py`, `step77hv_size.py`, `step77hv_noise.py`, `step77hv_supply.py` |
+| SSPD, step 78 | `sspd/sspd_hv.py`, `step78hv_sim.py`, `step78hv_size.py`, `step78hv_noise.py`, `step78hv_check.py` |
+| Pulsed-Gm charge pump, step 79 | `sscp/sscp_hv.py`, `step79hv_sim.py`, `step79hv_det.py`, `step79hv_delay.py`, `step79hv_buf.py`, `step79hv_cin.py`, `step79hv_size.py`, `step79hv_noise.py` |
+| Loop filter, step 80 | `loop/lf_hv.py`, `step80hv_sim.py`, `step80hv_plots.py`, `schematics_hv.py` |
+
+When you change a design, rerun the block's `schematics_hv.py`, then `python3 tools/lvs_hv_all.py`, then the step
+scripts: LVS first shows whether the drawing still matches what is simulated.

@@ -1,0 +1,53 @@
+A done
+  tt   27 C VDDA 2.97: vin 0.861 V, I(VDDA) 68.0 uA
+  tt   27 C VDDA 3.3: vin 0.862 V, I(VDDA) 69.0 uA
+  tt   27 C VDDA 3.63: vin 0.862 V, I(VDDA) 69.9 uA
+  ss  110 C VDDA 2.97: vin 0.808 V, I(VDDA) 66.5 uA
+  ss  110 C VDDA 3.3: vin 0.808 V, I(VDDA) 67.4 uA
+  ss  110 C VDDA 3.63: vin 0.808 V, I(VDDA) 68.2 uA
+  ff  -40 C VDDA 2.97: vin 0.898 V, I(VDDA) 73.1 uA
+  ff  -40 C VDDA 3.3: vin 0.899 V, I(VDDA) 74.5 uA
+  ff  -40 C VDDA 3.63: vin 0.899 V, I(VDDA) 75.9 uA
+  sf   27 C VDDA 2.97: vin 0.807 V, I(VDDA) 73.8 uA
+  sf   27 C VDDA 3.3: vin 0.808 V, I(VDDA) 75.3 uA
+  sf   27 C VDDA 3.63: vin 0.808 V, I(VDDA) 76.7 uA
+  fs   27 C VDDA 2.97: vin 0.916 V, I(VDDA) 65.8 uA
+  fs   27 C VDDA 3.3: vin 0.916 V, I(VDDA) 66.6 uA
+  fs   27 C VDDA 3.63: vin 0.917 V, I(VDDA) 67.3 uA
+  ss  -40 C VDDA 2.97: vin 0.974 V, I(VDDA) 65.2 uA
+  ss  -40 C VDDA 3.3: vin 0.975 V, I(VDDA) 66.1 uA
+  ss  -40 C VDDA 3.63: vin 0.975 V, I(VDDA) 66.8 uA
+B done
+  tt   27 3.3/1.8 V 0.4 V pp sine   50 MHz: delay 1.940 ns, duty 51.5 %, rise 297 ps, P 0.269 mW (VDDD 6.2 uA), swing -0.02..1.81 V
+  tt   27 3.3/1.8 V 0.7 V pp sine   50 MHz: delay 1.696 ns, duty 49.2 %, rise 296 ps, P 0.259 mW (VDDD 6.3 uA), swing -0.02..1.81 V
+  tt   27 3.3/1.8 V 1.0 V pp sine   50 MHz: delay 1.513 ns, duty 48.4 %, rise 295 ps, P 0.254 mW (VDDD 6.3 uA), swing -0.02..1.81 V
+  tt   27 3.3/1.8 V 2.0 V pp sine   50 MHz: delay 1.185 ns, duty 48.0 %, rise 295 ps, P 0.245 mW (VDDD 6.3 uA), swing -0.02..1.82 V
+  tt   27 3.3/1.8 V 3.3 V pp sine   50 MHz: delay 0.988 ns, duty 48.3 %, rise 295 ps, P 0.240 mW (VDDD 6.3 uA), swing -0.02..1.82 V
+  tt   27 3.3/1.8 V 3.3 V pp square 50 MHz: delay 0.165 ns, duty 54.6 %, rise 294 ps, P 0.233 mW (VDDD 6.3 uA), swing -0.02..1.82 V
+  ss  110 2.97/1.71 V 0.4 V pp sine   50 MHz: delay 2.318 ns, duty 52.6 %, rise 410 ps, P 0.221 mW (VDDD 6.1 uA), swing -0.02..1.72 V
+  ss  110 2.97/1.71 V 3.3 V pp square 50 MHz: delay 0.343 ns, duty 55.9 %, rise 406 ps, P 0.198 mW (VDDD 6.2 uA), swing -0.02..1.73 V
+  ss  110 3.63/1.89 V 0.4 V pp sine   50 MHz: delay 1.718 ns, duty 62.2 %, rise 361 ps, P 0.354 mW (VDDD 6.8 uA), swing -0.01..1.90 V
+  ss  110 3.63/1.89 V 3.3 V pp square 50 MHz: delay 0.252 ns, duty 56.5 %, rise 353 ps, P 0.307 mW (VDDD 6.9 uA), swing -0.02..1.90 V
+  ff  -40 2.97/1.71 V 0.4 V pp sine   50 MHz: delay 1.878 ns, duty 48.6 %, rise 252 ps, P 0.211 mW (VDDD 5.7 uA), swing -0.02..1.72 V
+  ff  -40 2.97/1.71 V 3.3 V pp square 50 MHz: delay 0.097 ns, duty 53.9 %, rise 251 ps, P 0.191 mW (VDDD 5.8 uA), swing -0.02..1.73 V
+  ff  -40 3.63/1.89 V 0.4 V pp sine   50 MHz: delay 1.607 ns, duty 51.3 %, rise 212 ps, P 0.362 mW (VDDD 6.3 uA), swing -0.01..1.90 V
+  ff  -40 3.63/1.89 V 3.3 V pp square 50 MHz: delay 0.046 ns, duty 53.9 %, rise 210 ps, P 0.295 mW (VDDD 6.4 uA), swing -0.02..1.90 V
+  sf   27 2.97/1.71 V 0.4 V pp sine   50 MHz: delay 2.262 ns, duty 49.0 %, rise 459 ps, P 0.212 mW (VDDD 6.0 uA), swing -0.02..1.72 V
+  sf   27 2.97/1.71 V 3.3 V pp square 50 MHz: delay 0.292 ns, duty 54.9 %, rise 458 ps, P 0.193 mW (VDDD 6.0 uA), swing -0.02..1.72 V
+  sf   27 3.63/1.89 V 0.4 V pp sine   50 MHz: delay 1.927 ns, duty 52.0 %, rise 379 ps, P 0.326 mW (VDDD 6.7 uA), swing -0.02..1.90 V
+  sf   27 3.63/1.89 V 3.3 V pp square 50 MHz: delay 0.202 ns, duty 54.8 %, rise 376 ps, P 0.279 mW (VDDD 6.7 uA), swing -0.02..1.90 V
+  fs   27 2.97/1.71 V 0.4 V pp sine   50 MHz: delay 1.990 ns, duty 51.1 %, rise 240 ps, P 0.220 mW (VDDD 5.9 uA), swing -0.01..1.72 V
+  fs   27 2.97/1.71 V 3.3 V pp square 50 MHz: delay 0.151 ns, duty 54.7 %, rise 238 ps, P 0.195 mW (VDDD 5.9 uA), swing -0.02..1.73 V
+  fs   27 3.63/1.89 V 0.4 V pp sine   50 MHz: delay 1.472 ns, duty 63.1 %, rise 215 ps, P 0.391 mW (VDDD 6.7 uA), swing -0.01..1.89 V
+  fs   27 3.63/1.89 V 3.3 V pp square 50 MHz: delay 0.093 ns, duty 55.1 %, rise 208 ps, P 0.328 mW (VDDD 6.7 uA), swing -0.02..1.90 V
+  ss  -40 2.97/1.71 V 0.4 V pp sine   50 MHz: delay 2.194 ns, duty 50.5 %, rise 491 ps, P 0.205 mW (VDDD 5.9 uA), swing -0.02..1.73 V
+  ss  -40 2.97/1.71 V 3.3 V pp square 50 MHz: delay 0.317 ns, duty 56.6 %, rise 490 ps, P 0.182 mW (VDDD 5.9 uA), swing -0.02..1.73 V
+  ss  -40 3.63/1.89 V 0.4 V pp sine   50 MHz: delay 1.832 ns, duty 53.4 %, rise 390 ps, P 0.283 mW (VDDD 6.6 uA), swing -0.02..1.91 V
+  ss  -40 3.63/1.89 V 3.3 V pp square 50 MHz: delay 0.210 ns, duty 55.5 %, rise 388 ps, P 0.258 mW (VDDD 6.6 uA), swing -0.02..1.91 V
+  tt   27 3.3/1.8 V 1.0 V pp sine   45 MHz: delay 1.627 ns, duty 48.2 %, rise 296 ps, P 0.252 mW (VDDD 5.6 uA), swing -0.02..1.81 V
+  tt   27 3.3/1.8 V 1.0 V pp sine   55 MHz: delay 1.420 ns, duty 48.6 %, rise 295 ps, P 0.256 mW (VDDD 6.9 uA), swing -0.02..1.81 V
+  tt   27 3.3/1.71 V 3.3 V pp square 50 MHz: delay 0.181 ns, duty 54.7 %, rise 322 ps, P 0.232 mW (VDDD 6.0 uA), swing -0.02..1.73 V
+  tt   27 3.3/1.89 V 3.3 V pp square 50 MHz: delay 0.152 ns, duty 54.4 %, rise 273 ps, P 0.234 mW (VDDD 6.6 uA), swing -0.02..1.91 V
+D tt_27 {'t_first': 5.007930083421655e-07, 't_settled': 4.3264976645644644e-06, 'ia_off': 5.894220874020386e-06, 'id_off': 4.614203386088922e-10, 'out_off': 3.04391305e-07}
+D ss_110 {'t_first': 5.009258710681356e-07, 't_settled': 3.7864882216479607e-06, 'ia_off': 6.2244254168881004e-06, 'id_off': 1.497875299587822e-09, 'out_off': 1.61445266e-06}
+D ff_-40 {'t_first': 5.006878890990668e-07, 't_settled': 4.846203187958461e-06, 'ia_off': 5.674636658043276e-06, 'id_off': 1.30868215027e-10, 'out_off': 5.36148053e-08}
