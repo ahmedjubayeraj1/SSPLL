@@ -1,0 +1,6 @@
+# xschemrc for the SSPLL repo: PDK symbols from $PDK_ROOT/$PDK, then this folder (cells and testbenches).
+#   export PDK_ROOT=/path/to/pdk PDK=sky130A ; cd xschem ; xschem
+if {![info exists env(PDK)]} { set env(PDK) sky130A }
+source $env(PDK_ROOT)/$env(PDK)/libs.tech/xschem/xschemrc
+append XSCHEM_LIBRARY_PATH :[file dirname [file normalize [info script]]]
+set netlist_dir [file dirname [file normalize [info script]]]/netlist

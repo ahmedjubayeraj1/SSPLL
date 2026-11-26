@@ -1,0 +1,28 @@
+* tb_refbuf_startup - method M16: start-up after pll_en and the disabled state (step 76)
+* Run:  tb/run.sh tb/refbuf/tb_refbuf_startup.spice tt 27
+* pll_en is 0 for 0.5 us (block off: refclk must be 0 and the supply current small), then rises. The input bias
+* charges through R_B and the first good edges appear a few us later.
+.lib __PDK__/libs.tech/ngspice/sky130.lib.spice __CORNER__
+.temp __TEMP__
+.include __DUT__/sspll_refbuf.spice
+vdda VDDA 0 3.3
+vddl VDDL 0 1.8
+vddd VDDD 0 1.8
+iib  ib 0 2.5u
+ven  pll_en 0 pwl(0 0 0.5u 0 0.501u 1.8)
+vsrc padx 0 sin(1.65 0.5 50meg)
+rs   padx pad0 50
+x1 pad0 refclk ib pll_en VDDA VDDL VDDD 0 sspll_refbuf
+cl refclk 0 50f
+.control
+tran 20p 12u 0 50p
+meas tran ioff avg i(vdda) from=0.2u to=0.5u
+meas tran voff max v(refclk) from=0.2u to=0.5u
+meas tran tfirst when v(refclk)=0.9 rise=2         ; rise 1 is a single glitch at the enable instant
+meas tran t100 when v(refclk)=0.9 rise=100
+meas tran t300 when v(refclk)=0.9 rise=300
+let per = (t300 - t100)/200                         ; must be 20 ns
+wrdata startup.txt v(refclk) v(x1.vin)
+echo "RESULT disabled: I(VDDA) = $&ioff A, refclk max = $&voff V; first clock edge $&tfirst s (pll_en at 0.5 us); mean period afterwards $&per s"
+.endc
+.end

@@ -21,3 +21,10 @@ versions_pc.txt.bak
 *.fd.pss
 *.td.pss
 .venv/
+learn/html/
+learn/spice/.spiceinit
+design/loop/spice/.spiceinit
+__pycache__/
+xschem/netlist/
+design/vco/data/log_*.txt
+tb/out/
