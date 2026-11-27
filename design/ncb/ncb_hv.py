@@ -1,24 +1,22 @@
 #!/usr/bin/env python3
 """ncb_hv.py - noise-cancellation block (NCB): a voltage-controlled delay line on VDDA, 5 V devices, driven by the
-ring's clkp / clkm and steered by vff from the diff-to-SE amplifier. One line per ring phase (p and m), identical.
+ring's clock and steered by vff from the diff-to-SE amplifier.
 
-  per line:   in ── X0 (input inverter) ── n0 ── X1 (starved) ── a ── X2 (starved) ── b ── X3 (output) ── out
-                                                 │                │
-                                        cap bank on a     cap bank on b     (4-bit, binary MOS capacitors)
-  X1 / X2: inverters whose nMOS source goes to VSSA through a starving nMOS (gate nb). The falling edge of a and of b
-  is current-limited, so every input edge passes exactly one controlled transition (rising input: b falls; falling
-  input: a falls) and both edges move by the same amount (no duty-cycle change).
+  line:   in ── X0 (input inverter) ── n0 ── X1 (starved) ── a ── X2 (starved) ── b ── X3 (output) ── out
+                                                  │                 │
+                                         cap bank on a      cap bank on b      (4-bit, binary, transmission gates)
+  X1 / X2: inverters with a pMOS starver (gate pd) in the source of the pMOS and an nMOS starver (gate nb) in the
+  source of the nMOS, so both edges of a and b are current-limited and the duty cycle is kept.
 
-  bias:  vff ── MI (nMOS, KI units of the D2S level diode, 2/1 um) ── pd: pMOS diode MPD ── MPO (copy) ── nb: nMOS
-         diode MND ── starvers MS (MSN units of MND each, in every X1 / X2)
+  bias:  vff ── MI (nMOS, KI units of the D2S level diode, 2/1 um) ── pd: pMOS diode ── copy ── nb: nMOS diode
   At rest vff = V_GS of the D2S's 2/1 um diode at 20 uA, so MI carries KI x 20 uA at every corner (replica bias), and
-  the starvers M x that. A higher vff -> more starving current -> shorter delay:
+  the starvers a fixed multiple of that. A higher vff -> more starving current -> shorter delay:
       t_d = C_node dV / I_s,    K_d = -dt/dvff = t_d (g_m,MI / I_MI)
   The cap bank scales C_node and with it K_d: the 4-bit code is the FFNC gain calibration.
 
-  cap bank: unit nMOS capacitor (gate on the node, source / drain on a code line). Code line at 0 V: the channel forms
-  once the node passes V_T -> the capacitance counts during the transition. Code line at VDDA: no channel -> small.
-  The 4 code bits come from 1.8 V control through level shifters (outb drives the code lines: bit = 1 adds cap).
+  cap bank: bit k = a transmission gate (nMOS gate c_k, pMOS gate c_kb) in series with 2^k unit nMOS gate capacitors.
+  c_k = VDDA (code bit 1) closes the gate and adds the capacitors to the node. The code comes from 1.8 V control through
+  level shifters (sspll_ncb_hv_top: g_k -> c_k, c_kb).
 Every device is (model, W per finger, nf, L)."""
 import os, re, sys
 import numpy as np
@@ -72,8 +70,8 @@ def cells(p=D):
            if p["NRI"] else _m("i", "pd", "vff", "VSSA", "VSSA", p["MI"], m=p["KI"])) +
           _m("pd", "pd", "pd", "VDDA", "VDDA", p["MPM"]) + _m("po", "nb", "pd", "VDDA", "VDDA", p["MPM"]) +
           _m("nd", "nb", "nb", "VSSA", "VSSA", p["MND"]) + ".ends\n")
-    c += (".subckt sspll_ncb_hv in out vff c0 c1 c2 c3 c0b c1b c2b c3b VDDA VSSA\n* NCB core: bias + one delay line (code lines c0-c3 "
-          "active low: 0 V = capacitor in)\n"
+    c += (".subckt sspll_ncb_hv in out vff c0 c1 c2 c3 c0b c1b c2b c3b VDDA VSSA\n* NCB core: bias + one delay line (code line c_k at "
+          "VDDA = bit k capacitors in)\n"
           "xb vff nb pd VDDA VSSA sspll_ncb_hv_bias\n"
           "xl in out nb pd c0 c1 c2 c3 c0b c1b c2b c3b VDDA VSSA sspll_ncb_hv_line\n.ends\n")
     return re.sub(r"\bVSS\b", "VSSA", c)
