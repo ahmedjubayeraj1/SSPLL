@@ -40,6 +40,13 @@ Chipalooza Challenge #4 (Chip Foundry Sky130) entry. A ring-oscillator sub-sampl
     python3 tools/lvs_hv_all.py                           # LVS of every 5 V cell
     python3 design/sscp/sscp_hv_sim.py                   # each step's simulations: design/<block>/<block>_hv_*.py
 
+Quick check of every finished block against the stored results, no coding needed (about 12 minutes; PASS / FAIL per
+quantity, results saved as CSV in `results/`, every simulated netlist kept for inspection):
+
+    python3 tools/verify.py setup                         # tools and PDK found?
+    python3 tools/verify.py all                           # or one block: python3 tools/verify.py ncb
+    python3 tools/verify.py full ncb                      # a block's complete verification (hours)
+
 Each step's note in `docs/design/` lists its scripts, run times and results, and `docs/testbench_guide.md` explains every bench.
 
 Everything here can be rebuilt and verified with open-source tools (Chipalooza Rules 13–14). License: Apache-2.0.
